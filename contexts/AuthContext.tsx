@@ -58,14 +58,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUser]);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const result = await authClient.signIn.email({ email, password });
-    if (result.error) throw new Error(result.error.message || result.error.statusText || 'Sign in failed');
+    console.log('[AuthContext] signInWithEmail called for:', email);
+    let result;
+    try {
+      result = await authClient.signIn.email({ email, password });
+    } catch (err) {
+      console.log('[AuthContext] signIn.email threw:', err);
+      throw new Error(err instanceof Error ? err.message : 'Network error — please try again.');
+    }
+    console.log('[AuthContext] signIn.email result:', JSON.stringify({ error: result?.error, hasData: !!result?.data }));
+    if (result?.error) {
+      throw new Error(result.error.message || String(result.error.statusText) || 'Sign in failed');
+    }
+    console.log('[AuthContext] Sign in succeeded, fetching user session');
     await fetchUser();
   }, [fetchUser]);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, name: string) => {
-    const result = await authClient.signUp.email({ email, password, name });
-    if (result.error) throw new Error(result.error.message || 'Sign up failed');
+    console.log('[AuthContext] signUpWithEmail called for:', email);
+    let result;
+    try {
+      result = await authClient.signUp.email({ email, password, name });
+    } catch (err) {
+      console.log('[AuthContext] signUp.email threw:', err);
+      throw new Error(err instanceof Error ? err.message : 'Network error — please try again.');
+    }
+    console.log('[AuthContext] signUp.email result:', JSON.stringify({ error: result?.error, hasData: !!result?.data }));
+    if (result?.error) {
+      throw new Error(result.error.message || 'Sign up failed');
+    }
+    console.log('[AuthContext] Sign up succeeded, fetching user session');
     await fetchUser();
   }, [fetchUser]);
 

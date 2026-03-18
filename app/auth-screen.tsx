@@ -66,8 +66,8 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Signing up with email:', email, 'name:', name);
         await signUpWithEmail(email.trim(), password, name.trim());
       }
-      console.log('[AuthScreen] Auth success, navigating back');
-      router.back();
+      console.log('[AuthScreen] Auth success, navigating to home');
+      router.replace('/');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
       console.log('[AuthScreen] Auth error:', msg);
