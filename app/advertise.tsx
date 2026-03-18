@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Star, TrendingUp, Users, CheckCircle, Square, CheckSquare } from 'lucide-react-native';
+import { Zap, CheckCircle, Square, CheckSquare, Star, TrendingUp, Users } from 'lucide-react-native';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import * as Haptics from 'expo-haptics';
 
@@ -25,6 +25,8 @@ const COLORS = {
   border: 'rgba(45, 122, 95, 0.08)',
   gold: '#F59E0B',
   goldMuted: 'rgba(251, 191, 36, 0.12)',
+  amber: '#D97706',
+  amberMuted: '#FEF3C7',
 };
 
 const BENEFITS = [
@@ -51,31 +53,32 @@ const BENEFITS = [
   },
 ];
 
-const PRICING = [
-  {
-    id: 'monthly',
-    label: 'Monthly',
-    price: '$29',
-    period: '/month',
-    badge: null,
-    highlight: false,
-  },
-  {
-    id: 'annual',
-    label: 'Annual',
-    price: '$199',
-    period: '/year',
-    badge: 'Save 43%',
-    highlight: true,
-  },
-];
-
 const PROVIDER_TERMS = [
   'This platform functions solely as an advertising platform and directory service.',
-  'Any fees paid are for marketing, visibility, and listing placement only.',
+  'Any fees paid are advertising and listing fees for visibility and placement only.',
   'Fees are not based on client inquiries, bookings, or outcomes.',
   'No guarantee of client inquiries or conversions is provided.',
   'You are responsible for maintaining appropriate licensure and practicing within your professional scope and ethical guidelines.',
+];
+
+const FREE_FEATURES = [
+  'Basic profile in the directory of providers',
+  'Listed in search results',
+  'Standard visibility',
+];
+
+const FEATURED_FEATURES = [
+  'Appears at top of search results',
+  'Highlighted profile card',
+  '"Accepting New Clients" badge',
+  'More visibility to active searchers',
+];
+
+const PREMIUM_FEATURES = [
+  'Priority placement in search',
+  'Expanded profile (bio, photo, specialties)',
+  'Multiple locations',
+  'Direct contact buttons',
 ];
 
 export default function AdvertiseScreen() {
@@ -93,6 +96,18 @@ export default function AdvertiseScreen() {
     console.log('[Advertise] Get Featured button pressed — navigating to paywall');
     router.push('/paywall');
   };
+
+  const handleGetListedFree = () => {
+    console.log('[Advertise] Get Listed Free button pressed — navigating to apply');
+    router.push('/apply');
+  };
+
+  const handleNotifyMe = () => {
+    console.log('[Advertise] Notify Me button pressed (Premium — coming soon, disabled)');
+  };
+
+  const featuredButtonOpacity = termsAgreed ? 1 : 0.4;
+  const featuredButtonShadow = termsAgreed ? '0 4px 20px rgba(45, 122, 95, 0.35)' : undefined;
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -136,7 +151,7 @@ export default function AdvertiseScreen() {
               letterSpacing: -0.3,
             }}
           >
-            Get more clients.
+            Get more visibility.
           </Text>
           <Text
             style={{
@@ -161,12 +176,129 @@ export default function AdvertiseScreen() {
               maxWidth: 280,
             }}
           >
-            Promote your practice and help clients who are actively looking find you.
+            Advertising and listing fees give your practice better visibility and placement in our directory of providers.
           </Text>
         </View>
 
+        {/* Founding Member Banner */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+          <View
+            style={{
+              backgroundColor: COLORS.primary,
+              borderRadius: 18,
+              borderCurve: 'continuous',
+              padding: 20,
+              overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(45, 122, 95, 0.3)',
+            }}
+          >
+            {/* Decorative circle */}
+            <View
+              style={{
+                position: 'absolute',
+                top: -30,
+                right: -30,
+                width: 120,
+                height: 120,
+                borderRadius: 60,
+                backgroundColor: 'rgba(255,255,255,0.07)',
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: -20,
+                left: -20,
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(255,255,255,0.05)',
+              }}
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Zap size={18} color="#FFFFFF" fill="#FFFFFF" />
+              </View>
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: -0.2,
+                }}
+              >
+                Founding Member Offer
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                fontFamily: 'DMSans_700Bold',
+                letterSpacing: -0.3,
+                marginBottom: 6,
+              }}
+            >
+              Free for 3 months
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.8)',
+                fontFamily: 'DMSans_400Regular',
+                lineHeight: 20,
+                marginBottom: 12,
+              }}
+            >
+              Lock in early access before we open to the public. Limited spots available.
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                alignSelf: 'flex-start',
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: '#4ade80',
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontFamily: 'DMSans_600SemiBold',
+                }}
+              >
+                Join now before spots fill up
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Benefits */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 28, gap: 12 }}>
           <Text
             style={{
               fontSize: 13,
@@ -238,8 +370,8 @@ export default function AdvertiseScreen() {
           })}
         </View>
 
-        {/* Pricing */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 28, gap: 12 }}>
+        {/* Pricing Tiers */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 28, gap: 14 }}>
           <Text
             style={{
               fontSize: 13,
@@ -253,78 +385,358 @@ export default function AdvertiseScreen() {
           >
             Choose a plan
           </Text>
-          {PRICING.map((plan) => (
-            <View
-              key={plan.id}
+
+          {/* Tier 1 — Free */}
+          <View
+            style={{
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              borderCurve: 'continuous',
+              padding: 20,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            }}
+          >
+            <Text
               style={{
-                backgroundColor: plan.highlight ? COLORS.primary : COLORS.surface,
-                borderRadius: 16,
-                borderCurve: 'continuous',
-                padding: 20,
-                borderWidth: plan.highlight ? 0 : 1,
-                borderColor: COLORS.border,
-                boxShadow: plan.highlight
-                  ? '0 4px 16px rgba(45, 122, 95, 0.25)'
-                  : '0 1px 4px rgba(0,0,0,0.04)',
+                fontSize: 17,
+                fontWeight: '700',
+                color: COLORS.text,
+                fontFamily: 'DMSans_700Bold',
+                marginBottom: 4,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text
-                  style={{
-                    fontSize: 17,
-                    fontWeight: '700',
-                    color: plan.highlight ? '#FFFFFF' : COLORS.text,
-                    fontFamily: 'DMSans_700Bold',
-                  }}
-                >
-                  {plan.label}
-                </Text>
-                {plan.badge ? (
-                  <View
+              Free Listing
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 30,
+                  fontWeight: '700',
+                  color: COLORS.text,
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: -0.5,
+                }}
+              >
+                $0
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: COLORS.textSecondary,
+                  fontFamily: 'DMSans_400Regular',
+                }}
+              >
+                / month
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: COLORS.textTertiary,
+                fontFamily: 'DMSans_400Regular',
+                marginBottom: 16,
+              }}
+            >
+              No credit card required
+            </Text>
+            <View style={{ gap: 8, marginBottom: 18 }}>
+              {FREE_FEATURES.map((feature) => (
+                <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle size={15} color={COLORS.textTertiary} />
+                  <Text
                     style={{
-                      backgroundColor: COLORS.gold,
-                      borderRadius: 20,
-                      paddingHorizontal: 10,
-                      paddingVertical: 4,
+                      fontSize: 13,
+                      color: COLORS.textSecondary,
+                      fontFamily: 'DMSans_400Regular',
+                      flex: 1,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: '700',
-                        color: '#FFFFFF',
-                        fontFamily: 'DMSans_700Bold',
-                      }}
-                    >
-                      {plan.badge}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginTop: 8 }}>
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={handleGetListedFree}
+              activeOpacity={0.8}
+              style={{
+                borderWidth: 1.5,
+                borderColor: COLORS.primary,
+                borderRadius: 12,
+                borderCurve: 'continuous',
+                paddingVertical: 13,
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: '600',
+                  color: COLORS.primary,
+                  fontFamily: 'DMSans_600SemiBold',
+                }}
+              >
+                Get Listed Free
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Tier 2 — Featured (elevated) */}
+          <View
+            style={{
+              backgroundColor: COLORS.surface,
+              borderRadius: 18,
+              borderCurve: 'continuous',
+              padding: 22,
+              borderWidth: 2,
+              borderColor: COLORS.accent,
+              boxShadow: '0 6px 24px rgba(45, 122, 95, 0.18)',
+              marginHorizontal: -2,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: COLORS.text,
+                  fontFamily: 'DMSans_700Bold',
+                }}
+              >
+                Featured Listing
+              </Text>
+              <View
+                style={{
+                  backgroundColor: COLORS.accent,
+                  borderRadius: 20,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
                 <Text
                   style={{
-                    fontSize: 32,
+                    fontSize: 11,
                     fontWeight: '700',
-                    color: plan.highlight ? '#FFFFFF' : COLORS.text,
+                    color: '#FFFFFF',
                     fontFamily: 'DMSans_700Bold',
-                    letterSpacing: -0.5,
+                    letterSpacing: 0.2,
                   }}
                 >
-                  {plan.price}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 15,
-                    color: plan.highlight ? 'rgba(255,255,255,0.7)' : COLORS.textSecondary,
-                    fontFamily: 'DMSans_400Regular',
-                  }}
-                >
-                  {plan.period}
+                  Most Popular
                 </Text>
               </View>
             </View>
-          ))}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 30,
+                  fontWeight: '700',
+                  color: COLORS.primary,
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: -0.5,
+                }}
+              >
+                $15–$30
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: COLORS.textSecondary,
+                  fontFamily: 'DMSans_400Regular',
+                }}
+              >
+                / month
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: COLORS.textTertiary,
+                fontFamily: 'DMSans_400Regular',
+                marginBottom: 16,
+              }}
+            >
+              Advertising and listing fees only
+            </Text>
+            <View style={{ gap: 8, marginBottom: 18 }}>
+              {FEATURED_FEATURES.map((feature) => (
+                <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle size={15} color={COLORS.accent} />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: COLORS.text,
+                      fontFamily: 'DMSans_400Regular',
+                      flex: 1,
+                    }}
+                  >
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={termsAgreed ? handleGetFeatured : undefined}
+              activeOpacity={termsAgreed ? 0.85 : 1}
+              style={{
+                backgroundColor: COLORS.accent,
+                borderRadius: 12,
+                borderCurve: 'continuous',
+                paddingVertical: 15,
+                alignItems: 'center',
+                boxShadow: featuredButtonShadow,
+                opacity: featuredButtonOpacity,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: -0.2,
+                }}
+              >
+                Get Featured
+              </Text>
+            </TouchableOpacity>
+            {!termsAgreed && (
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: COLORS.textTertiary,
+                  fontFamily: 'DMSans_400Regular',
+                  textAlign: 'center',
+                  marginTop: 8,
+                }}
+              >
+                Agree to terms below to continue
+              </Text>
+            )}
+          </View>
+
+          {/* Tier 3 — Premium (coming soon) */}
+          <View
+            style={{
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              borderCurve: 'continuous',
+              padding: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(217, 119, 6, 0.2)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+              opacity: 0.85,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: '700',
+                  color: COLORS.text,
+                  fontFamily: 'DMSans_700Bold',
+                }}
+              >
+                Premium Listing
+              </Text>
+              <View
+                style={{
+                  backgroundColor: COLORS.amberMuted,
+                  borderRadius: 20,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: COLORS.amber,
+                    fontFamily: 'DMSans_700Bold',
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  Coming Soon
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 30,
+                  fontWeight: '700',
+                  color: COLORS.text,
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: -0.5,
+                }}
+              >
+                $40–$75
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: COLORS.textSecondary,
+                  fontFamily: 'DMSans_400Regular',
+                }}
+              >
+                / month
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: COLORS.textTertiary,
+                fontFamily: 'DMSans_400Regular',
+                marginBottom: 16,
+              }}
+            >
+              Advertising and listing fees only
+            </Text>
+            <View style={{ gap: 8, marginBottom: 18 }}>
+              {PREMIUM_FEATURES.map((feature) => (
+                <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle size={15} color={COLORS.amber} />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: COLORS.textSecondary,
+                      fontFamily: 'DMSans_400Regular',
+                      flex: 1,
+                    }}
+                  >
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={handleNotifyMe}
+              activeOpacity={1}
+              disabled
+              style={{
+                borderWidth: 1.5,
+                borderColor: 'rgba(217, 119, 6, 0.3)',
+                borderRadius: 12,
+                borderCurve: 'continuous',
+                paddingVertical: 13,
+                alignItems: 'center',
+                opacity: 0.5,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: '600',
+                  color: COLORS.amber,
+                  fontFamily: 'DMSans_600SemiBold',
+                }}
+              >
+                Notify Me
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Terms for Providers */}
@@ -413,48 +825,6 @@ export default function AdvertiseScreen() {
               </Text>
             </Pressable>
           </View>
-        </View>
-
-        {/* CTA */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 20, gap: 12 }}>
-          <TouchableOpacity
-            onPress={termsAgreed ? handleGetFeatured : undefined}
-            activeOpacity={termsAgreed ? 0.85 : 1}
-            style={{
-              backgroundColor: COLORS.accent,
-              borderRadius: 16,
-              borderCurve: 'continuous',
-              paddingVertical: 18,
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: termsAgreed ? '0 4px 20px rgba(76, 175, 130, 0.4)' : undefined,
-              opacity: termsAgreed ? 1 : 0.4,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 17,
-                fontWeight: '700',
-                color: '#FFFFFF',
-                fontFamily: 'DMSans_700Bold',
-                letterSpacing: -0.2,
-              }}
-            >
-              Get Featured
-            </Text>
-          </TouchableOpacity>
-
-          <Text
-            style={{
-              fontSize: 12,
-              color: COLORS.textTertiary,
-              fontFamily: 'DMSans_400Regular',
-              textAlign: 'center',
-              lineHeight: 18,
-            }}
-          >
-            Billed through the App Store / Google Play. Cancel anytime.
-          </Text>
         </View>
 
         {/* Disclaimer */}

@@ -1,5 +1,5 @@
 import 'react-native-reanimated';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -7,7 +7,7 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
-import { Stack } from 'expo-router';
+import { Stack, Redirect, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,7 +20,9 @@ import {
 } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { FiltersProvider } from '@/contexts/FiltersContext';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
+import { isOnboardingComplete } from "@/utils/onboardingStorage";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,7 +30,50 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
+function SubscriptionRedirect() {
+  const { isSubscribed, loading } = useSubscription();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (loading || authLoading) return;
+    const onAuthScreen = pathname === "/auth-screen";
+    if (onAuthScreen) return;
+    if (!user) {
+      router.replace("/auth-screen");
+      return;
+    }
+    const onOnboarding = pathname.startsWith("/onboarding");
+    if (onOnboarding) return;
+
+    let cancelled = false;
+    isOnboardingComplete().then((done) => {
+      if (cancelled) return;
+      if (!done) {
+        router.replace("/onboarding");
+        return;
+      }
+        // Don't force subscription — app has a free tier
+    }).catch(() => {
+      // Don't force subscription — app has a free tier
+    });
+    return () => { cancelled = true; };
+  }, [isSubscribed, loading, authLoading, pathname, user]);
+
+  return null;
+}
+
 export default function RootLayout() {
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    isOnboardingComplete().then((complete) => {
+      setOnboardingComplete(complete);
+    });
+  }, [pathname]);
+
   const colorScheme = useColorScheme();
 
   const [loaded] = useFonts({
@@ -54,8 +99,11 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <SafeAreaProvider>
           <AuthProvider>
+        <SubscriptionProvider>
+          <SubscriptionRedirect />
             <FiltersProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
+
                 <Stack
                   screenOptions={{
                     headerTransparent: true,
@@ -64,6 +112,8 @@ export default function RootLayout() {
                     headerBackButtonDisplayMode: 'minimal',
                   }}
                 >
+                  <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+
                   <Stack.Screen name="index" options={{ title: 'Find a Therapist' }} />
                   <Stack.Screen
                     name="filter-sheet"
@@ -169,7 +219,8 @@ export default function RootLayout() {
                 <SystemBars style="auto" />
               </GestureHandlerRootView>
             </FiltersProvider>
-          </AuthProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </>
