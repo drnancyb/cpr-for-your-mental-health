@@ -1,0 +1,20 @@
+CREATE TABLE "therapists" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"photo_url" text NOT NULL,
+	"title" text NOT NULL,
+	"bio" text NOT NULL,
+	"location" text NOT NULL,
+	"gender" text NOT NULL,
+	"specialties" text[] NOT NULL,
+	"therapy_types" text[] NOT NULL,
+	"insurances" text[] NOT NULL,
+	"accepting_new_clients" boolean DEFAULT true NOT NULL,
+	"session_fee" numeric NOT NULL,
+	"languages" text[] NOT NULL,
+	"years_experience" integer NOT NULL,
+	"phone" text NOT NULL,
+	"email" text NOT NULL,
+	"website_url" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
