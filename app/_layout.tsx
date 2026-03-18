@@ -20,6 +20,7 @@ import {
 } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { FiltersProvider } from '@/contexts/FiltersContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,42 +53,75 @@ export default function RootLayout() {
       <StatusBar style="auto" animated />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <SafeAreaProvider>
-          <FiltersProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <Stack
-                screenOptions={{
-                  headerTransparent: true,
-                  headerLargeTitle: true,
-                  headerBlurEffect: 'systemMaterial',
-                  headerBackButtonDisplayMode: 'minimal',
-                }}
-              >
-                <Stack.Screen name="index" options={{ title: 'Find a Therapist' }} />
-                <Stack.Screen
-                  name="filter-sheet"
-                  options={{
-                    presentation: 'formSheet',
-                    sheetGrabberVisible: true,
-                    sheetAllowedDetents: [0.75, 1.0],
-                    contentStyle: { backgroundColor: 'transparent' },
-                    headerShown: false,
-                  }}
-                />
-                <Stack.Screen
-                  name="therapist/[id]"
-                  options={{
-                    headerShown: true,
+          <AuthProvider>
+            <FiltersProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <Stack
+                  screenOptions={{
                     headerTransparent: true,
-                    headerLargeTitle: false,
+                    headerLargeTitle: true,
+                    headerBlurEffect: 'systemMaterial',
                     headerBackButtonDisplayMode: 'minimal',
-                    title: '',
                   }}
-                />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <SystemBars style="auto" />
-            </GestureHandlerRootView>
-          </FiltersProvider>
+                >
+                  <Stack.Screen name="index" options={{ title: 'Find a Therapist' }} />
+                  <Stack.Screen
+                    name="filter-sheet"
+                    options={{
+                      presentation: 'formSheet',
+                      sheetGrabberVisible: true,
+                      sheetAllowedDetents: [0.75, 1.0],
+                      contentStyle: { backgroundColor: 'transparent' },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="therapist/[id]"
+                    options={{
+                      headerShown: true,
+                      headerTransparent: true,
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                      title: '',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="auth-screen"
+                    options={{
+                      headerShown: false,
+                      presentation: 'modal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="apply"
+                    options={{
+                      title: 'Apply as Therapist',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin/index"
+                    options={{
+                      title: 'Admin Dashboard',
+                      headerLargeTitle: true,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin/application/[id]"
+                    options={{
+                      title: 'Application',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <SystemBars style="auto" />
+              </GestureHandlerRootView>
+            </FiltersProvider>
+          </AuthProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </>

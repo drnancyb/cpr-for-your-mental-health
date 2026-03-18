@@ -6,14 +6,19 @@ import {
   ScrollView,
   Animated,
   RefreshControl,
+  TouchableOpacity,
+  ActionSheetIOS,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield } from 'lucide-react-native';
+import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
 import { TherapistCard, Therapist } from '@/components/therapist-card';
 import { SkeletonCard } from '@/components/skeleton-card';
 import { FiltersContext } from '@/contexts/FiltersContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -41,6 +46,7 @@ const FILTER_CHIPS = [
 
 export default function IndexScreen() {
   const { filters, updateFilter, clearFilters, activeFilterCount } = use(FiltersContext);
+  const { user, signOut } = useAuth();
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,8 +69,8 @@ export default function IndexScreen() {
     const url = queryString
       ? `${BASE_URL}/api/therapists?${queryString}`
       : `${BASE_URL}/api/therapists`;
-    console.log('[IndexScreen] Fetching therapists:', url);
 
+    console.log('[Index] Fetching therapists:', url);
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -72,31 +78,29 @@ export default function IndexScreen() {
         throw new Error(`HTTP ${response.status}: ${text.slice(0, 100)}`);
       }
       const data = await response.json();
-      console.log('[IndexScreen] Fetched therapists count:', data.total);
+      console.log('[Index] Fetched', data.therapists?.length ?? 0, 'therapists');
       setTherapists(data.therapists ?? []);
       setTotal(data.total ?? 0);
       setError(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[IndexScreen] Fetch error:', msg);
+      console.error('[Index] Fetch error:', msg);
       setError(msg);
     }
   }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.search]);
 
-  // Initial load and filter changes
   useEffect(() => {
     setLoading(true);
     fetchTherapists().finally(() => setLoading(false));
   }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance]);
 
-  // Debounced search
   const handleSearchChange = useCallback((text: string) => {
     updateFilter('search', text);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
       if (text !== lastSearchRef.current) {
         lastSearchRef.current = text;
-        console.log('[IndexScreen] Search debounced, querying:', text);
+        console.log('[Index] Search debounced, query:', text);
         setLoading(true);
         fetchTherapists(text).finally(() => setLoading(false));
       }
@@ -104,29 +108,132 @@ export default function IndexScreen() {
   }, [updateFilter, fetchTherapists]);
 
   const handleRefresh = useCallback(async () => {
-    console.log('[IndexScreen] Pull-to-refresh triggered');
+    console.log('[Index] Pull-to-refresh triggered');
     setRefreshing(true);
     await fetchTherapists();
     setRefreshing(false);
   }, [fetchTherapists]);
 
   const handleOpenFilters = useCallback(() => {
-    console.log('[IndexScreen] Opening filter sheet');
+    console.log('[Index] Filters button pressed');
     router.push('/filter-sheet');
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    console.log('[IndexScreen] Clearing all filters');
+    console.log('[Index] Clear filters pressed');
     clearFilters();
   }, [clearFilters]);
 
+  const handleUserAvatarPress = useCallback(() => {
+    console.log('[Index] User avatar pressed, user:', user?.email);
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'View My Application', 'Sign Out'],
+          cancelButtonIndex: 0,
+          destructiveButtonIndex: 2,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            console.log('[Index] View Application selected');
+            router.push('/apply');
+          } else if (buttonIndex === 2) {
+            console.log('[Index] Sign Out selected');
+            signOut();
+          }
+        },
+      );
+    } else {
+      Alert.alert(
+        user?.name ?? 'Account',
+        user?.email ?? '',
+        [
+          { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
+          { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+    }
+  }, [user, signOut]);
+
   const acceptingCount = therapists.filter(t => t.accepting_new_clients).length;
+
+  const userInitials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
 
   const renderItem = useCallback(({ item, index }: { item: Therapist; index: number }) => (
     <TherapistCard therapist={item} index={index} />
   ), []);
 
   const keyExtractor = useCallback((item: Therapist) => item.id, []);
+
+  // Header right buttons
+  const HeaderRight = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+      {user?.role === 'admin' && (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('[Index] Admin dashboard button pressed');
+            router.push('/admin');
+          }}
+          activeOpacity={0.7}
+          style={{ padding: 8 }}
+          accessibilityLabel="Admin dashboard"
+        >
+          <ShieldCheck size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        onPress={() => {
+          console.log('[Index] Apply button pressed');
+          router.push('/apply');
+        }}
+        activeOpacity={0.7}
+        style={{ padding: 8 }}
+        accessibilityLabel="Apply as therapist"
+      >
+        <FilePen size={20} color={COLORS.primary} />
+      </TouchableOpacity>
+      {user ? (
+        <TouchableOpacity
+          onPress={handleUserAvatarPress}
+          activeOpacity={0.7}
+          style={{ padding: 4 }}
+          accessibilityLabel="Account menu"
+        >
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: COLORS.primaryMuted,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1.5,
+              borderColor: COLORS.primary + '30',
+            }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary, fontFamily: 'DMSans_700Bold' }}>
+              {userInitials}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('[Index] Sign in button pressed');
+            router.push('/auth-screen');
+          }}
+          activeOpacity={0.7}
+          style={{ padding: 8 }}
+          accessibilityLabel="Sign in"
+        >
+          <LogIn size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   const ListHeader = (
     <View>
@@ -338,7 +445,11 @@ export default function IndexScreen() {
       >
         Check your connection and try again.
       </Text>
-      <AnimatedPressable onPress={() => { setLoading(true); fetchTherapists().finally(() => setLoading(false)); }}>
+      <AnimatedPressable onPress={() => {
+        console.log('[Index] Retry button pressed');
+        setLoading(true);
+        fetchTherapists().finally(() => setLoading(false));
+      }}>
         <View
           style={{
             backgroundColor: COLORS.primary,
@@ -368,6 +479,7 @@ export default function IndexScreen() {
         options={{
           title: 'Find a Therapist',
           headerLargeTitle: true,
+          headerRight: () => HeaderRight,
           headerSearchBarOptions: {
             placeholder: 'Search by name or specialty...',
             onChangeText: (e) => handleSearchChange(e.nativeEvent.text),
