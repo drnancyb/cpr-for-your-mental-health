@@ -1,4 +1,4 @@
-# build-a-simple-mobil
+# CPR (Canadian Psychological Resources)
 
 This app was built using [Natively.dev](https://natively.dev) - a platform for creating mobile apps.
 

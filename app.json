@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "build-a-simple-mobil",
-    "slug": "build-a-simple-mobil",
+    "name": "CPR (Canadian Psychological Resources)",
+    "slug": "cpr-canadian-psychological-resources",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon-qdw.png",
@@ -50,7 +50,7 @@
       "expo-web-browser",
       "expo-secure-store"
     ],
-    "scheme": "buildasimplemobil",
+    "scheme": "cprcanadianpsychologicalresources",
     "experiments": {
       "typedRoutes": true
     },
