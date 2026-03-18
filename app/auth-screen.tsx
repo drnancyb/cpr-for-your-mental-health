@@ -10,7 +10,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff } from 'lucide-react-native';
@@ -32,7 +32,7 @@ const COLORS = {
 };
 
 export default function AuthScreen() {
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, loading: authLoading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -45,6 +45,18 @@ export default function AuthScreen() {
   const nameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F4F7F5', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#2D7A5F" />
+      </View>
+    );
+  }
+
+  if (user) {
+    return <Redirect href="/" />;
+  }
 
   const handleSubmit = async () => {
     console.log('[AuthScreen] Submit pressed, mode:', mode, 'email:', email);

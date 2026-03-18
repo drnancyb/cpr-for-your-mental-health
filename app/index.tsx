@@ -10,8 +10,9 @@ import {
   ActionSheetIOS,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, Redirect } from 'expo-router';
 import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn, Bookmark } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
@@ -192,8 +193,15 @@ export default function IndexScreen() {
 
   const keyExtractor = useCallback((item: Therapist) => item.id, []);
 
-  if (authLoading || !user) {
-    return null;
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F4F7F5', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#2D7A5F" />
+      </View>
+    );
+  }
+  if (!user) {
+    return <Redirect href="/auth-screen" />;
   }
 
   const acceptingCount = therapists.filter(t => t.accepting_new_clients).length;
