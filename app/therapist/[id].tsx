@@ -1,0 +1,640 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Linking,
+  ActivityIndicator,
+} from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  DollarSign,
+  Languages,
+  Clock,
+  CheckCircle,
+} from 'lucide-react-native';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import type { Therapist } from '@/components/therapist-card';
+import type { ImageSourcePropType } from 'react-native';
+
+const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+
+const COLORS = {
+  background: '#F4F7F5',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#EDF2EF',
+  text: '#1A2E25',
+  textSecondary: '#5C7A6A',
+  textTertiary: '#9BB5A8',
+  primary: '#2D7A5F',
+  primaryMuted: '#E8F4EF',
+  accent: '#4CAF82',
+  success: '#34A853',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  border: 'rgba(45, 122, 95, 0.08)',
+  divider: 'rgba(45, 122, 95, 0.05)',
+};
+
+function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
+  if (!source) return { uri: '' };
+  if (typeof source === 'string') return { uri: source };
+  return source as ImageSourcePropType;
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <Text
+      style={{
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.textTertiary,
+        fontFamily: 'DMSans_600SemiBold',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+        marginBottom: 10,
+      }}
+    >
+      {title}
+    </Text>
+  );
+}
+
+function TagChip({ label }: { label: string }) {
+  return (
+    <View
+      style={{
+        backgroundColor: COLORS.primaryMuted,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: '600',
+          color: COLORS.primary,
+          fontFamily: 'DMSans_600SemiBold',
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function StatColumn({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 16,
+        backgroundColor: COLORS.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
+      {icon}
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '700',
+          color: COLORS.text,
+          fontFamily: 'DMSans_700Bold',
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        style={{
+          fontSize: 11,
+          color: COLORS.textTertiary,
+          fontFamily: 'DMSans_400Regular',
+          textAlign: 'center',
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+export default function TherapistDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    console.log('[TherapistDetail] Fetching therapist:', id);
+    fetch(`${BASE_URL}/api/therapists/${id}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 100)}`);
+        }
+        return res.json();
+      })
+      .then((data: Therapist) => {
+        console.log('[TherapistDetail] Loaded therapist:', data.name);
+        setTherapist(data);
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('[TherapistDetail] Fetch error:', msg);
+        setError(msg);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleCall = () => {
+    if (!therapist?.phone) return;
+    console.log('[TherapistDetail] Call button pressed:', therapist.phone);
+    Linking.openURL(`tel:${therapist.phone}`);
+  };
+
+  const handleEmail = () => {
+    if (!therapist?.email) return;
+    console.log('[TherapistDetail] Email button pressed:', therapist.email);
+    Linking.openURL(`mailto:${therapist.email}`);
+  };
+
+  const handleWebsite = () => {
+    if (!therapist?.website_url) return;
+    console.log('[TherapistDetail] Website button pressed:', therapist.website_url);
+    Linking.openURL(therapist.website_url);
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Stack.Screen options={{ title: '' }} />
+        <ActivityIndicator color={COLORS.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (error || !therapist) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+        <Stack.Screen options={{ title: '' }} />
+        <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8, textAlign: 'center' }}>
+          Couldn't load therapist
+        </Text>
+        <Text style={{ fontSize: 15, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', lineHeight: 22 }}>
+          Check your connection and try again.
+        </Text>
+      </View>
+    );
+  }
+
+  const initials = getInitials(therapist.name);
+  const feeDisplay = `$${Number(therapist.session_fee).toFixed(0)}`;
+  const expDisplay = `${therapist.years_experience} yrs`;
+  const langDisplay = `${therapist.languages.length}`;
+  const acceptingText = therapist.accepting_new_clients ? 'Accepting new clients' : 'Not accepting clients';
+
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <Stack.Screen
+        options={{
+          title: '',
+          headerTransparent: true,
+          headerBackButtonDisplayMode: 'minimal',
+        }}
+      />
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 48 }}
+      >
+        {/* Hero section */}
+        <View
+          style={{
+            alignItems: 'center',
+            paddingTop: 100,
+            paddingBottom: 28,
+            paddingHorizontal: 24,
+            backgroundColor: COLORS.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: COLORS.border,
+          }}
+        >
+          {/* Photo */}
+          <View style={{ marginBottom: 16 }}>
+            {therapist.photo_url ? (
+              <Image
+                source={resolveImageSource(therapist.photo_url)}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  borderWidth: 3,
+                  borderColor: COLORS.primaryMuted,
+                }}
+                contentFit="cover"
+                accessibilityLabel={`Photo of ${therapist.name}`}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: COLORS.primaryMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 3,
+                  borderColor: COLORS.primaryMuted,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 32,
+                    fontWeight: '700',
+                    color: COLORS.primary,
+                    fontFamily: 'DMSans_700Bold',
+                  }}
+                >
+                  {initials}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Name */}
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: '700',
+              color: COLORS.text,
+              fontFamily: 'DMSans_700Bold',
+              textAlign: 'center',
+              marginBottom: 4,
+            }}
+          >
+            {therapist.name}
+          </Text>
+
+          {/* Title */}
+          <Text
+            style={{
+              fontSize: 15,
+              color: COLORS.textSecondary,
+              fontFamily: 'DMSans_400Regular',
+              textAlign: 'center',
+              marginBottom: 8,
+            }}
+          >
+            {therapist.title}
+          </Text>
+
+          {/* Location */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <MapPin size={14} color={COLORS.textTertiary} />
+            <Text
+              style={{
+                fontSize: 14,
+                color: COLORS.textTertiary,
+                fontFamily: 'DMSans_400Regular',
+              }}
+            >
+              {therapist.location}
+            </Text>
+          </View>
+
+          {/* Accepting badge */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 20,
+              backgroundColor: therapist.accepting_new_clients ? '#E8F5E9' : COLORS.surfaceSecondary,
+            }}
+          >
+            <CheckCircle
+              size={14}
+              color={therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary}
+            />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary,
+                fontFamily: 'DMSans_600SemiBold',
+              }}
+            >
+              {acceptingText}
+            </Text>
+          </View>
+        </View>
+
+        {/* Quick stats */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <StatColumn
+              icon={<DollarSign size={20} color={COLORS.primary} />}
+              value={feeDisplay}
+              label="Per session"
+            />
+            <StatColumn
+              icon={<Clock size={20} color={COLORS.primary} />}
+              value={expDisplay}
+              label="Experience"
+            />
+            <StatColumn
+              icon={<Languages size={20} color={COLORS.primary} />}
+              value={langDisplay}
+              label={langDisplay === '1' ? 'Language' : 'Languages'}
+            />
+          </View>
+        </View>
+
+        {/* About */}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 20,
+            backgroundColor: COLORS.surface,
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
+        >
+          <SectionTitle title="About" />
+          <Text
+            style={{
+              fontSize: 15,
+              color: COLORS.textSecondary,
+              fontFamily: 'DMSans_400Regular',
+              lineHeight: 22,
+            }}
+            selectable
+          >
+            {therapist.bio}
+          </Text>
+        </View>
+
+        {/* Specialties */}
+        {therapist.specialties.length > 0 ? (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <SectionTitle title="Specialties" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {therapist.specialties.map((s) => (
+                <TagChip key={s} label={s} />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Therapy Types */}
+        {therapist.therapy_types.length > 0 ? (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <SectionTitle title="Therapy Types" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {therapist.therapy_types.map((t) => (
+                <TagChip key={t} label={t} />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Insurance */}
+        {therapist.insurances.length > 0 ? (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <SectionTitle title="Insurance Accepted" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {therapist.insurances.map((ins) => (
+                <View
+                  key={ins}
+                  style={{
+                    backgroundColor: COLORS.surfaceSecondary,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '500',
+                      color: COLORS.textSecondary,
+                      fontFamily: 'DMSans_500Medium',
+                    }}
+                  >
+                    {ins}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Languages */}
+        {therapist.languages.length > 0 ? (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <SectionTitle title="Languages" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {therapist.languages.map((lang) => (
+                <View
+                  key={lang}
+                  style={{
+                    backgroundColor: COLORS.surfaceSecondary,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '500',
+                      color: COLORS.textSecondary,
+                      fontFamily: 'DMSans_500Medium',
+                    }}
+                  >
+                    {lang}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Contact */}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 20,
+            gap: 10,
+          }}
+        >
+          <SectionTitle title="Contact" />
+
+          {/* Call */}
+          <AnimatedPressable onPress={handleCall}>
+            <View
+              style={{
+                backgroundColor: COLORS.primary,
+                borderRadius: 14,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: '0 4px 16px rgba(45, 122, 95, 0.3)',
+              }}
+            >
+              <Phone size={18} color="#FFFFFF" />
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                  fontFamily: 'DMSans_700Bold',
+                }}
+              >
+                Call
+              </Text>
+            </View>
+          </AnimatedPressable>
+
+          {/* Email */}
+          <AnimatedPressable onPress={handleEmail}>
+            <View
+              style={{
+                backgroundColor: COLORS.primaryMuted,
+                borderRadius: 14,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                borderWidth: 1,
+                borderColor: 'rgba(45, 122, 95, 0.15)',
+              }}
+            >
+              <Mail size={18} color={COLORS.primary} />
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: COLORS.primary,
+                  fontFamily: 'DMSans_600SemiBold',
+                }}
+              >
+                Send email
+              </Text>
+            </View>
+          </AnimatedPressable>
+
+          {/* Website — only if exists */}
+          {therapist.website_url ? (
+            <AnimatedPressable onPress={handleWebsite}>
+              <View
+                style={{
+                  borderRadius: 14,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                }}
+              >
+                <Globe size={18} color={COLORS.textSecondary} />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: COLORS.textSecondary,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  Visit website
+                </Text>
+              </View>
+            </AnimatedPressable>
+          ) : null}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
