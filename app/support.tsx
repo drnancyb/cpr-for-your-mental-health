@@ -7,13 +7,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { CheckCircle, Send, AlertCircle } from 'lucide-react-native';
+import { CheckCircle, Send, AlertCircle, Mail, Phone, ChevronRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
@@ -171,10 +171,55 @@ export default function SupportScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 120, paddingTop: 8 }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Direct Contact Card */}
+          <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' }}>
+            <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.text, fontFamily: 'DMSans_700Bold' }}>
+                Reach Us Directly
+              </Text>
+            </View>
+            <View style={{ height: 1, backgroundColor: COLORS.border }} />
+            <AnimatedPressable
+              onPress={() => {
+                console.log('[Support] Email tapped: DrNancyBrooks@gmail.com');
+                Linking.openURL('mailto:DrNancyBrooks@gmail.com');
+              }}
+              scaleValue={0.98}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center' }}>
+                  <Mail size={18} color={COLORS.primary} />
+                </View>
+                <Text style={{ flex: 1, fontSize: 15, color: COLORS.text, fontFamily: 'DMSans_400Regular' }}>
+                  DrNancyBrooks@gmail.com
+                </Text>
+                <ChevronRight size={16} color={COLORS.textTertiary} />
+              </View>
+            </AnimatedPressable>
+            <View style={{ height: 1, backgroundColor: COLORS.border, marginLeft: 64 }} />
+            <AnimatedPressable
+              onPress={() => {
+                console.log('[Support] Phone tapped: +17055717079');
+                Linking.openURL('tel:+17055717079');
+              }}
+              scaleValue={0.98}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center' }}>
+                  <Phone size={18} color={COLORS.primary} />
+                </View>
+                <Text style={{ flex: 1, fontSize: 15, color: COLORS.text, fontFamily: 'DMSans_400Regular' }}>
+                  (705) 571-7079
+                </Text>
+                <ChevronRight size={16} color={COLORS.textTertiary} />
+              </View>
+            </AnimatedPressable>
+          </View>
+
           {/* Intro */}
           <View style={{ backgroundColor: COLORS.primaryMuted, borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(45,122,95,0.12)' }}>
             <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 20 }}>
-              Have a question or need help? Send us a message and we'll get back to you within 1–2 business days.
+              Or send us a message below and we'll get back to you within 1–2 business days.
             </Text>
           </View>
 
