@@ -176,12 +176,14 @@ describe("API Integration Tests", () => {
   // ============================================
 
   let authToken: string;
+  let authEmail: string;
   let applicationId: string;
   let therapistId: string;
 
   test("Setup: sign up test user for authenticated endpoints", async () => {
-    const { token } = await signUpTestUser();
+    const { token, user } = await signUpTestUser();
     authToken = token;
+    authEmail = user.email;
   });
 
   test("Setup: get a therapist ID for saved/booking tests", async () => {
@@ -190,6 +192,44 @@ describe("API Integration Tests", () => {
     if (data.therapists.length > 0) {
       therapistId = data.therapists[0].id;
     }
+  });
+
+  // ============================================
+  // Admin Bootstrap Endpoint
+  // ============================================
+
+  test("POST /api/admin/bootstrap with existing test user", async () => {
+    const res = await api("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: authEmail }),
+    });
+    // Should return 200 (success) or 400 (admin already exists in system)
+    await expectStatus(res, 200, 400);
+    const data = await res.json();
+    expect(data.success !== undefined || data.error !== undefined).toBe(true);
+  });
+
+  test("POST /api/admin/bootstrap with non-existent user returns 404", async () => {
+    const res = await api("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "nonexistent-user-xyz@example.com" }),
+    });
+    await expectStatus(res, 404);
+    const data = await res.json();
+    expect(data.error).toBeDefined();
+  });
+
+  test("POST /api/admin/bootstrap with fresh user signup", async () => {
+    const { user: newUser } = await signUpTestUser();
+    const res = await api("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: newUser.email }),
+    });
+    // Should return 200 if first admin, or 400 if admin already exists
+    await expectStatus(res, 200, 400);
   });
 
   // ============================================

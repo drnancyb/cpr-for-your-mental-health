@@ -9,6 +9,7 @@ import * as savedAndBookingsRoutes from './routes/saved-and-bookings.js';
 import * as adminAnalyticsRoutes from './routes/admin-analytics.js';
 import * as clientPreferencesRoutes from './routes/client-preferences.js';
 import * as supportRoutes from './routes/support.js';
+import * as adminBootstrapRoutes from './routes/admin-bootstrap.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -102,6 +103,7 @@ savedAndBookingsRoutes.register(app, app.fastify);
 adminAnalyticsRoutes.register(app, app.fastify);
 clientPreferencesRoutes.register(app, app.fastify);
 supportRoutes.register(app, app.fastify);
+adminBootstrapRoutes.register(app, app.fastify);
 
 await app.run();
 
