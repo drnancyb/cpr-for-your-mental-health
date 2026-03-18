@@ -6,6 +6,7 @@ import * as therapistsRoutes from './routes/therapists.js';
 import * as applicationsRoutes from './routes/applications.js';
 import * as adminTherapistsRoutes from './routes/admin-therapists.js';
 import * as savedAndBookingsRoutes from './routes/saved-and-bookings.js';
+import * as adminAnalyticsRoutes from './routes/admin-analytics.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -58,17 +59,55 @@ async function seedAdminUser() {
   }
 }
 
+// Seed app content on startup
+async function seedAppContent() {
+  app.logger.info('Checking if app content is seeded');
+  try {
+    const contentCount = await app.db
+      .select()
+      .from(appSchema.appContent);
+
+    if (contentCount.length === 0) {
+      app.logger.info('Seeding app content');
+      await app.db.insert(appSchema.appContent).values([
+        {
+          key: 'home_banner',
+          value: '{"title":"Find a Mental Health Professional in BC","subtitle":"Browse our directory of licensed providers"}',
+        },
+        {
+          key: 'faq',
+          value: '[{"q":"Is this a referral service?","a":"No. This is an independent advertising directory. We do not refer or assign clients."},{"q":"How do I contact a therapist?","a":"Browse the directory and use the contact details on each provider profile."},{"q":"Are therapists verified?","a":"Therapists are responsible for maintaining their own licensure. We encourage users to verify credentials independently."}]',
+        },
+        {
+          key: 'promo_text',
+          value: '{"text":"Founding Member Offer: List your practice for $29.99/month — valid through June 30, 2026"}',
+        },
+      ]);
+      app.logger.info('App content seeded successfully');
+    } else {
+      app.logger.info('App content already seeded');
+    }
+  } catch (err) {
+    app.logger.warn({ err }, 'App content seeding skipped');
+  }
+}
+
 // Register routes
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
 adminTherapistsRoutes.register(app, app.fastify);
 savedAndBookingsRoutes.register(app, app.fastify);
+adminAnalyticsRoutes.register(app, app.fastify);
 
 await app.run();
 
-// Seed admin user after app is running
+// Seed admin user and app content after app is running
 seedAdminUser().catch((err) => {
   app.logger.error({ err }, 'Failed to seed admin user');
+});
+
+seedAppContent().catch((err) => {
+  app.logger.error({ err }, 'Failed to seed app content');
 });
 
 app.logger.info('Application running');

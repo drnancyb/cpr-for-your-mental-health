@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, numeric, integer, boolean, date, foreignKey, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, numeric, integer, boolean, date, foreignKey, unique, jsonb } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema.js';
 
 export const therapists = pgTable('therapists', {
@@ -93,5 +93,90 @@ export const bookingRequests = pgTable(
       foreignColumns: [therapists.id],
       name: 'booking_requests_therapist_id_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+export const appAnalyticsEvents = pgTable(
+  'app_analytics_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventType: text('event_type').notNull(),
+    therapistId: uuid('therapist_id'),
+    userId: text('user_id'),
+    metadata: jsonb('metadata'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'app_analytics_events_user_id_fk',
+    }).onDelete('no action'),
+  ]
+);
+
+export const therapistSubscriptions = pgTable(
+  'therapist_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    therapistId: uuid('therapist_id').notNull(),
+    userId: text('user_id'),
+    status: text('status').notNull().default('active'),
+    plan: text('plan').notNull().default('featured'),
+    amountPaid: numeric('amount_paid'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.therapistId],
+      foreignColumns: [therapists.id],
+      name: 'therapist_subscriptions_therapist_id_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'therapist_subscriptions_user_id_fk',
+    }).onDelete('no action'),
+  ]
+);
+
+export const broadcastNotifications = pgTable(
+  'broadcast_notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    target: text('target').notNull().default('all'),
+    sentBy: text('sent_by').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+    recipientCount: integer('recipient_count').default(0),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.sentBy],
+      foreignColumns: [user.id],
+      name: 'broadcast_notifications_sent_by_fk',
+    }).onDelete('restrict'),
+  ]
+);
+
+export const appContent = pgTable(
+  'app_content',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    key: text('key').notNull().unique(),
+    value: text('value').notNull(),
+    updatedBy: text('updated_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.updatedBy],
+      foreignColumns: [user.id],
+      name: 'app_content_updated_by_fk',
+    }).onDelete('no action'),
   ]
 );

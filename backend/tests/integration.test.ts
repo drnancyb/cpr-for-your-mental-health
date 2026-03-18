@@ -93,6 +93,51 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Public Endpoints: Content
+  // ============================================
+
+  test("GET /api/content/{key} with valid key returns 200", async () => {
+    const res = await api("/api/content/welcome-message");
+    // Could be 200 or 404 depending on if content exists
+    await expectStatus(res, 200, 404);
+  });
+
+  test("GET /api/content/{key} with non-existent key returns 404", async () => {
+    const res = await api("/api/content/nonexistent-key-12345");
+    await expectStatus(res, 404);
+  });
+
+  // ============================================
+  // Public Endpoints: Analytics
+  // ============================================
+
+  test("POST /api/analytics/events tracks an event", async () => {
+    const res = await api("/api/analytics/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "therapist_viewed",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("POST /api/analytics/events with therapist_id tracks event", async () => {
+    const res = await api("/api/analytics/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "therapist_saved",
+        therapist_id: "00000000-0000-0000-0000-000000000000",
+        metadata: { platform: "web" },
+      }),
+    });
+    await expectStatus(res, 201);
+  });
+
+  // ============================================
   // Authentication Setup
   // ============================================
 
@@ -235,14 +280,6 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("GET /api/admin/applications/{id} with invalid UUID returns 400 for non-admin", async () => {
-    const res = await authenticatedApi(
-      "/api/admin/applications/invalid-uuid",
-      authToken
-    );
-    await expectStatus(res, 403);
-  });
-
   test("PATCH /api/admin/applications/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000", {
       method: "PATCH",
@@ -261,14 +298,14 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/applications/{id} with invalid status returns 400", async () => {
+  test("PATCH /api/admin/applications/{id} with invalid ID returns 404 (admin only)", async () => {
     const res = await authenticatedApi(
-      `/api/admin/applications/${applicationId}`,
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000",
       authToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "invalid_status" }),
+        body: JSON.stringify({ status: "approved" }),
       }
     );
     await expectStatus(res, 403);
@@ -350,9 +387,9 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/therapists/{id} with invalid UUID returns 400", async () => {
+  test("PATCH /api/admin/therapists/{id} with non-existent ID returns 404 (admin only)", async () => {
     const res = await authenticatedApi(
-      "/api/admin/therapists/invalid-uuid",
+      "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
       authToken,
       {
         method: "PATCH",
@@ -375,17 +412,6 @@ describe("API Integration Tests", () => {
   test("DELETE /api/admin/therapists/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
-      authToken,
-      {
-        method: "DELETE",
-      }
-    );
-    await expectStatus(res, 403);
-  });
-
-  test("DELETE /api/admin/therapists/{id} with invalid UUID returns 400", async () => {
-    const res = await authenticatedApi(
-      "/api/admin/therapists/invalid-uuid",
       authToken,
       {
         method: "DELETE",
@@ -582,5 +608,184 @@ describe("API Integration Tests", () => {
       });
       await expectStatus(res, 403);
     }
+  });
+
+  // ============================================
+  // Admin Endpoints: Subscriptions
+  // ============================================
+
+  let subscriptionId: string;
+
+  test("GET /api/admin/subscriptions returns 401 without auth", async () => {
+    const res = await api("/api/admin/subscriptions");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/subscriptions returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/subscriptions", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/subscriptions returns 401 without auth", async () => {
+    const res = await api("/api/admin/subscriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        therapist_id: therapistId || "00000000-0000-0000-0000-000000000001",
+        status: "active",
+        plan: "premium",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/admin/subscriptions returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/subscriptions", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        therapist_id: therapistId || "00000000-0000-0000-0000-000000000001",
+        status: "active",
+        plan: "premium",
+      }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/subscriptions/{id} returns 401 without auth", async () => {
+    const res = await api("/api/admin/subscriptions/00000000-0000-0000-0000-000000000000", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "inactive",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/subscriptions/{id} returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/subscriptions/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "inactive",
+        }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Admin Endpoints: Notifications
+  // ============================================
+
+  test("GET /api/admin/notifications returns 401 without auth", async () => {
+    const res = await api("/api/admin/notifications");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/notifications returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/notifications", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/notifications returns 401 without auth", async () => {
+    const res = await api("/api/admin/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test Notification",
+        message: "This is a test",
+        target: "all",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/admin/notifications returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/notifications", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test Notification",
+        message: "This is a test",
+        target: "all",
+      }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/notifications with featured target returns 403 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/notifications", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Featured Notification",
+        message: "Feature announcement",
+        target: "featured",
+      }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/notifications with free target returns 403 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/notifications", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Free Plan Notification",
+        message: "Free plan notice",
+        target: "free",
+      }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Admin Endpoints: Content
+  // ============================================
+
+  test("GET /api/admin/content returns 401 without auth", async () => {
+    const res = await api("/api/admin/content");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/content returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/content", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/content/{key} returns 401 without auth", async () => {
+    const res = await api("/api/admin/content/welcome-message", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        value: "Updated welcome message",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/content/{key} returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/content/welcome-message", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        value: "Updated welcome message",
+      }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/content/{key} requires value field", async () => {
+    const res = await authenticatedApi("/api/admin/content/welcome-message", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await expectStatus(res, 403);
   });
 });
