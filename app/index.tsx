@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, use } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,7 @@ const FILTER_CHIPS = [
 ];
 
 export default function IndexScreen() {
-  const { filters, updateFilter, clearFilters, activeFilterCount } = use(FiltersContext);
+  const { filters, updateFilter, clearFilters, activeFilterCount } = useContext(FiltersContext);
   const { user, signOut } = useAuth();
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
