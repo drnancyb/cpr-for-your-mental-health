@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn } from 'lucide-react-native';
+import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn, Bookmark } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
 import { TherapistCard, Therapist } from '@/components/therapist-card';
@@ -129,15 +129,18 @@ export default function IndexScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'View My Application', 'Sign Out'],
+          options: ['Cancel', 'My Bookings', 'View My Application', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 2,
+          destructiveButtonIndex: 3,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
+            console.log('[Index] My Bookings selected');
+            router.push('/my-bookings');
+          } else if (buttonIndex === 2) {
             console.log('[Index] View Application selected');
             router.push('/apply');
-          } else if (buttonIndex === 2) {
+          } else if (buttonIndex === 3) {
             console.log('[Index] Sign Out selected');
             signOut();
           }
@@ -148,6 +151,7 @@ export default function IndexScreen() {
         user?.name ?? 'Account',
         user?.email ?? '',
         [
+          { text: 'My Bookings', onPress: () => { console.log('[Index] My Bookings pressed'); router.push('/my-bookings'); } },
           { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
           { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
           { text: 'Cancel', style: 'cancel' },
@@ -184,6 +188,19 @@ export default function IndexScreen() {
           <ShieldCheck size={20} color={COLORS.primary} />
         </TouchableOpacity>
       )}
+      {user ? (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('[Index] Saved therapists button pressed');
+            router.push('/saved');
+          }}
+          activeOpacity={0.7}
+          style={{ padding: 8 }}
+          accessibilityLabel="Saved therapists"
+        >
+          <Bookmark size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity
         onPress={() => {
           console.log('[Index] Apply button pressed');

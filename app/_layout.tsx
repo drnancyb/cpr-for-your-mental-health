@@ -124,6 +124,30 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="booking/[therapistId]"
+                    options={{
+                      title: 'Request Session',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="saved"
+                    options={{
+                      title: 'Saved Therapists',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="my-bookings"
+                    options={{
+                      title: 'My Bookings',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />

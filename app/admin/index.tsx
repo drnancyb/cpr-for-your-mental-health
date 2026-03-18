@@ -10,6 +10,8 @@ import {
   Platform,
   UIManager,
   Image,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,7 +86,30 @@ const STATUS_TABS = [
 ] as const;
 
 type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined;
-type MainTab = 'applications' | 'therapists';
+type MainTab = 'applications' | 'therapists' | 'bookings';
+
+interface AdminBooking {
+  id: string;
+  therapist_id: string;
+  user_id: string;
+  preferred_date?: string;
+  message: string;
+  contact_method: 'email' | 'phone';
+  status: 'pending' | 'confirmed' | 'declined';
+  admin_notes?: string;
+  created_at: string;
+  therapist: {
+    id: string;
+    name: string;
+    title: string;
+    photo_url: string;
+  };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
 
 function getStatusColor(status: string) {
   if (status === 'approved') return COLORS.success;
@@ -120,6 +145,15 @@ export default function AdminDashboard() {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<Therapist | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Bookings state
+  const [bookings, setBookings] = useState<AdminBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsRefreshing, setBookingsRefreshing] = useState(false);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
+  const [declineTarget, setDeclineTarget] = useState<AdminBooking | null>(null);
+  const [declineNotes, setDeclineNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // ── Applications ──────────────────────────────────────────────────────────
 
@@ -183,6 +217,69 @@ export default function AdminDashboard() {
     await fetchTherapists();
     setTherapistsRefreshing(false);
   }, [fetchTherapists]);
+
+  // ── Bookings ──────────────────────────────────────────────────────────────
+
+  const fetchBookings = useCallback(async () => {
+    setBookingsError(null);
+    console.log('[Admin] Fetching bookings GET /api/admin/bookings');
+    try {
+      const data = await api.get<{ bookings: AdminBooking[] }>('/api/admin/bookings');
+      console.log('[Admin] Fetched', data.bookings.length, 'bookings');
+      setBookings(data.bookings);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to load bookings.';
+      console.error('[Admin] Fetch bookings error:', msg);
+      setBookingsError(msg);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && mainTab === 'bookings' && bookings.length === 0 && !bookingsError) {
+      setBookingsLoading(true);
+      fetchBookings().finally(() => setBookingsLoading(false));
+    }
+  }, [authLoading, mainTab, bookings.length, bookingsError, fetchBookings]);
+
+  const handleBookingsRefresh = useCallback(async () => {
+    console.log('[Admin] Bookings pull-to-refresh');
+    setBookingsRefreshing(true);
+    await fetchBookings();
+    setBookingsRefreshing(false);
+  }, [fetchBookings]);
+
+  const handleConfirmBooking = useCallback(async (booking: AdminBooking) => {
+    console.log('[Admin] Confirm booking pressed:', booking.id);
+    setActionLoading(booking.id + '_confirm');
+    try {
+      const updated = await api.patch<AdminBooking>(`/api/admin/bookings/${booking.id}`, { status: 'confirmed' });
+      console.log('[Admin] Booking confirmed:', booking.id);
+      setBookings((prev) => prev.map((b) => b.id === booking.id ? { ...b, status: updated.status } : b));
+    } catch (e) {
+      console.error('[Admin] Confirm booking error:', e instanceof Error ? e.message : e);
+    } finally {
+      setActionLoading(null);
+    }
+  }, []);
+
+  const handleDeclineSubmit = useCallback(async () => {
+    if (!declineTarget) return;
+    console.log('[Admin] Decline booking submitted:', declineTarget.id, 'notes:', declineNotes);
+    setActionLoading(declineTarget.id + '_decline');
+    try {
+      const body: { status: string; admin_notes?: string } = { status: 'declined' };
+      if (declineNotes.trim()) body.admin_notes = declineNotes.trim();
+      const updated = await api.patch<AdminBooking>(`/api/admin/bookings/${declineTarget.id}`, body);
+      console.log('[Admin] Booking declined:', declineTarget.id);
+      setBookings((prev) => prev.map((b) => b.id === declineTarget.id ? { ...b, status: updated.status, admin_notes: updated.admin_notes } : b));
+      setDeclineTarget(null);
+      setDeclineNotes('');
+    } catch (e) {
+      console.error('[Admin] Decline booking error:', e instanceof Error ? e.message : e);
+    } finally {
+      setActionLoading(null);
+    }
+  }, [declineTarget, declineNotes]);
 
   // ── Edit / Delete ─────────────────────────────────────────────────────────
 
@@ -345,6 +442,14 @@ export default function AdminDashboard() {
             setMainTab('therapists');
           }}
         />
+        <MainTabButton
+          label="Bookings"
+          active={mainTab === 'bookings'}
+          onPress={() => {
+            console.log('[Admin] Main tab: Bookings');
+            setMainTab('bookings');
+          }}
+        />
       </View>
 
       {mainTab === 'applications' ? (
@@ -491,7 +596,7 @@ export default function AdminDashboard() {
             );
           }}
         />
-      ) : (
+      ) : mainTab === 'therapists' ? (
         <FlatList
           data={therapists}
           keyExtractor={(item) => item.id}
@@ -538,6 +643,169 @@ export default function AdminDashboard() {
               }}
             />
           )}
+        />
+      ) : (
+        <FlatList
+          data={bookings}
+          keyExtractor={(item) => item.id}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl refreshing={bookingsRefreshing} onRefresh={handleBookingsRefresh} tintColor={COLORS.primary} />
+          }
+          ListHeaderComponent={
+            bookingsLoading ? (
+              <View style={{ paddingTop: 60, alignItems: 'center' }}>
+                <ActivityIndicator color={COLORS.primary} />
+              </View>
+            ) : bookingsError ? (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, color: COLORS.danger, fontFamily: 'DMSans_400Regular', textAlign: 'center' }}>
+                  {bookingsError}
+                </Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !bookingsLoading && !bookingsError ? (
+              <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
+                <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <Clock size={28} color={COLORS.primary} />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8, textAlign: 'center' }}>
+                  No bookings yet
+                </Text>
+                <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', lineHeight: 20 }}>
+                  Session requests will appear here.
+                </Text>
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => {
+            const initials = item.therapist.name.split(' ').slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
+            const isPending = item.status === 'pending';
+            const confirmLoading = actionLoading === item.id + '_confirm';
+            const declineLoading = actionLoading === item.id + '_decline';
+            const dateDisplay = item.preferred_date
+              ? new Date(item.preferred_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : null;
+            const statusConfig = {
+              pending: { color: COLORS.warning, bg: '#FEF3C7', label: 'Pending' },
+              confirmed: { color: COLORS.success, bg: '#D1FAE5', label: 'Confirmed' },
+              declined: { color: COLORS.danger, bg: '#FEE2E2', label: 'Declined' },
+            }[item.status];
+            const messagePreview = item.message.length > 60 ? item.message.slice(0, 60) + '…' : item.message;
+            const userLabel = item.user ? item.user.name : item.user_id.slice(0, 8);
+
+            return (
+              <View
+                style={{
+                  backgroundColor: COLORS.surface,
+                  marginHorizontal: 16,
+                  marginBottom: 10,
+                  borderRadius: 16,
+                  borderCurve: 'continuous',
+                  padding: 14,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                }}
+              >
+                {/* Header row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                    {item.therapist.photo_url ? (
+                      <Image source={{ uri: item.therapist.photo_url }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                    ) : (
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: 'DMSans_700Bold' }}>{initials}</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, gap: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold' }} numberOfLines={1}>
+                      {item.therapist.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }} numberOfLines={1}>
+                      {userLabel}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: statusConfig.bg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: statusConfig.color, fontFamily: 'DMSans_600SemiBold' }}>
+                      {statusConfig.label}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Date + contact */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+                  {dateDisplay ? (
+                    <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular' }}>
+                      {dateDisplay}
+                    </Text>
+                  ) : null}
+                  <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular', textTransform: 'capitalize' }}>
+                    {item.contact_method}
+                  </Text>
+                </View>
+
+                {/* Message */}
+                <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18, marginBottom: isPending ? 12 : 0 }}>
+                  {messagePreview}
+                </Text>
+
+                {/* Action buttons for pending */}
+                {isPending ? (
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <AnimatedPressable
+                      onPress={() => handleConfirmBooking(item)}
+                      disabled={confirmLoading || declineLoading}
+                      scaleValue={0.96}
+                      style={{ flex: 1 }}
+                    >
+                      <View style={{ height: 38, borderRadius: 10, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+                        {confirmLoading ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <>
+                            <CheckCircle size={14} color="#fff" />
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Confirm</Text>
+                          </>
+                        )}
+                      </View>
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={() => {
+                        console.log('[Admin] Decline button pressed for booking:', item.id);
+                        setDeclineTarget(item);
+                        setDeclineNotes('');
+                      }}
+                      disabled={confirmLoading || declineLoading}
+                      scaleValue={0.96}
+                      style={{ flex: 1 }}
+                    >
+                      <View style={{ height: 38, borderRadius: 10, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+                        {declineLoading ? (
+                          <ActivityIndicator color={COLORS.danger} size="small" />
+                        ) : (
+                          <>
+                            <XCircle size={14} color={COLORS.danger} />
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.danger, fontFamily: 'DMSans_600SemiBold' }}>Decline</Text>
+                          </>
+                        )}
+                      </View>
+                    </AnimatedPressable>
+                  </View>
+                ) : null}
+
+                {/* Admin notes */}
+                {item.admin_notes ? (
+                  <View style={{ marginTop: 8, backgroundColor: COLORS.surfaceSecondary, borderRadius: 8, padding: 8 }}>
+                    <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
+                      {item.admin_notes}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            );
+          }}
         />
       )}
 
@@ -622,6 +890,78 @@ export default function AdminDashboard() {
                     <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
                       Delete therapist
                     </Text>
+                  )}
+                </View>
+              </AnimatedPressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Decline booking modal */}
+      <Modal
+        visible={!!declineTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setDeclineTarget(null); setDeclineNotes(''); }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <View style={{ backgroundColor: COLORS.surface, borderRadius: 20, borderCurve: 'continuous', padding: 24, width: '100%', maxWidth: 360 }}>
+            <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <XCircle size={24} color={COLORS.danger} />
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text, fontFamily: 'DMSans_700Bold', marginBottom: 4 }}>
+              Decline booking?
+            </Text>
+            <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 20, marginBottom: 16 }}>
+              Optionally add a note for the user.
+            </Text>
+            <TextInput
+              value={declineNotes}
+              onChangeText={setDeclineNotes}
+              placeholder="Optional notes..."
+              placeholderTextColor={COLORS.textTertiary}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              style={{
+                backgroundColor: COLORS.surfaceSecondary,
+                borderRadius: 12,
+                padding: 12,
+                fontSize: 14,
+                color: COLORS.text,
+                fontFamily: 'DMSans_400Regular',
+                minHeight: 80,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: COLORS.border,
+              }}
+            />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <AnimatedPressable
+                onPress={() => {
+                  console.log('[Admin] Decline modal: Cancel pressed');
+                  setDeclineTarget(null);
+                  setDeclineNotes('');
+                }}
+                scaleValue={0.96}
+                style={{ flex: 1 }}
+              >
+                <View style={{ height: 46, borderRadius: 12, backgroundColor: COLORS.surfaceSecondary, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>Cancel</Text>
+                </View>
+              </AnimatedPressable>
+              <AnimatedPressable
+                onPress={handleDeclineSubmit}
+                disabled={actionLoading !== null}
+                scaleValue={0.96}
+                style={{ flex: 1 }}
+              >
+                <View style={{ height: 46, borderRadius: 12, backgroundColor: COLORS.danger, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+                  {actionLoading !== null ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Decline</Text>
                   )}
                 </View>
               </AnimatedPressable>

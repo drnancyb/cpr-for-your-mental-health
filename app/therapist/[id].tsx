@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Linking,
   ActivityIndicator,
+  TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Image } from 'expo-image';
 import {
   MapPin,
@@ -17,8 +19,13 @@ import {
   Languages,
   Clock,
   CheckCircle,
+  Bookmark,
+  BookmarkCheck,
+  CalendarPlus,
 } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/utils/api';
 import type { Therapist } from '@/components/therapist-card';
 import type { ImageSourcePropType } from 'react-native';
 
@@ -145,26 +152,44 @@ function StatColumn({
   );
 }
 
+type SavedTherapist = {
+  id: string;
+  therapist_id: string;
+  created_at: string;
+};
+
 export default function TherapistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     console.log('[TherapistDetail] Fetching therapist:', id);
-    fetch(`${BASE_URL}/api/therapists/${id}`)
+    const therapistFetch = fetch(`${BASE_URL}/api/therapists/${id}`)
       .then(async (res) => {
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`HTTP ${res.status}: ${text.slice(0, 100)}`);
         }
-        return res.json();
-      })
-      .then((data: Therapist) => {
-        console.log('[TherapistDetail] Loaded therapist:', data.name);
-        setTherapist(data);
+        return res.json() as Promise<Therapist>;
+      });
+
+    const savedFetch = user
+      ? api.get<{ saved: SavedTherapist[] }>('/api/saved').catch(() => ({ saved: [] }))
+      : Promise.resolve({ saved: [] });
+
+    Promise.all([therapistFetch, savedFetch])
+      .then(([therapistData, savedData]) => {
+        console.log('[TherapistDetail] Loaded therapist:', therapistData.name);
+        setTherapist(therapistData);
+        const match = savedData.saved.find((s) => s.therapist_id === id);
+        setSavedId(match ? match.id : null);
+        console.log('[TherapistDetail] Saved state:', match ? 'saved' : 'not saved');
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -172,6 +197,48 @@ export default function TherapistDetailScreen() {
         setError(msg);
       })
       .finally(() => setLoading(false));
+  }, [id, user]);
+
+  const handleBookmark = useCallback(async () => {
+    if (!id || bookmarkLoading) return;
+    if (savedId) {
+      console.log('[TherapistDetail] Unsave therapist:', id);
+      setBookmarkLoading(true);
+      try {
+        await api.delete(`/api/saved/${id}`);
+        setSavedId(null);
+        console.log('[TherapistDetail] Therapist unsaved');
+        if (Platform.OS === 'ios') {
+          const Haptics = await import('expo-haptics');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      } catch (e) {
+        console.error('[TherapistDetail] Unsave error:', e instanceof Error ? e.message : e);
+      } finally {
+        setBookmarkLoading(false);
+      }
+    } else {
+      console.log('[TherapistDetail] Save therapist:', id);
+      setBookmarkLoading(true);
+      try {
+        const result = await api.post<SavedTherapist>('/api/saved', { therapist_id: id });
+        setSavedId(result.id);
+        console.log('[TherapistDetail] Therapist saved, savedId:', result.id);
+        if (Platform.OS === 'ios') {
+          const Haptics = await import('expo-haptics');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+      } catch (e) {
+        console.error('[TherapistDetail] Save error:', e instanceof Error ? e.message : e);
+      } finally {
+        setBookmarkLoading(false);
+      }
+    }
+  }, [id, savedId, bookmarkLoading]);
+
+  const handleRequestSession = useCallback(() => {
+    console.log('[TherapistDetail] Request Session pressed for therapist:', id);
+    router.push(`/booking/${id}`);
   }, [id]);
 
   const handleCall = () => {
@@ -221,6 +288,10 @@ export default function TherapistDetailScreen() {
   const langDisplay = `${therapist.languages.length}`;
   const acceptingText = therapist.accepting_new_clients ? 'Accepting new clients' : 'Not accepting clients';
 
+  const bookmarkIcon = savedId
+    ? <BookmarkCheck size={22} color={COLORS.primary} />
+    : <Bookmark size={22} color={COLORS.primary} />;
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <Stack.Screen
@@ -228,6 +299,16 @@ export default function TherapistDetailScreen() {
           title: '',
           headerTransparent: true,
           headerBackButtonDisplayMode: 'minimal',
+          headerRight: user ? () => (
+            <TouchableOpacity
+              onPress={handleBookmark}
+              disabled={bookmarkLoading}
+              style={{ padding: 8, opacity: bookmarkLoading ? 0.5 : 1 }}
+              accessibilityLabel={savedId ? 'Remove from saved' : 'Save therapist'}
+            >
+              {bookmarkIcon}
+            </TouchableOpacity>
+          ) : undefined,
         }}
       />
       <ScrollView
@@ -534,6 +615,38 @@ export default function TherapistDetailScreen() {
                 </View>
               ))}
             </View>
+          </View>
+        ) : null}
+
+        {/* Request Session CTA */}
+        {therapist.accepting_new_clients ? (
+          <View style={{ marginHorizontal: 16, marginTop: 20 }}>
+            <AnimatedPressable onPress={handleRequestSession}>
+              <View
+                style={{
+                  backgroundColor: COLORS.primary,
+                  borderRadius: 14,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  boxShadow: '0 4px 16px rgba(45, 122, 95, 0.3)',
+                }}
+              >
+                <CalendarPlus size={18} color="#FFFFFF" />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                    fontFamily: 'DMSans_700Bold',
+                  }}
+                >
+                  Request Session
+                </Text>
+              </View>
+            </AnimatedPressable>
           </View>
         ) : null}
 
