@@ -83,8 +83,7 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await signInWithGoogle();
-      console.log('[AuthScreen] Google sign-in success');
-      router.back();
+      console.log('[AuthScreen] Google sign-in initiated, waiting for OAuth callback');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Google sign-in failed.';
       console.log('[AuthScreen] Google sign-in error:', msg);
@@ -100,8 +99,7 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await signInWithApple();
-      console.log('[AuthScreen] Apple sign-in success');
-      router.back();
+      console.log('[AuthScreen] Apple sign-in initiated, waiting for OAuth callback');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Apple sign-in failed.';
       console.log('[AuthScreen] Apple sign-in error:', msg);

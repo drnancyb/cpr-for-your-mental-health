@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const result = await authClient.signIn.email({ email, password });
-    if (result.error) throw new Error(result.error.message || 'Sign in failed');
+    if (result.error) throw new Error(result.error.message || result.error.statusText || 'Sign in failed');
     await fetchUser();
   }, [fetchUser]);
 
@@ -74,8 +74,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authClient.signIn.social({ provider: 'google', callbackURL: '/auth-callback' });
     } else {
       const callbackURL = Linking.createURL('auth-callback');
-      await authClient.signIn.social({ provider: 'google', callbackURL });
-      await fetchUser();
+      await authClient.signIn.social({
+        provider: 'google',
+        callbackURL,
+        fetchOptions: {
+          onSuccess: () => {
+            fetchUser();
+          },
+        },
+      });
     }
   }, [fetchUser]);
 
@@ -84,8 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authClient.signIn.social({ provider: 'apple', callbackURL: '/auth-callback' });
     } else {
       const callbackURL = Linking.createURL('auth-callback');
-      await authClient.signIn.social({ provider: 'apple', callbackURL });
-      await fetchUser();
+      await authClient.signIn.social({
+        provider: 'apple',
+        callbackURL,
+        fetchOptions: {
+          onSuccess: () => {
+            fetchUser();
+          },
+        },
+      });
     }
   }, [fetchUser]);
 
