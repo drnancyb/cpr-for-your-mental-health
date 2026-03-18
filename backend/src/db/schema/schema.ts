@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uuid, numeric, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, numeric, integer, boolean, date, foreignKey, unique } from 'drizzle-orm/pg-core';
+import { user } from './auth-schema.js';
 
 export const therapists = pgTable('therapists', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -44,3 +45,53 @@ export const therapistApplications = pgTable('therapist_applications', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const savedTherapists = pgTable(
+  'saved_therapists',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    therapistId: uuid('therapist_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'saved_therapists_user_id_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.therapistId],
+      foreignColumns: [therapists.id],
+      name: 'saved_therapists_therapist_id_fk',
+    }).onDelete('cascade'),
+    unique('saved_therapists_user_therapist_unique').on(table.userId, table.therapistId),
+  ]
+);
+
+export const bookingRequests = pgTable(
+  'booking_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    therapistId: uuid('therapist_id').notNull(),
+    preferredDate: date('preferred_date'),
+    message: text('message').notNull(),
+    contactMethod: text('contact_method').notNull(),
+    status: text('status').notNull().default('pending'),
+    adminNotes: text('admin_notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'booking_requests_user_id_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.therapistId],
+      foreignColumns: [therapists.id],
+      name: 'booking_requests_therapist_id_fk',
+    }).onDelete('cascade'),
+  ]
+);

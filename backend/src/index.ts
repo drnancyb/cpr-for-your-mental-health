@@ -5,6 +5,7 @@ import * as authSchema from './db/schema/auth-schema.js';
 import * as therapistsRoutes from './routes/therapists.js';
 import * as applicationsRoutes from './routes/applications.js';
 import * as adminTherapistsRoutes from './routes/admin-therapists.js';
+import * as savedAndBookingsRoutes from './routes/saved-and-bookings.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -61,6 +62,7 @@ async function seedAdminUser() {
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
 adminTherapistsRoutes.register(app, app.fastify);
+savedAndBookingsRoutes.register(app, app.fastify);
 
 await app.run();
 

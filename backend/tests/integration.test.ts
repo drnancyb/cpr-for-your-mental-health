@@ -98,10 +98,19 @@ describe("API Integration Tests", () => {
 
   let authToken: string;
   let applicationId: string;
+  let therapistId: string;
 
   test("Setup: sign up test user for authenticated endpoints", async () => {
     const { token } = await signUpTestUser();
     authToken = token;
+  });
+
+  test("Setup: get a therapist ID for saved/booking tests", async () => {
+    const res = await api("/api/therapists");
+    const data = await res.json();
+    if (data.therapists.length > 0) {
+      therapistId = data.therapists[0].id;
+    }
   });
 
   // ============================================
@@ -383,5 +392,195 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Saved Therapists
+  // ============================================
+
+  let savedTherapistId: string;
+
+  test("GET /api/saved returns 401 without auth", async () => {
+    const res = await api("/api/saved");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/saved returns list of saved therapists", async () => {
+    const res = await authenticatedApi("/api/saved", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.saved).toBeDefined();
+    expect(Array.isArray(data.saved)).toBe(true);
+  });
+
+  test("POST /api/saved returns 401 without auth", async () => {
+    if (therapistId) {
+      const res = await api("/api/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ therapist_id: therapistId }),
+      });
+      await expectStatus(res, 401);
+    }
+  });
+
+  test("POST /api/saved saves a therapist", async () => {
+    if (therapistId) {
+      const res = await authenticatedApi("/api/saved", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ therapist_id: therapistId }),
+      });
+      await expectStatus(res, 201);
+      const data = await res.json();
+      expect(data).toBeDefined();
+      savedTherapistId = therapistId;
+    }
+  });
+
+  test("POST /api/saved returns 409 if therapist already saved", async () => {
+    if (therapistId) {
+      const res = await authenticatedApi("/api/saved", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ therapist_id: therapistId }),
+      });
+      await expectStatus(res, 409);
+    }
+  });
+
+  test("DELETE /api/saved/{therapistId} returns 401 without auth", async () => {
+    if (therapistId) {
+      const res = await api(`/api/saved/${therapistId}`, {
+        method: "DELETE",
+      });
+      await expectStatus(res, 401);
+    }
+  });
+
+  test("DELETE /api/saved/{therapistId} removes a saved therapist", async () => {
+    if (savedTherapistId) {
+      const res = await authenticatedApi(`/api/saved/${savedTherapistId}`, authToken, {
+        method: "DELETE",
+      });
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    }
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Bookings
+  // ============================================
+
+  let bookingId: string;
+
+  test("GET /api/bookings returns 401 without auth", async () => {
+    const res = await api("/api/bookings");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/bookings returns list of bookings", async () => {
+    const res = await authenticatedApi("/api/bookings", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.bookings).toBeDefined();
+    expect(Array.isArray(data.bookings)).toBe(true);
+  });
+
+  test("POST /api/bookings returns 401 without auth", async () => {
+    if (therapistId) {
+      const res = await api("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          therapist_id: therapistId,
+          message: "I would like to schedule a session",
+          contact_method: "email",
+        }),
+      });
+      await expectStatus(res, 401);
+    }
+  });
+
+  test("POST /api/bookings creates a booking request", async () => {
+    if (therapistId) {
+      const res = await authenticatedApi("/api/bookings", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          therapist_id: therapistId,
+          message: "I would like to schedule a session",
+          contact_method: "email",
+          preferred_date: "2026-04-15",
+        }),
+      });
+      await expectStatus(res, 201);
+      const data = await res.json();
+      expect(data).toBeDefined();
+      if (data.id) {
+        bookingId = data.id;
+      }
+    }
+  });
+
+  test("POST /api/bookings with phone contact method", async () => {
+    if (therapistId) {
+      const res = await authenticatedApi("/api/bookings", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          therapist_id: therapistId,
+          message: "Please call me to schedule",
+          contact_method: "phone",
+        }),
+      });
+      await expectStatus(res, 201);
+    }
+  });
+
+  // ============================================
+  // Admin Endpoints: Bookings
+  // ============================================
+
+  test("GET /api/admin/bookings returns 401 without auth", async () => {
+    const res = await api("/api/admin/bookings");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/bookings returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/bookings", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/bookings/{id} returns 401 without auth", async () => {
+    const res = await api("/api/admin/bookings/00000000-0000-0000-0000-000000000000", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "confirmed" }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/bookings/{id} returns 403 for non-admin user", async () => {
+    if (bookingId) {
+      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, authToken, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      await expectStatus(res, 403);
+    }
+  });
+
+  test("PATCH /api/admin/bookings/{id} with declined status returns 403 for non-admin", async () => {
+    if (bookingId) {
+      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, authToken, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "declined", admin_notes: "Not available" }),
+      });
+      await expectStatus(res, 403);
+    }
   });
 });
