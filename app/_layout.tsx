@@ -7,7 +7,7 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
-import { Stack, Redirect, usePathname, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,57 +23,57 @@ import { FiltersProvider } from '@/contexts/FiltersContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { isOnboardingComplete } from "@/utils/onboardingStorage";
-
+import { isOnboardingComplete } from '@/utils/onboardingStorage';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-function AuthRedirect() {
+// Screens that are exempt from the onboarding gate (user can be on these while onboarding is in progress)
+const ONBOARDING_EXEMPT = ['/onboarding', '/paywall'];
+
+function NavigationGuard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Auth gate: only depends on auth loading, not subscription loading
   useEffect(() => {
     if (authLoading) return;
-    const onAuthScreen = pathname === "/auth-screen";
-    if (onAuthScreen) return;
+
+    // Step 1: Not authenticated → always go to auth screen
     if (!user) {
-      console.log('[AuthRedirect] No user detected, redirecting to /auth-screen');
-      router.replace("/auth-screen");
+      if (pathname !== '/auth-screen') {
+        console.log('[NavigationGuard] No user — redirecting to /auth-screen');
+        router.replace('/auth-screen');
+      }
       return;
     }
-    // User is authenticated — check onboarding
-    const onOnboarding = pathname.startsWith("/onboarding");
-    if (onOnboarding) return;
 
-    let cancelled = false;
-    isOnboardingComplete().then((done) => {
-      if (cancelled) return;
-      if (!done) {
-        console.log('[AuthRedirect] Onboarding incomplete, redirecting to /onboarding');
-        router.replace("/onboarding");
+    // Step 2: Authenticated — check onboarding for every screen except exempt ones
+    if (ONBOARDING_EXEMPT.includes(pathname)) {
+      // Let onboarding/paywall screens manage their own forward navigation
+      return;
+    }
+
+    isOnboardingComplete().then((complete) => {
+      if (!complete) {
+        // Onboarding not done — send to onboarding regardless of current screen
+        console.log('[NavigationGuard] Onboarding incomplete — redirecting to /onboarding');
+        router.replace('/onboarding');
+      } else if (pathname === '/auth-screen') {
+        // Onboarding done and still on auth screen — go home
+        console.log('[NavigationGuard] Authenticated + onboarding complete — redirecting to /');
+        router.replace('/');
       }
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [authLoading, user, pathname]);
+      // Otherwise already on a valid screen, do nothing
+    });
+  }, [authLoading, user, pathname, router]);
 
   return null;
 }
 
 export default function RootLayout() {
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const pathname = usePathname();
-
-  useEffect(() => {
-    isOnboardingComplete().then((complete) => {
-      setOnboardingComplete(complete);
-    });
-  }, [pathname]);
-
   const colorScheme = useColorScheme();
 
   const [loaded] = useFonts({
@@ -101,7 +101,7 @@ export default function RootLayout() {
           <AuthProvider>
         <SubscriptionProvider>
         <NotificationProvider>
-          <AuthRedirect />
+          <NavigationGuard />
             <FiltersProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
 
