@@ -141,7 +141,6 @@ export default function RootLayout() {
                     name="auth-screen"
                     options={{
                       headerShown: false,
-                      presentation: 'modal',
                     }}
                   />
                   <Stack.Screen
