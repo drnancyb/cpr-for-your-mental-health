@@ -21,7 +21,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { FiltersProvider } from '@/contexts/FiltersContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { isOnboardingComplete } from "@/utils/onboardingStorage";
 
@@ -31,20 +31,22 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-function SubscriptionRedirect() {
-  const { isSubscribed, loading } = useSubscription();
+function AuthRedirect() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
+  // Auth gate: only depends on auth loading, not subscription loading
   useEffect(() => {
-    if (loading || authLoading) return;
+    if (authLoading) return;
     const onAuthScreen = pathname === "/auth-screen";
     if (onAuthScreen) return;
     if (!user) {
+      console.log('[AuthRedirect] No user detected, redirecting to /auth-screen');
       router.replace("/auth-screen");
       return;
     }
+    // User is authenticated — check onboarding
     const onOnboarding = pathname.startsWith("/onboarding");
     if (onOnboarding) return;
 
@@ -52,15 +54,12 @@ function SubscriptionRedirect() {
     isOnboardingComplete().then((done) => {
       if (cancelled) return;
       if (!done) {
+        console.log('[AuthRedirect] Onboarding incomplete, redirecting to /onboarding');
         router.replace("/onboarding");
-        return;
       }
-        // Don't force subscription — app has a free tier
-    }).catch(() => {
-      // Don't force subscription — app has a free tier
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
-  }, [isSubscribed, loading, authLoading, pathname, user]);
+  }, [authLoading, user, pathname]);
 
   return null;
 }
@@ -102,7 +101,7 @@ export default function RootLayout() {
           <AuthProvider>
         <SubscriptionProvider>
         <NotificationProvider>
-          <SubscriptionRedirect />
+          <AuthRedirect />
             <FiltersProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
 
