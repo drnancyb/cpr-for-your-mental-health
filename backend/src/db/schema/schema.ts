@@ -20,3 +20,27 @@ export const therapists = pgTable('therapists', {
   websiteUrl: text('website_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const therapistApplications = pgTable('therapist_applications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  status: text('status').notNull().default('pending'),
+  name: text('name').notNull(),
+  photoUrl: text('photo_url'),
+  title: text('title').notNull(),
+  bio: text('bio').notNull(),
+  location: text('location').notNull(),
+  gender: text('gender').notNull(),
+  specialties: text('specialties').array().notNull(),
+  therapyTypes: text('therapy_types').array().notNull(),
+  insurances: text('insurances').array().notNull(),
+  sessionFee: numeric('session_fee').notNull(),
+  languages: text('languages').array().notNull(),
+  yearsExperience: integer('years_experience').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  websiteUrl: text('website_url'),
+  adminNotes: text('admin_notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
