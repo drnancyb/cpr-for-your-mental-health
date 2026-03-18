@@ -7,15 +7,16 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 const DISCLAIMER_FULL =
-  'This platform is an independent directory designed to help users locate mental health professionals in British Columbia. We do not provide medical or mental health services, nor do we offer clinical advice, diagnosis, or treatment. All therapists listed on this platform are independent practitioners and are solely responsible for the services they provide. Users are encouraged to verify the credentials, licensing, and suitability of any provider before engaging in services. Use of this platform does not establish a therapist-client relationship with this service. Any relationship formed is strictly between the user and the mental health professional. If you are in crisis or require immediate assistance, please contact local emergency services.';
+  'This platform is an independent directory of providers designed to help users find mental health professionals in British Columbia. We do not provide medical or mental health services, nor do we offer clinical advice, diagnosis, or treatment. All therapists listed on this platform are independent practitioners and are solely responsible for the services they provide. Users are encouraged to verify the credentials, licensing, and suitability of any provider before engaging in services. Use of this platform does not establish a therapist-client relationship with this service. Any relationship formed is strictly between the user and the mental health professional. This platform does not endorse or recommend any specific provider. If you are in crisis or require immediate assistance, please contact local emergency services.';
 
-const TEASER = 'Independent directory. Not a medical service. Tap to read more.';
+const TEASER = 'Independent directory of providers. Not a medical service. Tap to read more.';
 const CRISIS_LINE = 'Crisis line: 1-800-SUICIDE (784-2433)';
 
 const COLLAPSED_HEIGHT = 44;
-const EXPANDED_HEIGHT = 220;
+const EXPANDED_HEIGHT = 260;
 
 export function DisclaimerBanner() {
   const [expanded, setExpanded] = useState(false);
@@ -121,6 +122,26 @@ export function DisclaimerBanner() {
               {CRISIS_LINE}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              console.log('[DisclaimerBanner] Privacy Policy link pressed');
+              router.push('/privacy-policy');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                color: '#92400E',
+                fontFamily: 'DMSans_600SemiBold',
+                fontWeight: '600',
+                textDecorationLine: 'underline',
+                lineHeight: 16,
+              }}
+            >
+              Privacy Policy
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
     </Animated.View>

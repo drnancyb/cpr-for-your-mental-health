@@ -164,7 +164,7 @@ export default function MyBookingsScreen() {
               No booking requests yet
             </Text>
             <Text style={{ fontSize: 15, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', lineHeight: 22 }}>
-              Browse therapists and tap "Request Session" to get started.
+              Find a therapist and tap "Request Session" to get started.
             </Text>
           </View>
         }

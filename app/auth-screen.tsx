@@ -121,8 +121,8 @@ export default function AuthScreen() {
   const isSignIn = mode === 'signin';
   const titleText = isSignIn ? 'Welcome back' : 'Create account';
   const subtitleText = isSignIn
-    ? 'Sign in to manage your application'
-    : 'Register as a therapist in BC';
+    ? 'Sign in to manage your listing'
+    : 'Register to list your practice in BC';
   const buttonLabel = isSignIn ? 'Sign in' : 'Create account';
   const togglePrompt = isSignIn ? "Don't have an account?" : 'Already have an account?';
   const toggleLabel = isSignIn ? 'Sign up' : 'Sign in';

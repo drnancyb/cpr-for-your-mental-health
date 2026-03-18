@@ -156,6 +156,14 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="privacy-policy"
+                    options={{
+                      title: 'Privacy Policy',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />

@@ -31,14 +31,14 @@ const BENEFITS = [
   {
     icon: Star,
     title: 'Featured Placement',
-    description: 'Appear at the top of search results where clients are looking',
+    description: 'Appear at the top of search results in the directory of providers',
     color: '#F59E0B',
     bg: '#FFFBEB',
   },
   {
     icon: TrendingUp,
     title: 'More Visibility',
-    description: 'Reach more clients actively seeking mental health support',
+    description: 'Help more clients actively seeking mental health support find you',
     color: '#2D7A5F',
     bg: '#E8F4EF',
   },
@@ -71,9 +71,9 @@ const PRICING = [
 ];
 
 const PROVIDER_TERMS = [
-  'This platform functions solely as an advertising and directory service.',
+  'This platform functions solely as an advertising platform and directory service.',
   'Any fees paid are for marketing, visibility, and listing placement only.',
-  'Fees are not based on client referrals, bookings, or outcomes.',
+  'Fees are not based on client inquiries, bookings, or outcomes.',
   'No guarantee of client inquiries or conversions is provided.',
   'You are responsible for maintaining appropriate licensure and practicing within your professional scope and ethical guidelines.',
 ];
@@ -161,7 +161,7 @@ export default function AdvertiseScreen() {
               maxWidth: 280,
             }}
           >
-            Promote your practice and connect with clients who are actively looking for help.
+            Promote your practice and help clients who are actively looking find you.
           </Text>
         </View>
 

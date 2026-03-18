@@ -544,7 +544,7 @@ export default function ApplyScreen() {
           {existing.status === 'approved' && (
             <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, borderCurve: 'continuous', padding: 14, borderWidth: 1, borderColor: '#BBF7D0' }}>
               <Text style={{ fontSize: 13, color: '#166534', fontFamily: 'DMSans_400Regular', lineHeight: 20 }}>
-                Congratulations! Your profile is now live in the BC Therapist Finder directory.
+                Congratulations! Your profile is now live in the BC provider directory.
               </Text>
             </View>
           )}

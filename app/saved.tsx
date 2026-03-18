@@ -162,7 +162,7 @@ export default function SavedScreen() {
               No saved therapists yet
             </Text>
             <Text style={{ fontSize: 15, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', lineHeight: 22 }}>
-              Browse therapists and tap the bookmark icon to save them.
+              Browse the directory and tap the bookmark icon to save providers.
             </Text>
           </View>
         }
