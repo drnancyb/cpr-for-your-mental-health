@@ -4,10 +4,10 @@
     "slug": "build-a-simple-mobil",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon-qpv.png",
+    "icon": "./assets/images/app-icon-fxe.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/app-icon-qpv.png",
+      "image": "./assets/images/app-icon-fxe.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/app-icon-qpv.png",
+        "foregroundImage": "./assets/images/app-icon-fxe.png",
         "backgroundColor": "#000000"
       },
       "package": "com.placeholder.app"
