@@ -134,9 +134,9 @@ export default function IndexScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'My Preferences', 'Therapist Portal', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Contact & Support', 'Sign Out'],
+          options: ['Cancel', 'My Preferences', 'Therapist Portal', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Contact & Support', 'Admin Setup', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 7,
+          destructiveButtonIndex: 8,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
@@ -158,6 +158,9 @@ export default function IndexScreen() {
             console.log('[Index] Contact & Support selected');
             router.push('/support');
           } else if (buttonIndex === 7) {
+            console.log('[Index] Admin Setup selected');
+            router.push('/admin-setup');
+          } else if (buttonIndex === 8) {
             console.log('[Index] Sign Out selected');
             signOut();
           }
@@ -174,6 +177,7 @@ export default function IndexScreen() {
           { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
           { text: 'Advertise Your Practice', onPress: () => { console.log('[Index] Advertise pressed'); router.push('/advertise'); } },
           { text: 'Contact & Support', onPress: () => { console.log('[Index] Contact & Support pressed'); router.push('/support'); } },
+          { text: 'Admin Setup', onPress: () => { console.log('[Index] Admin Setup pressed'); router.push('/admin-setup'); } },
           { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
           { text: 'Cancel', style: 'cancel' },
         ],

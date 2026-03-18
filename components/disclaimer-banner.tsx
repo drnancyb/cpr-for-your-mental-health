@@ -122,26 +122,47 @@ export function DisclaimerBanner() {
               {CRISIS_LINE}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => {
-              console.log('[DisclaimerBanner] Privacy Policy link pressed');
-              router.push('/privacy-policy');
-            }}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                color: '#92400E',
-                fontFamily: 'DMSans_600SemiBold',
-                fontWeight: '600',
-                textDecorationLine: 'underline',
-                lineHeight: 16,
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              onPress={() => {
+                console.log('[DisclaimerBanner] Privacy Policy link pressed');
+                router.push('/privacy-policy');
               }}
+              activeOpacity={0.7}
             >
-              Privacy Policy
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: '#92400E',
+                  fontFamily: 'DMSans_600SemiBold',
+                  fontWeight: '600',
+                  textDecorationLine: 'underline',
+                  lineHeight: 16,
+                }}
+              >
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                console.log('[DisclaimerBanner] Admin Setup link pressed');
+                router.push('/admin-setup');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: '#92400E',
+                  fontFamily: 'DMSans_400Regular',
+                  opacity: 0.6,
+                  lineHeight: 16,
+                }}
+              >
+                Admin
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
     </Animated.View>
