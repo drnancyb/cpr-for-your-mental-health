@@ -49,7 +49,8 @@ const FILTER_CHIPS = [
 
 export default function IndexScreen() {
   const { filters, updateFilter, clearFilters, activeFilterCount } = useContext(FiltersContext);
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,17 +186,21 @@ export default function IndexScreen() {
     }
   }, [user, signOut]);
 
-  const acceptingCount = therapists.filter(t => t.accepting_new_clients).length;
-
-  const userInitials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-    : '?';
-
   const renderItem = useCallback(({ item, index }: { item: Therapist; index: number }) => (
     <TherapistCard therapist={item} index={index} />
   ), []);
 
   const keyExtractor = useCallback((item: Therapist) => item.id, []);
+
+  if (authLoading || !user) {
+    return null;
+  }
+
+  const acceptingCount = therapists.filter(t => t.accepting_new_clients).length;
+
+  const userInitials = user.name
+    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
 
   // Header right buttons
   const HeaderRight = (

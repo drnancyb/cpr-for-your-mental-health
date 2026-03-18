@@ -1,5 +1,6 @@
 import 'react-native-reanimated';
 import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -27,7 +28,7 @@ import { isOnboardingComplete } from '@/utils/onboardingStorage';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  initialRouteName: 'auth-screen',
 };
 
 // Screens that are exempt from the onboarding gate (user can be on these while onboarding is in progress)
@@ -69,6 +70,27 @@ function NavigationGuard() {
       // Otherwise already on a valid screen, do nothing
     });
   }, [authLoading, user, pathname, router]);
+
+  if (authLoading) {
+    return (
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          flex: 1,
+          backgroundColor: '#F4F7F5',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <ActivityIndicator size="large" color="#2D7A5F" />
+      </View>
+    );
+  }
 
   return null;
 }
