@@ -15,7 +15,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.placeholder.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      },
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.security.application-groups": [
+          "group.com.placeholder.app.onesignal"
+        ]
       }
     },
     "android": {
@@ -30,6 +39,12 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
       "expo-font",
       "expo-router",
       "expo-web-browser",
@@ -45,7 +60,8 @@
       "revenueCatTestApiKeyIos": "test_mgGOuFmGXvDNFxsHGsqwWNJmOrm",
       "revenueCatTestApiKeyAndroid": "test_mgGOuFmGXvDNFxsHGsqwWNJmOrm",
       "revenueCatEntitlementId": "featured",
-      "nativelyProjectId": "d3a957f3-54c0-408d-aa9d-cc533a78dad2"
+      "nativelyProjectId": "d3a957f3-54c0-408d-aa9d-cc533a78dad2",
+      "oneSignalAppId": "597f2683-1a9b-4cda-8b2c-257570974ee3"
     }
   }
 }

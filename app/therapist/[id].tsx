@@ -191,6 +191,8 @@ export default function TherapistDetailScreen() {
         const match = savedData.saved.find((s) => s.therapist_id === id);
         setSavedId(match ? match.id : null);
         console.log('[TherapistDetail] Saved state:', match ? 'saved' : 'not saved');
+        // Fire-and-forget analytics event
+        api.post('/api/analytics/events', { event_type: 'profile_view', therapist_id: therapistData.id }).catch(() => {});
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Unknown error';

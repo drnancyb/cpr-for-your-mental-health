@@ -22,6 +22,7 @@ import { StatusBar } from 'expo-status-bar';
 import { FiltersProvider } from '@/contexts/FiltersContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { isOnboardingComplete } from "@/utils/onboardingStorage";
 
 SplashScreen.preventAutoHideAsync();
@@ -100,6 +101,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <AuthProvider>
         <SubscriptionProvider>
+        <NotificationProvider>
           <SubscriptionRedirect />
             <FiltersProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
@@ -222,12 +224,37 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="preferences"
+                    options={{
+                      title: 'My Preferences',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="therapist-portal"
+                    options={{
+                      title: 'Therapist Portal',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="support"
+                    options={{
+                      title: 'Contact & Support',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />
               </GestureHandlerRootView>
             </FiltersProvider>
-          </SubscriptionProvider>
+          </NotificationProvider>
+        </SubscriptionProvider>
         </AuthProvider>
         </SafeAreaProvider>
       </ThemeProvider>

@@ -20,6 +20,8 @@ import { SkeletonCard } from '@/components/skeleton-card';
 import { FiltersContext } from '@/contexts/FiltersContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import { NotificationBell } from "@/components/NotificationBell";
+import { api } from '@/utils/api';
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -104,9 +106,11 @@ export default function IndexScreen() {
         console.log('[Index] Search debounced, query:', text);
         setLoading(true);
         fetchTherapists(text).finally(() => setLoading(false));
+        // Fire-and-forget analytics event
+        api.post('/api/analytics/events', { event_type: 'search', metadata: { query: text, filters: filters } }).catch(() => {});
       }
     }, 300);
-  }, [updateFilter, fetchTherapists]);
+  }, [updateFilter, fetchTherapists, filters]);
 
   const handleRefresh = useCallback(async () => {
     console.log('[Index] Pull-to-refresh triggered');
@@ -130,21 +134,30 @@ export default function IndexScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Sign Out'],
+          options: ['Cancel', 'My Preferences', 'Therapist Portal', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Contact & Support', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 4,
+          destructiveButtonIndex: 7,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
+            console.log('[Index] My Preferences selected');
+            router.push('/preferences');
+          } else if (buttonIndex === 2) {
+            console.log('[Index] Therapist Portal selected');
+            router.push('/therapist-portal');
+          } else if (buttonIndex === 3) {
             console.log('[Index] My Bookings selected');
             router.push('/my-bookings');
-          } else if (buttonIndex === 2) {
+          } else if (buttonIndex === 4) {
             console.log('[Index] View Application selected');
             router.push('/apply');
-          } else if (buttonIndex === 3) {
+          } else if (buttonIndex === 5) {
             console.log('[Index] Advertise selected');
             router.push('/advertise');
-          } else if (buttonIndex === 4) {
+          } else if (buttonIndex === 6) {
+            console.log('[Index] Contact & Support selected');
+            router.push('/support');
+          } else if (buttonIndex === 7) {
             console.log('[Index] Sign Out selected');
             signOut();
           }
@@ -155,9 +168,12 @@ export default function IndexScreen() {
         user?.name ?? 'Account',
         user?.email ?? '',
         [
+          { text: 'My Preferences', onPress: () => { console.log('[Index] My Preferences pressed'); router.push('/preferences'); } },
+          { text: 'Therapist Portal', onPress: () => { console.log('[Index] Therapist Portal pressed'); router.push('/therapist-portal'); } },
           { text: 'My Bookings', onPress: () => { console.log('[Index] My Bookings pressed'); router.push('/my-bookings'); } },
           { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
           { text: 'Advertise Your Practice', onPress: () => { console.log('[Index] Advertise pressed'); router.push('/advertise'); } },
+          { text: 'Contact & Support', onPress: () => { console.log('[Index] Contact & Support pressed'); router.push('/support'); } },
           { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
           { text: 'Cancel', style: 'cancel' },
         ],
@@ -265,7 +281,9 @@ export default function IndexScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
       >
-        <AnimatedPressable
+                <NotificationBell />
+        
+<AnimatedPressable
           onPress={handleOpenFilters}
           scaleValue={0.95}
         >

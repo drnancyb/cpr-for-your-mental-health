@@ -62,6 +62,19 @@ const COLORS = {
   warning: '#F59E0B',
 };
 
+// ── Support types ─────────────────────────────────────────────────────────────
+
+interface AdminSupportRequest {
+  id: string;
+  name: string;
+  email: string;
+  role: 'client' | 'therapist' | 'other';
+  subject: string;
+  message: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  created_at: string;
+}
+
 // ── Analytics types ───────────────────────────────────────────────────────────
 
 interface AnalyticsData {
@@ -139,7 +152,7 @@ const STATUS_TABS = [
 ] as const;
 
 type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined;
-type MainTab = 'applications' | 'therapists' | 'bookings' | 'analytics' | 'subscriptions' | 'notifications';
+type MainTab = 'applications' | 'therapists' | 'bookings' | 'analytics' | 'subscriptions' | 'notifications' | 'support';
 
 interface AdminBooking {
   id: string;
@@ -232,6 +245,58 @@ export default function AdminDashboard() {
   const [showSendNotif, setShowSendNotif] = useState(false);
   const [notifForm, setNotifForm] = useState({ title: '', message: '', target: 'all' as 'all' | 'featured' | 'free' });
   const [notifSubmitting, setNotifSubmitting] = useState(false);
+
+  // Support state
+  const [supportRequests, setSupportRequests] = useState<AdminSupportRequest[]>([]);
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportRefreshing, setSupportRefreshing] = useState(false);
+  const [supportError, setSupportError] = useState<string | null>(null);
+  const [expandedSupportId, setExpandedSupportId] = useState<string | null>(null);
+  const [supportActionLoading, setSupportActionLoading] = useState<string | null>(null);
+
+  // ── Support ───────────────────────────────────────────────────────────────
+
+  const fetchSupportRequests = useCallback(async () => {
+    setSupportError(null);
+    console.log('[Admin] Fetching support requests GET /api/admin/support');
+    try {
+      const data = await api.get<AdminSupportRequest[]>('/api/admin/support');
+      console.log('[Admin] Fetched', data.length, 'support requests');
+      setSupportRequests(data);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to load support requests.';
+      console.error('[Admin] Fetch support error:', msg);
+      setSupportError(msg);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && mainTab === 'support' && supportRequests.length === 0 && !supportError) {
+      setSupportLoading(true);
+      fetchSupportRequests().finally(() => setSupportLoading(false));
+    }
+  }, [authLoading, mainTab, supportRequests.length, supportError, fetchSupportRequests]);
+
+  const handleSupportRefresh = useCallback(async () => {
+    console.log('[Admin] Support pull-to-refresh');
+    setSupportRefreshing(true);
+    await fetchSupportRequests();
+    setSupportRefreshing(false);
+  }, [fetchSupportRequests]);
+
+  const handleSupportStatusUpdate = useCallback(async (id: string, status: 'in_progress' | 'resolved') => {
+    console.log('[Admin] Update support status:', id, status);
+    setSupportActionLoading(id + '_' + status);
+    try {
+      const updated = await api.patch<AdminSupportRequest>(`/api/admin/support/${id}`, { status });
+      console.log('[Admin] Support request updated:', id, status);
+      setSupportRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: updated.status } : r));
+    } catch (e) {
+      console.error('[Admin] Support status update error:', e instanceof Error ? e.message : e);
+    } finally {
+      setSupportActionLoading(null);
+    }
+  }, []);
 
   // ── Analytics ─────────────────────────────────────────────────────────────
 
@@ -673,6 +738,7 @@ export default function AdminDashboard() {
         <MainTabButton label="Analytics" active={mainTab === 'analytics'} onPress={() => { console.log('[Admin] Main tab: Analytics'); setMainTab('analytics'); }} />
         <MainTabButton label="Subscriptions" active={mainTab === 'subscriptions'} onPress={() => { console.log('[Admin] Main tab: Subscriptions'); setMainTab('subscriptions'); }} />
         <MainTabButton label="Notifications" active={mainTab === 'notifications'} onPress={() => { console.log('[Admin] Main tab: Notifications'); setMainTab('notifications'); }} />
+        <MainTabButton label="Support" active={mainTab === 'support'} onPress={() => { console.log('[Admin] Main tab: Support'); setMainTab('support'); }} />
       </ScrollView>
 
       {mainTab === 'applications' ? (
@@ -889,6 +955,154 @@ export default function AdminDashboard() {
           onSend={() => {
             console.log('[Admin] Open send notification modal');
             setShowSendNotif(true);
+          }}
+        />
+      ) : mainTab === 'support' ? (
+        <FlatList
+          data={supportRequests}
+          keyExtractor={(item) => item.id}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl refreshing={supportRefreshing} onRefresh={handleSupportRefresh} tintColor={COLORS.primary} />
+          }
+          ListHeaderComponent={
+            supportLoading ? (
+              <View style={{ paddingTop: 60, alignItems: 'center' }}>
+                <ActivityIndicator color={COLORS.primary} />
+              </View>
+            ) : supportError ? (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, color: COLORS.danger, fontFamily: 'DMSans_400Regular', textAlign: 'center' }}>
+                  {supportError}
+                </Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !supportLoading && !supportError ? (
+              <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
+                <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <Bell size={28} color={COLORS.primary} />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8, textAlign: 'center' }}>
+                  No support requests
+                </Text>
+                <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', lineHeight: 20 }}>
+                  Support messages will appear here.
+                </Text>
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => {
+            const isExpanded = expandedSupportId === item.id;
+            const submittedDate = new Date(item.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+            const roleBg = item.role === 'therapist' ? COLORS.primaryMuted : item.role === 'client' ? '#EDE9FE' : COLORS.surfaceSecondary;
+            const roleColor = item.role === 'therapist' ? COLORS.primary : item.role === 'client' ? '#7C3AED' : COLORS.textSecondary;
+            const statusColor = item.status === 'resolved' ? COLORS.success : item.status === 'in_progress' ? '#3B82F6' : COLORS.warning;
+            const statusBg = item.status === 'resolved' ? '#D1FAE5' : item.status === 'in_progress' ? '#DBEAFE' : '#FEF3C7';
+            const statusLabel = item.status === 'in_progress' ? 'In Progress' : item.status.charAt(0).toUpperCase() + item.status.slice(1);
+            const inProgressLoading = supportActionLoading === item.id + '_in_progress';
+            const resolvedLoading = supportActionLoading === item.id + '_resolved';
+            const msgPreview = item.message.length > 80 ? item.message.slice(0, 80) + '…' : item.message;
+
+            return (
+              <AnimatedPressable
+                onPress={() => {
+                  console.log('[Admin] Support card tapped:', item.id, 'expanded:', !isExpanded);
+                  setExpandedSupportId(isExpanded ? null : item.id);
+                }}
+                scaleValue={0.98}
+              >
+                <View
+                  style={{
+                    backgroundColor: COLORS.surface,
+                    marginHorizontal: 16,
+                    marginBottom: 10,
+                    borderRadius: 16,
+                    borderCurve: 'continuous',
+                    padding: 14,
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                  }}
+                >
+                  {/* Header row */}
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold' }} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <View style={{ backgroundColor: roleBg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: roleColor, fontFamily: 'DMSans_600SemiBold', textTransform: 'capitalize' }}>
+                            {item.role}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
+                        {item.email}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <View style={{ backgroundColor: statusBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: statusColor, fontFamily: 'DMSans_600SemiBold' }}>
+                          {statusLabel}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 11, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
+                        {submittedDate}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Subject */}
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 4 }} numberOfLines={1}>
+                    {item.subject}
+                  </Text>
+
+                  {/* Message preview or full */}
+                  <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18 }} numberOfLines={isExpanded ? undefined : 2}>
+                    {isExpanded ? item.message : msgPreview}
+                  </Text>
+
+                  {/* Action buttons */}
+                  {item.status !== 'resolved' ? (
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                      {item.status === 'open' ? (
+                        <AnimatedPressable
+                          onPress={() => handleSupportStatusUpdate(item.id, 'in_progress')}
+                          disabled={inProgressLoading || resolvedLoading}
+                          scaleValue={0.96}
+                          style={{ flex: 1 }}
+                        >
+                          <View style={{ height: 36, borderRadius: 10, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 }}>
+                            {inProgressLoading ? (
+                              <ActivityIndicator color="#3B82F6" size="small" />
+                            ) : (
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: '#3B82F6', fontFamily: 'DMSans_600SemiBold' }}>Mark In Progress</Text>
+                            )}
+                          </View>
+                        </AnimatedPressable>
+                      ) : null}
+                      <AnimatedPressable
+                        onPress={() => handleSupportStatusUpdate(item.id, 'resolved')}
+                        disabled={inProgressLoading || resolvedLoading}
+                        scaleValue={0.96}
+                        style={{ flex: 1 }}
+                      >
+                        <View style={{ height: 36, borderRadius: 10, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 }}>
+                          {resolvedLoading ? (
+                            <ActivityIndicator color={COLORS.success} size="small" />
+                          ) : (
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.success, fontFamily: 'DMSans_600SemiBold' }}>Mark Resolved</Text>
+                          )}
+                        </View>
+                      </AnimatedPressable>
+                    </View>
+                  ) : null}
+                </View>
+              </AnimatedPressable>
+            );
           }}
         />
       ) : (

@@ -6,15 +6,17 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image } from 'expo-image';
-import { CalendarDays, Clock, CheckCircle, XCircle, LogIn, CalendarX } from 'lucide-react-native';
+import { CalendarDays, Clock, CheckCircle, XCircle, LogIn, CalendarX, Bell } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import type { ImageSourcePropType } from 'react-native';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -80,9 +82,21 @@ function StatusBadge({ status }: { status: Booking['status'] }) {
 
 export default function MyBookingsScreen() {
   const { user } = useAuth();
+  const { hasPermission, requestPermission } = useNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const handleBellPress = useCallback(async () => {
+    console.log('[MyBookings] Bell icon pressed, hasPermission:', hasPermission);
+    if (!hasPermission) {
+      console.log('[MyBookings] Requesting notification permission');
+      await requestPermission();
+    } else {
+      console.log('[MyBookings] Navigating to notification preferences');
+      router.push('/notification-preferences');
+    }
+  }, [hasPermission, requestPermission]);
 
   const fetchBookings = useCallback(async () => {
     console.log('[MyBookings] GET /api/bookings');
@@ -108,10 +122,16 @@ export default function MyBookingsScreen() {
     setRefreshing(false);
   }, [fetchBookings]);
 
+  const bellButton = (
+    <TouchableOpacity onPress={handleBellPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <Bell size={22} color={hasPermission ? COLORS.primary : COLORS.textTertiary} />
+    </TouchableOpacity>
+  );
+
   if (!user) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false }} />
+        <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false, headerRight: () => bellButton }} />
         <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
           <LogIn size={32} color={COLORS.primary} />
         </View>
@@ -136,7 +156,7 @@ export default function MyBookingsScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
-        <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false }} />
+        <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false, headerRight: () => bellButton }} />
         <ActivityIndicator color={COLORS.primary} size="large" />
       </View>
     );
@@ -144,7 +164,7 @@ export default function MyBookingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false }} />
+      <Stack.Screen options={{ title: 'My Bookings', headerLargeTitle: false, headerRight: () => bellButton }} />
       <FlatList
         data={bookings}
         keyExtractor={(item) => item.id}
