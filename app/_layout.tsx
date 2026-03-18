@@ -175,6 +175,14 @@ export default function RootLayout() {
                     }}
                   />
                   <Stack.Screen
+                    name="admin/content"
+                    options={{
+                      title: 'App Content',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
                     name="booking/[therapistId]"
                     options={{
                       title: 'Request Session',
