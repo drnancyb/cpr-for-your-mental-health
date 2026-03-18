@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Zap, CheckCircle, Square, CheckSquare, Star, TrendingUp, Users } from 'lucide-react-native';
+import { Zap, CheckCircle, Square, CheckSquare, Star, TrendingUp, Users, Tag } from 'lucide-react-native';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import * as Haptics from 'expo-haptics';
 
@@ -538,7 +538,7 @@ export default function AdvertiseScreen() {
                   letterSpacing: -0.5,
                 }}
               >
-                $15–$30
+                $29.99
               </Text>
               <Text
                 style={{
@@ -550,16 +550,19 @@ export default function AdvertiseScreen() {
                 / month
               </Text>
             </View>
-            <Text
-              style={{
-                fontSize: 12,
-                color: COLORS.textTertiary,
-                fontFamily: 'DMSans_400Regular',
-                marginBottom: 16,
-              }}
-            >
-              Advertising and listing fees only
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+              <Tag size={12} color={COLORS.gold} />
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: COLORS.gold,
+                  fontFamily: 'DMSans_400Regular',
+                  fontStyle: 'italic',
+                }}
+              >
+                Introductory offer — valid through June 30, 2026
+              </Text>
+            </View>
             <View style={{ gap: 8, marginBottom: 18 }}>
               {FEATURED_FEATURES.map((feature) => (
                 <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

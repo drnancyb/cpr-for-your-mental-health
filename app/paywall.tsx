@@ -332,11 +332,12 @@ export default function PaywallScreen() {
                           </View>
                         )}
                       </View>
-                      {pkg.product.priceString ? (
-                        <Text style={styles.packagePrice}>
-                          {pkg.product.priceString}
-                        </Text>
-                      ) : null}
+                      <Text style={styles.packagePrice}>
+                        {pkg.product.priceString ? pkg.product.priceString : "$29.99/month"}
+                      </Text>
+                      <Text style={styles.introOffer}>
+                        Introductory offer — valid through June 30, 2026
+                      </Text>
                       {pkg.product.description && (
                         <Text style={styles.packageDescription}>
                           {pkg.product.description}
@@ -706,6 +707,12 @@ const styles = StyleSheet.create({
   packageDescription: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.75)",
+    marginTop: 4,
+  },
+  introOffer: {
+    fontSize: 11,
+    color: "#F59E0B",
+    fontStyle: "italic",
     marginTop: 4,
   },
   noPackagesContainer: {
