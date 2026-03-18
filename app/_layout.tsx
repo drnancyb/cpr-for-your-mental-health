@@ -116,6 +116,14 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="admin/add-therapist"
+                    options={{
+                      title: 'Add Therapist',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />
