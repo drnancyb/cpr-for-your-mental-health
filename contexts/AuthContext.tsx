@@ -42,9 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const session = await authClient.getSession();
-      if (session?.data?.user) {
-        setUser(session.data.user as AuthUser);
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+      const sessionPromise = authClient.getSession().then(s => s).catch(() => null);
+      const session = await Promise.race([sessionPromise, timeoutPromise]);
+      if (session && (session as any)?.data?.user) {
+        setUser((session as any).data.user as AuthUser);
       } else {
         setUser(null);
       }
@@ -54,7 +56,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchUser().finally(() => setLoading(false));
+    let cancelled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) {
+        console.warn('[AuthContext] Safety timeout: forcing loading to false');
+        setLoading(false);
+      }
+    }, 6000);
+
+    fetchUser().finally(() => {
+      if (!cancelled) setLoading(false);
+      clearTimeout(safetyTimer);
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safetyTimer);
+    };
   }, [fetchUser]);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
