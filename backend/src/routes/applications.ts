@@ -264,7 +264,7 @@ export function register(app: App, fastify: FastifyInstance) {
           type: 'object',
           required: ['id'],
           properties: {
-            id: { type: 'string', format: 'uuid' },
+            id: { type: 'string' },
           },
         },
         response: {
@@ -313,14 +313,14 @@ export function register(app: App, fastify: FastifyInstance) {
           type: 'object',
           required: ['id'],
           properties: {
-            id: { type: 'string', format: 'uuid' },
+            id: { type: 'string' },
           },
         },
         body: {
           type: 'object',
           required: ['status'],
           properties: {
-            status: { type: 'string', enum: ['approved', 'rejected'] },
+            status: { type: 'string' },
             admin_notes: { type: 'string' },
           },
         },
@@ -344,6 +344,12 @@ export function register(app: App, fastify: FastifyInstance) {
     ) => {
       const session = await requireAdmin(request, reply);
       if (!session) return;
+
+      // Validate status
+      if (!['approved', 'rejected'].includes(request.body.status)) {
+        app.logger.warn({ status: request.body.status }, 'Invalid status provided');
+        return reply.status(400).send({ error: 'Invalid status. Must be "approved" or "rejected"' });
+      }
 
       app.logger.info(
         { applicationId: request.params.id, status: request.body.status },
