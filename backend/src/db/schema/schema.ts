@@ -180,3 +180,46 @@ export const appContent = pgTable(
     }).onDelete('no action'),
   ]
 );
+
+export const clientPreferences = pgTable(
+  'client_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().unique(),
+    preferredGender: text('preferred_gender').array(),
+    preferredSpecialties: text('preferred_specialties').array(),
+    preferredTherapyTypes: text('preferred_therapy_types').array(),
+    preferredInsurance: text('preferred_insurance').array(),
+    preferredLocation: text('preferred_location'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'client_preferences_user_id_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const supportRequests = pgTable(
+  'support_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id'),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    subject: text('subject').notNull(),
+    message: text('message').notNull(),
+    role: text('role').notNull().default('client'),
+    status: text('status').notNull().default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'support_requests_user_id_fk',
+    }).onDelete('no action'),
+  ]
+);

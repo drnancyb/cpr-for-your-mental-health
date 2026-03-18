@@ -138,6 +138,40 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Public Endpoints: Support
+  // ============================================
+
+  test("POST /api/support creates a support request", async () => {
+    const res = await api("/api/support", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "John Doe",
+        email: "john@example.com",
+        subject: "App feedback",
+        message: "Great app, would like some features",
+        role: "client",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.id).toBeDefined();
+  });
+
+  test("POST /api/support without required fields returns 400", async () => {
+    const res = await api("/api/support", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "John Doe",
+        // missing email, subject, message
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  // ============================================
   // Authentication Setup
   // ============================================
 
@@ -787,5 +821,136 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({}),
     });
     await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Admin Endpoints: Analytics
+  // ============================================
+
+  test("GET /api/admin/analytics returns 401 without auth", async () => {
+    const res = await api("/api/admin/analytics");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/analytics returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/analytics", authToken);
+    await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Admin Endpoints: Support
+  // ============================================
+
+  let supportId: string;
+
+  test("GET /api/admin/support returns 401 without auth", async () => {
+    const res = await api("/api/admin/support");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/support returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/support", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/support/{id} returns 401 without auth", async () => {
+    const res = await api("/api/admin/support/00000000-0000-0000-0000-000000000000", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "in_progress" }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/support/{id} returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "in_progress" }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Preferences
+  // ============================================
+
+  test("GET /api/preferences returns 401 without auth", async () => {
+    const res = await api("/api/preferences");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/preferences returns user preferences", async () => {
+    const res = await authenticatedApi("/api/preferences", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
+  });
+
+  test("PUT /api/preferences returns 401 without auth", async () => {
+    const res = await api("/api/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preferred_gender: ["Female"],
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PUT /api/preferences updates user preferences", async () => {
+    const res = await authenticatedApi("/api/preferences", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preferred_gender: ["Female", "Non-binary"],
+        preferred_specialties: ["Anxiety", "Depression"],
+        preferred_therapy_types: ["CBT"],
+        preferred_insurance: ["Blue Cross"],
+        preferred_location: "New York",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Therapist Profile
+  // ============================================
+
+  test("GET /api/therapist/profile returns 401 without auth", async () => {
+    const res = await api("/api/therapist/profile");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/therapist/profile returns therapist profile if user is therapist", async () => {
+    const res = await authenticatedApi("/api/therapist/profile", authToken);
+    // May return 200 if user is a therapist, or error if not
+    await expectStatus(res, 200, 404);
+  });
+
+  test("GET /api/therapist/inquiries returns 401 without auth", async () => {
+    const res = await api("/api/therapist/inquiries");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/therapist/inquiries returns booking inquiries", async () => {
+    const res = await authenticatedApi("/api/therapist/inquiries", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
+  });
+
+  test("GET /api/therapist/subscription returns 401 without auth", async () => {
+    const res = await api("/api/therapist/subscription");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/therapist/subscription returns subscription info", async () => {
+    const res = await authenticatedApi("/api/therapist/subscription", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
   });
 });
