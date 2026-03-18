@@ -477,6 +477,20 @@ export default function AuthScreen() {
 
         {/* Disclaimer */}
         <DisclaimerBanner />
+
+        {/* Admin setup entry point — subtle, for first-time setup only */}
+        <TouchableOpacity
+          onPress={() => {
+            console.log('[AuthScreen] Admin setup link pressed');
+            router.push('/admin-setup');
+          }}
+          activeOpacity={0.6}
+          style={{ alignItems: 'center', marginTop: 16, opacity: 0.4 }}
+        >
+          <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular' }}>
+            First time? Set up admin access
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );

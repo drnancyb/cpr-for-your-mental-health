@@ -248,6 +248,14 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="admin-setup"
+                    options={{
+                      title: 'Admin Setup',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />
