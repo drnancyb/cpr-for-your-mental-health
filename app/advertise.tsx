@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
+  Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Star, TrendingUp, Users } from 'lucide-react-native';
+import { Star, TrendingUp, Users, CheckCircle, Square, CheckSquare } from 'lucide-react-native';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import * as Haptics from 'expo-haptics';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -67,7 +70,25 @@ const PRICING = [
   },
 ];
 
+const PROVIDER_TERMS = [
+  'This platform functions solely as an advertising and directory service.',
+  'Any fees paid are for marketing, visibility, and listing placement only.',
+  'Fees are not based on client referrals, bookings, or outcomes.',
+  'No guarantee of client inquiries or conversions is provided.',
+  'You are responsible for maintaining appropriate licensure and practicing within your professional scope and ethical guidelines.',
+];
+
 export default function AdvertiseScreen() {
+  const [termsAgreed, setTermsAgreed] = useState(false);
+
+  const handleToggleTerms = () => {
+    console.log('[Advertise] Terms checkbox toggled — new value:', !termsAgreed);
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setTermsAgreed((prev) => !prev);
+  };
+
   const handleGetFeatured = () => {
     console.log('[Advertise] Get Featured button pressed — navigating to paywall');
     router.push('/paywall');
@@ -306,11 +327,99 @@ export default function AdvertiseScreen() {
           ))}
         </View>
 
-        {/* CTA */}
+        {/* Terms for Providers */}
         <View style={{ paddingHorizontal: 16, paddingTop: 28, gap: 12 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '700',
+              color: COLORS.textTertiary,
+              fontFamily: 'DMSans_700Bold',
+              textTransform: 'uppercase',
+              letterSpacing: 0.6,
+              marginBottom: 4,
+            }}
+          >
+            {'⚖️ Terms for Providers'}
+          </Text>
+          <View
+            style={{
+              backgroundColor: COLORS.surface,
+              borderRadius: 16,
+              borderCurve: 'continuous',
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              overflow: 'hidden',
+            }}
+          >
+            {PROVIDER_TERMS.map((term, index) => (
+              <View
+                key={index}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderBottomWidth: index < PROVIDER_TERMS.length - 1 ? 1 : 0,
+                  borderBottomColor: COLORS.border,
+                }}
+              >
+                <CheckCircle size={16} color="#6BAF8A" style={{ marginTop: 2, flexShrink: 0 }} />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: COLORS.textSecondary,
+                    fontFamily: 'DMSans_400Regular',
+                    lineHeight: 19,
+                  }}
+                >
+                  {term}
+                </Text>
+              </View>
+            ))}
+
+            {/* Checkbox row */}
+            <Pressable
+              onPress={handleToggleTerms}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                backgroundColor: termsAgreed ? 'rgba(76, 175, 130, 0.06)' : COLORS.surfaceSecondary,
+                borderTopWidth: 1,
+                borderTopColor: COLORS.border,
+              }}
+            >
+              {termsAgreed ? (
+                <CheckSquare size={20} color={COLORS.primary} />
+              ) : (
+                <Square size={20} color={COLORS.textTertiary} />
+              )}
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: termsAgreed ? COLORS.primary : COLORS.textSecondary,
+                  fontFamily: 'DMSans_600SemiBold',
+                  lineHeight: 18,
+                }}
+              >
+                {'I have read and agree to the Terms for Providers'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* CTA */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 20, gap: 12 }}>
           <TouchableOpacity
-            onPress={handleGetFeatured}
-            activeOpacity={0.85}
+            onPress={termsAgreed ? handleGetFeatured : undefined}
+            activeOpacity={termsAgreed ? 0.85 : 1}
             style={{
               backgroundColor: COLORS.accent,
               borderRadius: 16,
@@ -318,7 +427,8 @@ export default function AdvertiseScreen() {
               paddingVertical: 18,
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 20px rgba(76, 175, 130, 0.4)',
+              boxShadow: termsAgreed ? '0 4px 20px rgba(76, 175, 130, 0.4)' : undefined,
+              opacity: termsAgreed ? 1 : 0.4,
             }}
           >
             <Text
