@@ -15,6 +15,7 @@ import { CalendarDays, Mail, Phone, CheckCircle, LogIn } from 'lucide-react-nati
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -352,6 +353,9 @@ export default function BookingScreen() {
             </View>
           </AnimatedPressable>
         </View>
+
+        {/* Disclaimer */}
+        <DisclaimerBanner />
       </ScrollView>
     </View>
   );

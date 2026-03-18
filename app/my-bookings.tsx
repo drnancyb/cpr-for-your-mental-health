@@ -14,6 +14,7 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import type { ImageSourcePropType } from 'react-native';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -150,6 +151,7 @@ export default function MyBookingsScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ paddingTop: 12, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={<DisclaimerBanner />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
         }

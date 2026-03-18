@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import type { Therapist } from '@/components/therapist-card';
 import type { ImageSourcePropType } from 'react-native';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -747,6 +748,9 @@ export default function TherapistDetailScreen() {
             </AnimatedPressable>
           ) : null}
         </View>
+
+        {/* Disclaimer */}
+        <DisclaimerBanner />
       </ScrollView>
     </View>
   );

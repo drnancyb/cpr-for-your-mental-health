@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -473,6 +474,9 @@ export default function AuthScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Disclaimer */}
+        <DisclaimerBanner />
       </ScrollView>
     </KeyboardAvoidingView>
   );

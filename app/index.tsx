@@ -19,6 +19,7 @@ import { TherapistCard, Therapist } from '@/components/therapist-card';
 import { SkeletonCard } from '@/components/skeleton-card';
 import { FiltersContext } from '@/contexts/FiltersContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -129,9 +130,9 @@ export default function IndexScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'My Bookings', 'View My Application', 'Sign Out'],
+          options: ['Cancel', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 3,
+          destructiveButtonIndex: 4,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
@@ -141,6 +142,9 @@ export default function IndexScreen() {
             console.log('[Index] View Application selected');
             router.push('/apply');
           } else if (buttonIndex === 3) {
+            console.log('[Index] Advertise selected');
+            router.push('/advertise');
+          } else if (buttonIndex === 4) {
             console.log('[Index] Sign Out selected');
             signOut();
           }
@@ -153,6 +157,7 @@ export default function IndexScreen() {
         [
           { text: 'My Bookings', onPress: () => { console.log('[Index] My Bookings pressed'); router.push('/my-bookings'); } },
           { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
+          { text: 'Advertise Your Practice', onPress: () => { console.log('[Index] Advertise pressed'); router.push('/advertise'); } },
           { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
           { text: 'Cancel', style: 'cancel' },
         ],
@@ -531,6 +536,7 @@ export default function IndexScreen() {
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={EmptyState}
+          ListFooterComponent={<DisclaimerBanner />}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
           refreshControl={

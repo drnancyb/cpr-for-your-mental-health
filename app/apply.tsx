@@ -15,6 +15,7 @@ import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -826,6 +827,9 @@ export default function ApplyScreen() {
             </Text>
           </View>
         ) : null}
+
+        {/* Disclaimer */}
+        <DisclaimerBanner />
       </ScrollView>
 
       {/* Bottom navigation */}
