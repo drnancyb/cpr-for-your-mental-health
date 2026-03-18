@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Zap, CheckCircle, Square, CheckSquare, Star, TrendingUp, Users, Tag } from 'lucide-react-native';
+import { CheckCircle, Square, CheckSquare, Star, TrendingUp, Users, Tag } from 'lucide-react-native';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import * as Haptics from 'expo-haptics';
 
@@ -180,122 +180,6 @@ export default function AdvertiseScreen() {
           </Text>
         </View>
 
-        {/* Founding Member Banner */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: COLORS.primary,
-              borderRadius: 18,
-              borderCurve: 'continuous',
-              padding: 20,
-              overflow: 'hidden',
-              boxShadow: '0 4px 20px rgba(45, 122, 95, 0.3)',
-            }}
-          >
-            {/* Decorative circle */}
-            <View
-              style={{
-                position: 'absolute',
-                top: -30,
-                right: -30,
-                width: 120,
-                height: 120,
-                borderRadius: 60,
-                backgroundColor: 'rgba(255,255,255,0.07)',
-              }}
-            />
-            <View
-              style={{
-                position: 'absolute',
-                bottom: -20,
-                left: -20,
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: 'rgba(255,255,255,0.05)',
-              }}
-            />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: 'rgba(255,255,255,0.18)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Zap size={18} color="#FFFFFF" fill="#FFFFFF" />
-              </View>
-              <Text
-                style={{
-                  fontSize: 17,
-                  fontWeight: '700',
-                  color: '#FFFFFF',
-                  fontFamily: 'DMSans_700Bold',
-                  letterSpacing: -0.2,
-                }}
-              >
-                Founding Member Offer
-              </Text>
-            </View>
-            <Text
-              style={{
-                fontSize: 22,
-                fontWeight: '700',
-                color: '#FFFFFF',
-                fontFamily: 'DMSans_700Bold',
-                letterSpacing: -0.3,
-                marginBottom: 6,
-              }}
-            >
-              Free for 3 months
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: 'rgba(255,255,255,0.8)',
-                fontFamily: 'DMSans_400Regular',
-                lineHeight: 20,
-                marginBottom: 12,
-              }}
-            >
-              Lock in early access before we open to the public. Limited spots available.
-            </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                backgroundColor: 'rgba(255,255,255,0.15)',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                alignSelf: 'flex-start',
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: '#4ade80',
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: '600',
-                  color: 'rgba(255,255,255,0.9)',
-                  fontFamily: 'DMSans_600SemiBold',
-                }}
-              >
-                Join now before spots fill up
-              </Text>
-            </View>
-          </View>
-        </View>
 
         {/* Benefits */}
         <View style={{ paddingHorizontal: 16, paddingTop: 28, gap: 12 }}>
@@ -524,7 +408,7 @@ export default function AdvertiseScreen() {
                     letterSpacing: 0.2,
                   }}
                 >
-                  Most Popular
+                  Founding Member Offer
                 </Text>
               </View>
             </View>
