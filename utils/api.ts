@@ -7,8 +7,8 @@ const BASE_URL =
 
 async function getToken(): Promise<string | null> {
   try {
-    const cookies = await authClient.getCookie();
-    if (cookies) return cookies;
+    const { data } = await authClient.getSession();
+    if (data?.session?.token) return data.session.token;
   } catch {}
   return null;
 }
