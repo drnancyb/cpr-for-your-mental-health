@@ -153,7 +153,7 @@ export default function PrivacyPolicyScreen() {
 
         <Section title="Contact">
           <Body>
-            {'If you have questions about this Privacy Policy, please contact us at: [your email]'}
+            {'If you have questions about this Privacy Policy, please contact us at: support@cpresources.ca'}
           </Body>
         </Section>
       </ScrollView>

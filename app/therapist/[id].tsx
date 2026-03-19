@@ -205,10 +205,10 @@ export default function TherapistDetailScreen() {
   const handleBookmark = useCallback(async () => {
     if (!id || bookmarkLoading) return;
     if (savedId) {
-      console.log('[TherapistDetail] Unsave therapist:', id);
+      console.log('[TherapistDetail] Unsave therapist, savedId:', savedId);
       setBookmarkLoading(true);
       try {
-        await api.delete(`/api/saved/${id}`);
+        await api.delete(`/api/saved/${savedId}`);
         setSavedId(null);
         console.log('[TherapistDetail] Therapist unsaved');
         if (Platform.OS === 'ios') {

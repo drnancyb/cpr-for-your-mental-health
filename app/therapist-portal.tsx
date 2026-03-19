@@ -206,6 +206,7 @@ export default function TherapistPortalScreen() {
         specialties: JSON.stringify(profile.specialties),
         therapy_types: JSON.stringify(profile.therapy_types),
         insurances: JSON.stringify(profile.insurances),
+        mode: 'therapist-self-edit',
       },
     });
   }, [profile]);

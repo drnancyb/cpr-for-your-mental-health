@@ -30,24 +30,24 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 // Premium features for the paywall
 const FEATURES = [
   {
-    icon: "⭐",
-    title: "Premium Feature 1",
-    description: "Description of your first premium feature",
+    icon: "📅",
+    title: "Unlimited Therapist Bookings",
+    description: "Request sessions with as many therapists as you need",
+  },
+  {
+    icon: "🔖",
+    title: "Save Your Favourite Therapists",
+    description: "Bookmark profiles and revisit them anytime",
   },
   {
     icon: "⚡",
-    title: "Premium Feature 2",
-    description: "Description of your second premium feature",
+    title: "Priority Booking Confirmation",
+    description: "Get faster responses and confirmed appointments",
   },
   {
-    icon: "🛡️",
-    title: "Premium Feature 3",
-    description: "Description of your third premium feature",
-  },
-  {
-    icon: "☁️",
-    title: "Premium Feature 4",
-    description: "Description of your fourth premium feature",
+    icon: "✨",
+    title: "Exclusive Therapist Profiles",
+    description: "Access premium-listed therapists not visible to free users",
   },
 ];
 
@@ -145,17 +145,18 @@ export default function PaywallScreen() {
 
   // Handle app store links for web
   const handleDownloadApp = () => {
-    // TODO: Replace with your actual app store URLs
-    const iosUrl = "https://apps.apple.com/app/your-app-id";
-    const androidUrl = "https://play.google.com/store/apps/details?id=your.app.id";
-
-    // On web, we can't detect which device the user has, so show both options
     Alert.alert(
       "Download the App",
-      "To subscribe, please download our app from your device's app store.",
+      "To subscribe, please download CPR from your device's app store.",
       [
-        { text: "App Store (iOS)", onPress: () => Linking.openURL(iosUrl) },
-        { text: "Google Play", onPress: () => Linking.openURL(androidUrl) },
+        {
+          text: "App Store (iOS)",
+          onPress: () => Linking.openURL("https://apps.apple.com/app/cpr-canadian-psychological-resources"),
+        },
+        {
+          text: "Google Play",
+          onPress: () => Linking.openURL("https://play.google.com/store/apps/details?id=com.cpr.canadian.psychological.resources"),
+        },
         { text: "Cancel", style: "cancel" },
       ]
     );

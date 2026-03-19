@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Modal,
-  TouchableOpacity,
+  Switch,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { api } from '@/utils/api';
@@ -91,9 +90,12 @@ export default function AddTherapistScreen() {
     specialties?: string;
     therapy_types?: string;
     insurances?: string;
+    accepting_new_clients?: string;
+    mode?: string;
   }>();
 
   const isEdit = !!params.id;
+  const isSelfEdit = params.mode === 'therapist-self-edit';
 
   // Form state
   const [name, setName] = useState(params.name ?? '');
@@ -111,6 +113,9 @@ export default function AddTherapistScreen() {
   const [specialties, setSpecialties] = useState<string[]>(parseArrayParam(params.specialties));
   const [therapyTypes, setTherapyTypes] = useState<string[]>(parseArrayParam(params.therapy_types));
   const [insurances, setInsurances] = useState<string[]>(parseArrayParam(params.insurances));
+  const [acceptingNewClients, setAcceptingNewClients] = useState(
+    params.accepting_new_clients !== undefined ? params.accepting_new_clients === 'true' : true
+  );
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -164,10 +169,15 @@ export default function AddTherapistScreen() {
       specialties,
       therapy_types: therapyTypes,
       insurances,
+      accepting_new_clients: acceptingNewClients,
     };
     setSubmitting(true);
     try {
-      if (isEdit) {
+      if (isSelfEdit) {
+        console.log('[AddTherapist] PATCH /api/therapist/profile (self-edit)', body);
+        await api.patch('/api/therapist/profile', body);
+        console.log('[AddTherapist] Therapist self-profile updated successfully');
+      } else if (isEdit) {
         console.log('[AddTherapist] PATCH /api/admin/therapists/', params.id, body);
         await api.patch(`/api/admin/therapists/${params.id}`, body);
         console.log('[AddTherapist] Therapist updated successfully');
@@ -415,6 +425,37 @@ export default function AddTherapistScreen() {
             onToggle={(val) => toggleMulti(insurances, setInsurances, val)}
           />
           <FieldError msg={errors.insurances} />
+
+          <View style={{ height: 14 }} />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: COLORS.surfaceSecondary,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 14,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, color: COLORS.text, fontFamily: 'DMSans_500Medium', fontWeight: '500' }}>
+                Accepting New Clients
+              </Text>
+              <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                Toggle off if the therapist is not taking new clients
+              </Text>
+            </View>
+            <Switch
+              value={acceptingNewClients}
+              onValueChange={(val) => {
+                console.log('[AddTherapist] Accepting new clients toggled:', val);
+                setAcceptingNewClients(val);
+              }}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor="#fff"
+            />
+          </View>
 
           {/* Submit */}
           <View style={{ height: 32 }} />

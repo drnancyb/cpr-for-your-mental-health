@@ -1,4 +1,4 @@
-import React, { use, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -96,7 +96,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export default function FilterSheet() {
-  const { filters, setFilters, clearFilters } = use(FiltersContext);
+  const { filters, setFilters, clearFilters } = useContext(FiltersContext);
   const insets = useSafeAreaInsets();
 
   const [localFilters, setLocalFilters] = useState<Filters>({ ...filters });

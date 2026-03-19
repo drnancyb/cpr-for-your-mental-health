@@ -348,8 +348,8 @@ export default function AdminDashboard() {
     if (!q.trim()) { setSubSearchResults([]); return; }
     console.log('[Admin] Searching therapists for sub:', q);
     try {
-      const data = await api.get<Therapist[]>(`/api/therapists?search=${encodeURIComponent(q)}`);
-      setSubSearchResults(data.slice(0, 5));
+      const data = await api.get<{ therapists: Therapist[]; total: number }>(`/api/therapists?search=${encodeURIComponent(q)}`);
+      setSubSearchResults(data.therapists.slice(0, 5));
     } catch {
       setSubSearchResults([]);
     }
@@ -499,9 +499,9 @@ export default function AdminDashboard() {
     setTherapistsError(null);
     console.log('[Admin] Fetching therapists GET /api/therapists');
     try {
-      const data = await api.get<Therapist[]>('/api/therapists');
-      console.log('[Admin] Fetched', data.length, 'therapists');
-      setTherapists(data);
+      const data = await api.get<{ therapists: Therapist[]; total: number }>('/api/therapists');
+      console.log('[Admin] Fetched', data.therapists.length, 'therapists');
+      setTherapists(data.therapists);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load therapists.';
       console.error('[Admin] Fetch therapists error:', msg);
