@@ -536,6 +536,8 @@ export default function IndexScreen() {
         options={{
           title: 'Find a Therapist',
           headerLargeTitle: true,
+          headerTransparent: false,
+          headerBlurEffect: 'systemMaterial',
           headerRight: () => HeaderRight,
           headerSearchBarOptions: {
             placeholder: 'Search by name or specialty...',

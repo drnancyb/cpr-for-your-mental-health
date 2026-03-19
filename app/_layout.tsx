@@ -70,7 +70,14 @@ export default function RootLayout() {
                 >
                   <Stack.Screen name="onboarding" options={{ headerShown: false }} />
 
-                  <Stack.Screen name="index" options={{ title: 'Find a Therapist' }} />
+                  <Stack.Screen
+                    name="index"
+                    options={{
+                      title: 'Find a Therapist',
+                      headerTransparent: false,
+                      headerBlurEffect: 'systemMaterial',
+                    }}
+                  />
                   <Stack.Screen
                     name="filter-sheet"
                     options={{

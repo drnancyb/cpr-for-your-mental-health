@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "CPR",
+    "name": "CPR (Canadian Psychological Resources)",
     "slug": "cpr-canadian-psychological-resources",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon-qpr.png",
-    "scheme": "cpresources",
+    "scheme": "cprcanadianpsychologicalresources",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/app-icon-qpr.png",
