@@ -4,11 +4,11 @@
     "slug": "cpr-canadian-psychological-resources",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon-qdw.png",
+    "icon": "./assets/images/app-icon-fxh.png",
     "scheme": "cpresources",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/app-icon-qdw.png",
+      "image": "./assets/images/app-icon-fxh.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -32,7 +32,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/app-icon-qdw.png",
+        "foregroundImage": "./assets/images/app-icon-fxh.png",
         "backgroundColor": "#000000"
       },
       "package": "ca.cpresources.app",
