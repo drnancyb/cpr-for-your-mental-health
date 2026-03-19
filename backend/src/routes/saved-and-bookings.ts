@@ -213,6 +213,7 @@ export function register(app: App, fastify: FastifyInstance) {
             },
           },
           401: { type: 'object', properties: { error: { type: 'string' } } },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
@@ -229,6 +230,26 @@ export function register(app: App, fastify: FastifyInstance) {
         { userId: session.user.id, therapistId: request.params.therapistId },
         'Removing saved therapist'
       );
+
+      // Check if saved therapist exists
+      const existingSaved = await app.db
+        .select()
+        .from(appSchema.savedTherapists)
+        .where(
+          and(
+            eq(appSchema.savedTherapists.userId, session.user.id),
+            eq(appSchema.savedTherapists.therapistId, request.params.therapistId)
+          )
+        )
+        .limit(1);
+
+      if (existingSaved.length === 0) {
+        app.logger.info(
+          { userId: session.user.id, therapistId: request.params.therapistId },
+          'Saved therapist not found'
+        );
+        return reply.status(404).send({ error: 'Saved therapist not found' });
+      }
 
       await app.db
         .delete(appSchema.savedTherapists)

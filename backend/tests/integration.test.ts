@@ -372,7 +372,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/applications/{id} with invalid ID returns 404 (admin only)", async () => {
+  test("PATCH /api/admin/applications/{id} returns 403 for non-admin user (admin endpoint)", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000",
       authToken,
@@ -461,7 +461,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/therapists/{id} with non-existent ID returns 404 (admin only)", async () => {
+  test("PATCH /api/admin/therapists/{id} returns 403 for non-admin user (admin endpoint)", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
       authToken,
@@ -567,6 +567,24 @@ describe("API Integration Tests", () => {
       const data = await res.json();
       expect(data.success).toBe(true);
     }
+  });
+
+  test("DELETE /api/saved/{therapistId} with non-existent UUID returns 404", async () => {
+    const res = await authenticatedApi(
+      "/api/saved/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "DELETE",
+      }
+    );
+    await expectStatus(res, 404);
+  });
+
+  test("DELETE /api/saved/{therapistId} with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/saved/invalid-uuid", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
   });
 
   // ============================================
@@ -752,6 +770,32 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("PATCH /api/admin/subscriptions/{id} with non-existent UUID returns 404 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/subscriptions/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "inactive",
+        }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/subscriptions/{id} with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/admin/subscriptions/invalid-uuid", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "inactive",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============================================
   // Admin Endpoints: Notifications
   // ============================================
@@ -854,7 +898,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/content/{key} requires value field", async () => {
+  test("PATCH /api/admin/content/{key} with empty body returns 403 for non-admin", async () => {
     const res = await authenticatedApi("/api/admin/content/welcome-message", authToken, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
