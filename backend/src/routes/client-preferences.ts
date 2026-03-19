@@ -1,11 +1,170 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import * as appSchema from '../db/schema/schema.js';
 import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
   const requireAuth = app.requireAuth();
+
+  // ============================================
+  // Notification Preferences Endpoints
+  // ============================================
+
+  // GET /api/notification-preferences - Get user notification preferences
+  fastify.get(
+    '/api/notification-preferences',
+    {
+      schema: {
+        description: 'Get current user notification preferences',
+        tags: ['preferences'],
+        response: {
+          200: {
+            description: 'Notification preferences',
+            type: 'object',
+          },
+          401: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info({ userId: session.user.id }, 'Fetching notification preferences');
+
+      const prefs = await app.db
+        .select()
+        .from(appSchema.notificationPreferences)
+        .where(eq(appSchema.notificationPreferences.userId, session.user.id))
+        .limit(1);
+
+      if (prefs.length > 0) {
+        const pref = prefs[0];
+        return {
+          id: pref.id,
+          user_id: pref.userId,
+          booking_reminders: pref.bookingReminders,
+          new_messages: pref.newMessages,
+          promotions: pref.promotions,
+          created_at: pref.createdAt,
+          updated_at: pref.updatedAt,
+        };
+      }
+
+      // Create default preferences if not exists
+      app.logger.info({ userId: session.user.id }, 'Creating default notification preferences');
+      const created = await app.db
+        .insert(appSchema.notificationPreferences)
+        .values({
+          userId: session.user.id,
+          bookingReminders: true,
+          newMessages: true,
+          promotions: false,
+        })
+        .returning();
+
+      const pref = created[0];
+      return {
+        id: pref.id,
+        user_id: pref.userId,
+        booking_reminders: pref.bookingReminders,
+        new_messages: pref.newMessages,
+        promotions: pref.promotions,
+        created_at: pref.createdAt,
+        updated_at: pref.updatedAt,
+      };
+    }
+  );
+
+  // PATCH /api/notification-preferences - Update notification preferences
+  fastify.patch(
+    '/api/notification-preferences',
+    {
+      schema: {
+        description: 'Update notification preferences',
+        tags: ['preferences'],
+        body: {
+          type: 'object',
+          properties: {
+            booking_reminders: { type: 'boolean' },
+            new_messages: { type: 'boolean' },
+            promotions: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Updated preferences',
+            type: 'object',
+          },
+          401: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Body: {
+          booking_reminders?: boolean;
+          new_messages?: boolean;
+          promotions?: boolean;
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info({ userId: session.user.id }, 'Updating notification preferences');
+
+      // Build update object
+      const updateData: Record<string, any> = {};
+      if (request.body.booking_reminders !== undefined) updateData.bookingReminders = request.body.booking_reminders;
+      if (request.body.new_messages !== undefined) updateData.newMessages = request.body.new_messages;
+      if (request.body.promotions !== undefined) updateData.promotions = request.body.promotions;
+      updateData.updatedAt = sql`now()`;
+
+      // Check if preferences exist
+      const existing = await app.db
+        .select()
+        .from(appSchema.notificationPreferences)
+        .where(eq(appSchema.notificationPreferences.userId, session.user.id))
+        .limit(1);
+
+      let pref;
+      if (existing.length > 0) {
+        const updated = await app.db
+          .update(appSchema.notificationPreferences)
+          .set(updateData)
+          .where(eq(appSchema.notificationPreferences.userId, session.user.id))
+          .returning();
+        pref = updated[0];
+      } else {
+        // Create with defaults merged with provided values
+        const inserted = await app.db
+          .insert(appSchema.notificationPreferences)
+          .values({
+            userId: session.user.id,
+            bookingReminders: request.body.booking_reminders !== undefined ? request.body.booking_reminders : true,
+            newMessages: request.body.new_messages !== undefined ? request.body.new_messages : true,
+            promotions: request.body.promotions !== undefined ? request.body.promotions : false,
+          })
+          .returning();
+        pref = inserted[0];
+      }
+
+      app.logger.info({ userId: session.user.id }, 'Notification preferences updated');
+
+      return {
+        id: pref.id,
+        user_id: pref.userId,
+        booking_reminders: pref.bookingReminders,
+        new_messages: pref.newMessages,
+        promotions: pref.promotions,
+        created_at: pref.createdAt,
+        updated_at: pref.updatedAt,
+      };
+    }
+  );
 
   // ============================================
   // Client Preferences Endpoints
@@ -181,6 +340,7 @@ export function register(app: App, fastify: FastifyInstance) {
             type: 'object',
           },
           401: { type: 'object', properties: { error: { type: 'string' } } },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
@@ -190,27 +350,20 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ userId: session.user.id }, 'Fetching therapist profile');
 
-      const userRecord = await app.db
-        .select()
-        .from(authSchema.user)
-        .where(eq(authSchema.user.id, session.user.id))
-        .limit(1);
-
-      if (userRecord.length === 0) {
-        return { therapist: null };
-      }
-
       const therapist = await app.db
         .select()
         .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.email, userRecord[0].email))
+        .where(eq(appSchema.therapists.userId, session.user.id))
         .limit(1);
 
-      app.logger.info({ userId: session.user.id }, 'Therapist profile retrieved');
+      if (therapist.length === 0) {
+        app.logger.info({ userId: session.user.id }, 'No therapist profile found');
+        return reply.status(404).send({ error: 'No therapist profile linked to this account' });
+      }
 
-      return {
-        therapist: therapist.length > 0 ? therapist[0] : null,
-      };
+      app.logger.info({ userId: session.user.id, therapistId: therapist[0].id }, 'Therapist profile retrieved');
+
+      return therapist[0];
     }
   );
 
@@ -236,24 +389,15 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ userId: session.user.id }, 'Fetching therapist inquiries');
 
-      const userRecord = await app.db
-        .select()
-        .from(authSchema.user)
-        .where(eq(authSchema.user.id, session.user.id))
-        .limit(1);
-
-      if (userRecord.length === 0) {
-        return { inquiries: [], total: 0, pending: 0 };
-      }
-
       const therapist = await app.db
         .select()
         .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.email, userRecord[0].email))
+        .where(eq(appSchema.therapists.userId, session.user.id))
         .limit(1);
 
       if (therapist.length === 0) {
-        return { inquiries: [], total: 0, pending: 0 };
+        app.logger.info({ userId: session.user.id }, 'No therapist profile found');
+        return { inquiries: [] };
       }
 
       const inquiries = await app.db
@@ -262,18 +406,12 @@ export function register(app: App, fastify: FastifyInstance) {
         .where(eq(appSchema.bookingRequests.therapistId, therapist[0].id))
         .orderBy(desc(appSchema.bookingRequests.createdAt));
 
-      const pendingCount = inquiries.filter((inq: any) => inq.status === 'pending').length;
-
       app.logger.info(
-        { therapistId: therapist[0].id, total: inquiries.length, pending: pendingCount },
+        { therapistId: therapist[0].id, count: inquiries.length },
         'Therapist inquiries retrieved'
       );
 
-      return {
-        inquiries,
-        total: inquiries.length,
-        pending: pendingCount,
-      };
+      return { inquiries };
     }
   );
 
@@ -299,23 +437,14 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ userId: session.user.id }, 'Fetching therapist subscription');
 
-      const userRecord = await app.db
-        .select()
-        .from(authSchema.user)
-        .where(eq(authSchema.user.id, session.user.id))
-        .limit(1);
-
-      if (userRecord.length === 0) {
-        return { subscription: null };
-      }
-
       const therapist = await app.db
         .select()
         .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.email, userRecord[0].email))
+        .where(eq(appSchema.therapists.userId, session.user.id))
         .limit(1);
 
       if (therapist.length === 0) {
+        app.logger.info({ userId: session.user.id }, 'No therapist profile found');
         return { subscription: null };
       }
 
@@ -326,14 +455,128 @@ export function register(app: App, fastify: FastifyInstance) {
         .orderBy(desc(appSchema.therapistSubscriptions.createdAt))
         .limit(1);
 
+      if (subscription.length === 0) {
+        app.logger.info(
+          { therapistId: therapist[0].id },
+          'No subscription found'
+        );
+        return { subscription: null };
+      }
+
       app.logger.info(
         { therapistId: therapist[0].id },
         'Therapist subscription retrieved'
       );
 
-      return {
-        subscription: subscription.length > 0 ? subscription[0] : null,
-      };
+      return subscription[0];
+    }
+  );
+
+  // PATCH /api/therapist/profile - Update therapist profile
+  fastify.patch(
+    '/api/therapist/profile',
+    {
+      schema: {
+        description: 'Update therapist profile',
+        tags: ['therapist'],
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            photo_url: { type: 'string' },
+            title: { type: 'string' },
+            bio: { type: 'string' },
+            location: { type: 'string' },
+            gender: { type: 'string' },
+            specialties: { type: 'array', items: { type: 'string' } },
+            therapy_types: { type: 'array', items: { type: 'string' } },
+            insurances: { type: 'array', items: { type: 'string' } },
+            session_fee: { type: 'number' },
+            languages: { type: 'array', items: { type: 'string' } },
+            years_experience: { type: 'integer' },
+            phone: { type: 'string' },
+            email: { type: 'string' },
+            website_url: { type: 'string' },
+            accepting_new_clients: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Updated profile',
+            type: 'object',
+          },
+          401: { type: 'object', properties: { error: { type: 'string' } } },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Body: {
+          name?: string;
+          photo_url?: string;
+          title?: string;
+          bio?: string;
+          location?: string;
+          gender?: string;
+          specialties?: string[];
+          therapy_types?: string[];
+          insurances?: string[];
+          session_fee?: number;
+          languages?: string[];
+          years_experience?: number;
+          phone?: string;
+          email?: string;
+          website_url?: string;
+          accepting_new_clients?: boolean;
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info({ userId: session.user.id }, 'Updating therapist profile');
+
+      const therapist = await app.db
+        .select()
+        .from(appSchema.therapists)
+        .where(eq(appSchema.therapists.userId, session.user.id))
+        .limit(1);
+
+      if (therapist.length === 0) {
+        app.logger.info({ userId: session.user.id }, 'No therapist profile found');
+        return reply.status(404).send({ error: 'No therapist profile linked to this account' });
+      }
+
+      // Build update object with only provided fields
+      const updateData: Record<string, any> = {};
+      if (request.body.name !== undefined) updateData.name = request.body.name;
+      if (request.body.photo_url !== undefined) updateData.photoUrl = request.body.photo_url;
+      if (request.body.title !== undefined) updateData.title = request.body.title;
+      if (request.body.bio !== undefined) updateData.bio = request.body.bio;
+      if (request.body.location !== undefined) updateData.location = request.body.location;
+      if (request.body.gender !== undefined) updateData.gender = request.body.gender;
+      if (request.body.specialties !== undefined) updateData.specialties = request.body.specialties;
+      if (request.body.therapy_types !== undefined) updateData.therapyTypes = request.body.therapy_types;
+      if (request.body.insurances !== undefined) updateData.insurances = request.body.insurances;
+      if (request.body.session_fee !== undefined) updateData.sessionFee = request.body.session_fee.toString();
+      if (request.body.languages !== undefined) updateData.languages = request.body.languages;
+      if (request.body.years_experience !== undefined) updateData.yearsExperience = request.body.years_experience;
+      if (request.body.phone !== undefined) updateData.phone = request.body.phone;
+      if (request.body.email !== undefined) updateData.email = request.body.email;
+      if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
+      if (request.body.accepting_new_clients !== undefined) updateData.acceptingNewClients = request.body.accepting_new_clients;
+
+      const updated = await app.db
+        .update(appSchema.therapists)
+        .set(updateData)
+        .where(eq(appSchema.therapists.userId, session.user.id))
+        .returning();
+
+      app.logger.info({ userId: session.user.id, therapistId: updated[0].id }, 'Therapist profile updated');
+
+      return updated[0];
     }
   );
 }

@@ -1000,6 +1000,48 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Authenticated Endpoints: Notification Preferences
+  // ============================================
+
+  test("GET /api/notification-preferences returns 401 without auth", async () => {
+    const res = await api("/api/notification-preferences");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/notification-preferences returns notification preferences", async () => {
+    const res = await authenticatedApi("/api/notification-preferences", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
+  });
+
+  test("PATCH /api/notification-preferences returns 401 without auth", async () => {
+    const res = await api("/api/notification-preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        booking_reminders: true,
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/notification-preferences updates preferences", async () => {
+    const res = await authenticatedApi("/api/notification-preferences", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        booking_reminders: false,
+        new_messages: true,
+        promotions: false,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data).toBeDefined();
+  });
+
+  // ============================================
   // Authenticated Endpoints: Therapist Profile
   // ============================================
 
@@ -1011,6 +1053,33 @@ describe("API Integration Tests", () => {
   test("GET /api/therapist/profile returns therapist profile if user is therapist", async () => {
     const res = await authenticatedApi("/api/therapist/profile", authToken);
     // May return 200 if user is a therapist, or error if not
+    await expectStatus(res, 200, 404);
+  });
+
+  test("PATCH /api/therapist/profile returns 401 without auth", async () => {
+    const res = await api("/api/therapist/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Updated Therapist Name",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/therapist/profile updates therapist profile", async () => {
+    const res = await authenticatedApi("/api/therapist/profile", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Updated Therapist Name",
+        title: "Licensed Therapist",
+        bio: "Updated bio",
+        location: "New York",
+        accepting_new_clients: true,
+      }),
+    });
+    // May return 200 if user is a therapist, or 404 if not
     await expectStatus(res, 200, 404);
   });
 

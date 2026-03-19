@@ -267,12 +267,8 @@ export function register(app: App, fastify: FastifyInstance) {
           expiresAt: appSchema.therapistSubscriptions.expiresAt,
           notes: appSchema.therapistSubscriptions.notes,
           createdAt: appSchema.therapistSubscriptions.createdAt,
-          therapist: {
-            id: appSchema.therapists.id,
-            name: appSchema.therapists.name,
-            email: appSchema.therapists.email,
-            title: appSchema.therapists.title,
-          },
+          therapistName: appSchema.therapists.name,
+          therapistTitle: appSchema.therapists.title,
         })
         .from(appSchema.therapistSubscriptions)
         .innerJoin(

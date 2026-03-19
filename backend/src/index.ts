@@ -66,30 +66,34 @@ async function seedAdminUser() {
 async function seedAppContent() {
   app.logger.info('Checking if app content is seeded');
   try {
-    const contentCount = await app.db
-      .select()
-      .from(appSchema.appContent);
+    const defaultContent = [
+      {
+        key: 'home_banner',
+        value: 'Welcome to CPR — Canadian Psychological Resources',
+      },
+      {
+        key: 'promo_text',
+        value: 'Find the right therapist for you. Browse our network of certified professionals.',
+      },
+      {
+        key: 'faq',
+        value: 'Q: How do I book a session?\nA: Browse therapists, tap Book, and submit your request.\n\nQ: Is my information private?\nA: Yes, all data is encrypted and confidential.',
+      },
+    ];
 
-    if (contentCount.length === 0) {
-      app.logger.info('Seeding app content');
-      await app.db.insert(appSchema.appContent).values([
-        {
-          key: 'home_banner',
-          value: '{"title":"Find a Mental Health Professional in BC","subtitle":"Browse our directory of licensed providers"}',
-        },
-        {
-          key: 'faq',
-          value: '[{"q":"Is this a referral service?","a":"No. This is an independent advertising directory. We do not refer or assign clients."},{"q":"How do I contact a therapist?","a":"Browse the directory and use the contact details on each provider profile."},{"q":"Are therapists verified?","a":"Therapists are responsible for maintaining their own licensure. We encourage users to verify credentials independently."}]',
-        },
-        {
-          key: 'promo_text',
-          value: '{"text":"Founding Member Offer: List your practice for $29.99/month — valid through June 30, 2026"}',
-        },
-      ]);
-      app.logger.info('App content seeded successfully');
-    } else {
-      app.logger.info('App content already seeded');
+    for (const content of defaultContent) {
+      const existing = await app.db
+        .select()
+        .from(appSchema.appContent)
+        .where(eq(appSchema.appContent.key, content.key))
+        .limit(1);
+
+      if (existing.length === 0) {
+        await app.db.insert(appSchema.appContent).values(content);
+        app.logger.info({ key: content.key }, 'App content row seeded');
+      }
     }
+    app.logger.info('App content seeding completed');
   } catch (err) {
     app.logger.warn({ err }, 'App content seeding skipped');
   }
@@ -104,6 +108,26 @@ adminAnalyticsRoutes.register(app, app.fastify);
 clientPreferencesRoutes.register(app, app.fastify);
 supportRoutes.register(app, app.fastify);
 adminBootstrapRoutes.register(app, app.fastify);
+
+// Health check endpoint
+app.fastify.get('/', {
+  schema: {
+    description: 'Health check endpoint',
+    tags: ['health'],
+    response: {
+      200: {
+        description: 'Server is running',
+        type: 'object',
+        properties: {
+          status: { type: 'string' },
+        },
+      },
+    },
+  },
+}, async (request, reply) => {
+  app.logger.info({}, 'Health check');
+  return { status: 'ok' };
+});
 
 await app.run();
 

@@ -412,35 +412,61 @@ export function register(app: App, fastify: FastifyInstance) {
       const app_record = application[0];
 
       if (request.body.status === 'approved') {
-        // Insert into therapists table
-        app.logger.info(
-          { applicationId: request.params.id, name: app_record.name },
-          'Creating therapist from approved application'
-        );
+        // Check if therapist with same email already exists
+        const existingTherapist = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.email, app_record.email))
+          .limit(1);
 
-        await app.db.insert(appSchema.therapists).values({
-          name: app_record.name,
-          photoUrl: app_record.photoUrl || '',
-          title: app_record.title,
-          bio: app_record.bio,
-          location: app_record.location,
-          gender: app_record.gender,
-          specialties: app_record.specialties,
-          therapyTypes: app_record.therapyTypes,
-          insurances: app_record.insurances,
-          acceptingNewClients: true,
-          sessionFee: app_record.sessionFee,
-          languages: app_record.languages,
-          yearsExperience: app_record.yearsExperience,
-          phone: app_record.phone,
-          email: app_record.email,
-          websiteUrl: app_record.websiteUrl,
-        });
+        if (existingTherapist.length === 0) {
+          // Look up user by email to get user_id
+          let therapistUserId: string | null = null;
+          const matchingUser = await app.db
+            .select()
+            .from(authSchema.user)
+            .where(eq(authSchema.user.email, app_record.email))
+            .limit(1);
 
-        app.logger.info(
-          { applicationId: request.params.id },
-          'Therapist created from application'
-        );
+          if (matchingUser.length > 0) {
+            therapistUserId = matchingUser[0].id;
+          }
+
+          app.logger.info(
+            { applicationId: request.params.id, name: app_record.name, userId: therapistUserId },
+            'Creating therapist from approved application'
+          );
+
+          await app.db.insert(appSchema.therapists).values({
+            userId: therapistUserId,
+            name: app_record.name,
+            photoUrl: app_record.photoUrl || '',
+            title: app_record.title,
+            bio: app_record.bio,
+            location: app_record.location,
+            gender: app_record.gender,
+            specialties: app_record.specialties,
+            therapyTypes: app_record.therapyTypes,
+            insurances: app_record.insurances,
+            acceptingNewClients: true,
+            sessionFee: app_record.sessionFee,
+            languages: app_record.languages,
+            yearsExperience: app_record.yearsExperience,
+            phone: app_record.phone,
+            email: app_record.email,
+            websiteUrl: app_record.websiteUrl,
+          });
+
+          app.logger.info(
+            { applicationId: request.params.id },
+            'Therapist created from application'
+          );
+        } else {
+          app.logger.info(
+            { applicationId: request.params.id, email: app_record.email },
+            'Therapist with this email already exists, skipping creation'
+          );
+        }
       }
 
       // Update application status
