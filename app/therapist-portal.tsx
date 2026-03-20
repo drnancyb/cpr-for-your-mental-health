@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Switch,
+  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +18,7 @@ import {
   UserRound,
   MapPin,
   CheckCircle,
+  XCircle,
   Pencil,
   ChevronRight,
   Mail,
@@ -138,6 +141,26 @@ export default function TherapistPortalScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptingClients, setAcceptingClients] = useState<boolean>(false);
+
+  useEffect(() => {
+    setAcceptingClients(profile?.accepting_new_clients ?? false);
+  }, [profile?.accepting_new_clients]);
+
+  const toggleAccepting = useCallback(async () => {
+    const next = !acceptingClients;
+    console.log('[TherapistPortal] Toggle accepting clients:', next);
+    setAcceptingClients(next);
+    try {
+      await api.patch('/api/therapist/profile', { accepting_new_clients: next });
+      console.log('[TherapistPortal] Accepting clients updated to:', next);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to update availability';
+      console.error('[TherapistPortal] Toggle accepting error:', msg);
+      setAcceptingClients(!next);
+      Alert.alert('Update Failed', 'Could not update your availability. Please try again.');
+    }
+  }, [acceptingClients]);
 
   const handleBellPress = useCallback(async () => {
     console.log('[TherapistPortal] Bell icon pressed, hasPermission:', hasPermission);
@@ -297,7 +320,6 @@ export default function TherapistPortalScreen() {
   const recentInquiries = inquiries.slice(0, 5);
   const hasMore = totalInquiries > 5;
 
-  const acceptingText = profile.accepting_new_clients ? 'Accepting clients' : 'Not accepting';
   const planLabel = subscription?.plan === 'premium' ? 'Premium' : 'Featured';
   const planColor = subscription?.plan === 'premium' ? '#7C3AED' : COLORS.success;
   const planBg = subscription?.plan === 'premium' ? '#EDE9FE' : '#D1FAE5';
@@ -343,22 +365,41 @@ export default function TherapistPortalScreen() {
                 </Text>
               </View>
             </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: profile.accepting_new_clients ? '#D1FAE5' : COLORS.surfaceSecondary,
-                borderRadius: 20,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-              }}
-            >
-              <CheckCircle size={12} color={profile.accepting_new_clients ? COLORS.success : COLORS.textTertiary} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: profile.accepting_new_clients ? COLORS.success : COLORS.textTertiary, fontFamily: 'DMSans_600SemiBold' }}>
-                {acceptingText}
+          </View>
+
+          {/* Accepting clients toggle row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: COLORS.surfaceSecondary,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: acceptingClients ? 'rgba(52, 168, 83, 0.2)' : COLORS.border,
+            }}
+          >
+            <View style={{ marginRight: 12 }}>
+              {acceptingClients
+                ? <CheckCircle size={22} color="#4CAF50" />
+                : <XCircle size={22} color={COLORS.textTertiary} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold' }}>
+                Accepting New Clients
+              </Text>
+              <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                Visible to clients browsing your profile
               </Text>
             </View>
+            <Switch
+              value={acceptingClients}
+              onValueChange={toggleAccepting}
+              trackColor={{ false: '#ccc', true: '#4CAF50' }}
+              thumbColor="#ffffff"
+            />
           </View>
 
           <AnimatedPressable onPress={handleEditProfile} scaleValue={0.97}>
