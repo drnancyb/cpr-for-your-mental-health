@@ -46,6 +46,20 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("GET /api/therapists with sort price_asc", async () => {
+    const res = await api("/api/therapists?sort=price_asc");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.therapists).toBeDefined();
+  });
+
+  test("GET /api/therapists with sort price_desc", async () => {
+    const res = await api("/api/therapists?sort=price_desc");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.therapists).toBeDefined();
+  });
+
   test("GET /api/therapists with multiple filters", async () => {
     const res = await api("/api/therapists?location=New York&gender=Female&therapy_type=CBT");
     await expectStatus(res, 200);

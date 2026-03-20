@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, ilike, sql } from 'drizzle-orm';
+import { eq, and, ilike, sql, asc, desc } from 'drizzle-orm';
 import * as schema from '../db/schema/schema.js';
 import type { App } from '../index.js';
 
@@ -492,6 +492,7 @@ export function register(app: App, fastify: FastifyInstance) {
             therapy_type: { type: 'string', description: 'Filter by therapy type (array contains)' },
             insurance: { type: 'string', description: 'Filter by insurance (array contains)' },
             search: { type: 'string', description: 'Search by name or bio (case-insensitive)' },
+            sort: { type: 'string', enum: ['price_asc', 'price_desc'], description: 'Sort by session fee' },
           },
         },
         response: {
@@ -540,6 +541,7 @@ export function register(app: App, fastify: FastifyInstance) {
           therapy_type?: string;
           insurance?: string;
           search?: string;
+          sort?: string;
         };
       }>,
       reply: FastifyReply
@@ -576,12 +578,21 @@ export function register(app: App, fastify: FastifyInstance) {
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const therapists = await app.db
+      // Build query with optional sorting
+      const baseQuery = app.db
         .select()
         .from(schema.therapists)
         .where(whereClause);
 
-      app.logger.info({ count: therapists.length }, 'Therapists fetched');
+      const therapists = await (
+        request.query.sort === 'price_asc'
+          ? baseQuery.orderBy(asc(schema.therapists.sessionFee))
+          : request.query.sort === 'price_desc'
+          ? baseQuery.orderBy(desc(schema.therapists.sessionFee))
+          : baseQuery
+      );
+
+      app.logger.info({ count: therapists.length, sort: request.query.sort }, 'Therapists fetched');
 
       return {
         therapists,
