@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Stack, router, Redirect } from 'expo-router';
-import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn, Bookmark } from 'lucide-react-native';
+import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn, Bookmark, ChevronDown } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
 import { TherapistCard, Therapist } from '@/components/therapist-card';
@@ -52,6 +52,7 @@ export default function IndexScreen() {
   const { filters, updateFilter, clearFilters, activeFilterCount } = useContext(FiltersContext);
   const { user, loading: authLoading, signOut } = useAuth();
 
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc'>('default');
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,6 +70,7 @@ export default function IndexScreen() {
     if (filters.therapy_type) params.set('therapy_type', filters.therapy_type);
     if (filters.insurance) params.set('insurance', filters.insurance);
     if (searchValue) params.set('search', searchValue);
+    if (sortBy !== 'default') params.set('sort', sortBy);
 
     const queryString = params.toString();
     const url = queryString
@@ -92,12 +94,12 @@ export default function IndexScreen() {
       console.error('[Index] Fetch error:', msg);
       setError(msg);
     }
-  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.search]);
+  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.search, sortBy]);
 
   useEffect(() => {
     setLoading(true);
     fetchTherapists().finally(() => setLoading(false));
-  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance]);
+  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, sortBy]);
 
   const handleSearchChange = useCallback((text: string) => {
     updateFilter('search', text);
@@ -130,6 +132,35 @@ export default function IndexScreen() {
     console.log('[Index] Clear filters pressed');
     clearFilters();
   }, [clearFilters]);
+
+  const handleSortPress = useCallback(() => {
+    console.log('[Index] Sort chip pressed, current sortBy:', sortBy);
+    const options = ['Default', 'Price: Low to High', 'Price: High to Low', 'Cancel'];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: 3 },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            console.log('[Index] Sort selected: default');
+            setSortBy('default');
+          } else if (buttonIndex === 1) {
+            console.log('[Index] Sort selected: price_asc');
+            setSortBy('price_asc');
+          } else if (buttonIndex === 2) {
+            console.log('[Index] Sort selected: price_desc');
+            setSortBy('price_desc');
+          }
+        },
+      );
+    } else {
+      Alert.alert('Sort by', undefined, [
+        { text: 'Default', onPress: () => { console.log('[Index] Sort selected: default'); setSortBy('default'); } },
+        { text: 'Price: Low to High', onPress: () => { console.log('[Index] Sort selected: price_asc'); setSortBy('price_asc'); } },
+        { text: 'Price: High to Low', onPress: () => { console.log('[Index] Sort selected: price_desc'); setSortBy('price_desc'); } },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }, [sortBy]);
 
   const handleUserAvatarPress = useCallback(() => {
     console.log('[Index] User avatar pressed, user:', user?.email);
@@ -205,6 +236,9 @@ export default function IndexScreen() {
   }
 
   const acceptingCount = therapists.filter(t => t.accepting_new_clients).length;
+
+  const sortChipLabel = sortBy === 'price_asc' ? 'Price: Low–High' : sortBy === 'price_desc' ? 'Price: High–Low' : 'Sort';
+  const sortChipActive = sortBy !== 'default';
 
   const userInitials = user.name
     ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -356,6 +390,35 @@ export default function IndexScreen() {
                 </Text>
               </View>
             ) : null}
+          </View>
+        </AnimatedPressable>
+
+        <AnimatedPressable onPress={handleSortPress} scaleValue={0.95}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              backgroundColor: sortChipActive ? COLORS.primary : COLORS.surface,
+              borderWidth: 1,
+              borderColor: sortChipActive ? COLORS.primary : COLORS.border,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: sortChipActive ? '#FFFFFF' : COLORS.textSecondary,
+                fontFamily: 'DMSans_600SemiBold',
+              }}
+            >
+              {sortChipLabel}
+            </Text>
+            <ChevronDown size={13} color={sortChipActive ? '#FFFFFF' : COLORS.textSecondary} />
           </View>
         </AnimatedPressable>
 

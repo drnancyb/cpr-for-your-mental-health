@@ -39,6 +39,7 @@ export interface Therapist {
   email: string;
   website_url?: string;
   created_at: string;
+  is_pinned?: boolean;
 }
 
 function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
@@ -85,6 +86,7 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
   const feeDisplay = `$${Number(therapist.session_fee).toFixed(0)} / session`;
   const expDisplay = `${therapist.years_experience} yrs`;
   const initials = getInitials(therapist.name);
+  const isPinned = therapist.is_pinned === true;
 
   const handlePress = () => {
     console.log('[TherapistCard] Pressed therapist card:', therapist.id, therapist.name);
@@ -101,14 +103,44 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
             padding: 16,
             marginHorizontal: 16,
             marginBottom: 12,
-            borderWidth: 1,
-            borderColor: COLORS.border,
+            borderWidth: isPinned ? 1.5 : 1,
+            borderColor: isPinned ? '#F59E0B' : COLORS.border,
             borderCurve: 'continuous',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
+            boxShadow: isPinned
+              ? '0 1px 3px rgba(245,158,11,0.10), 0 4px 12px rgba(245,158,11,0.08)'
+              : '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
           }}
         >
+          {/* Pinned "Featured" badge */}
+          {isPinned ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                backgroundColor: '#F59E0B',
+                borderRadius: 20,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                zIndex: 1,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                  fontFamily: 'DMSans_700Bold',
+                  letterSpacing: 0.3,
+                }}
+              >
+                Featured
+              </Text>
+            </View>
+          ) : null}
+
           {/* Top row: photo + info */}
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop: isPinned ? 22 : 0 }}>
             {/* Photo with accepting badge */}
             <View style={{ position: 'relative' }}>
               {therapist.photo_url ? (
