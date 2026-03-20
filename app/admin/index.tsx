@@ -142,6 +142,7 @@ interface Therapist {
   phone: string;
   email: string;
   website_url?: string;
+  accepting_new_clients: boolean;
 }
 
 const STATUS_TABS = [
@@ -610,6 +611,7 @@ export default function AdminDashboard() {
         specialties: JSON.stringify(t.specialties),
         therapy_types: JSON.stringify(t.therapy_types),
         insurances: JSON.stringify(t.insurances),
+        accepting_new_clients: String(t.accepting_new_clients),
       },
     });
   };
