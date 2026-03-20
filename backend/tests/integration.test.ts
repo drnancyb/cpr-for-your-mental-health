@@ -1061,7 +1061,7 @@ describe("API Integration Tests", () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Updated Therapist Name",
+        accepting_new_clients: true,
       }),
     });
     await expectStatus(res, 401);
@@ -1072,10 +1072,6 @@ describe("API Integration Tests", () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Updated Therapist Name",
-        title: "Licensed Therapist",
-        bio: "Updated bio",
-        location: "New York",
         accepting_new_clients: true,
       }),
     });

@@ -472,31 +472,16 @@ export function register(app: App, fastify: FastifyInstance) {
     }
   );
 
-  // PATCH /api/therapist/profile - Update therapist profile
+  // PATCH /api/therapist/profile - Update therapist profile (accepting_new_clients only)
   fastify.patch(
     '/api/therapist/profile',
     {
       schema: {
-        description: 'Update therapist profile',
+        description: 'Update therapist profile (accepting_new_clients only)',
         tags: ['therapist'],
         body: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            photo_url: { type: 'string' },
-            title: { type: 'string' },
-            bio: { type: 'string' },
-            location: { type: 'string' },
-            gender: { type: 'string' },
-            specialties: { type: 'array', items: { type: 'string' } },
-            therapy_types: { type: 'array', items: { type: 'string' } },
-            insurances: { type: 'array', items: { type: 'string' } },
-            session_fee: { type: 'number' },
-            languages: { type: 'array', items: { type: 'string' } },
-            years_experience: { type: 'integer' },
-            phone: { type: 'string' },
-            email: { type: 'string' },
-            website_url: { type: 'string' },
             accepting_new_clients: { type: 'boolean' },
           },
         },
@@ -513,21 +498,6 @@ export function register(app: App, fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{
         Body: {
-          name?: string;
-          photo_url?: string;
-          title?: string;
-          bio?: string;
-          location?: string;
-          gender?: string;
-          specialties?: string[];
-          therapy_types?: string[];
-          insurances?: string[];
-          session_fee?: number;
-          languages?: string[];
-          years_experience?: number;
-          phone?: string;
-          email?: string;
-          website_url?: string;
           accepting_new_clients?: boolean;
         };
       }>,
@@ -549,24 +519,17 @@ export function register(app: App, fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'No therapist profile linked to this account' });
       }
 
-      // Build update object with only provided fields
+      // Build update object with only accepting_new_clients field
       const updateData: Record<string, any> = {};
-      if (request.body.name !== undefined) updateData.name = request.body.name;
-      if (request.body.photo_url !== undefined) updateData.photoUrl = request.body.photo_url;
-      if (request.body.title !== undefined) updateData.title = request.body.title;
-      if (request.body.bio !== undefined) updateData.bio = request.body.bio;
-      if (request.body.location !== undefined) updateData.location = request.body.location;
-      if (request.body.gender !== undefined) updateData.gender = request.body.gender;
-      if (request.body.specialties !== undefined) updateData.specialties = request.body.specialties;
-      if (request.body.therapy_types !== undefined) updateData.therapyTypes = request.body.therapy_types;
-      if (request.body.insurances !== undefined) updateData.insurances = request.body.insurances;
-      if (request.body.session_fee !== undefined) updateData.sessionFee = request.body.session_fee.toString();
-      if (request.body.languages !== undefined) updateData.languages = request.body.languages;
-      if (request.body.years_experience !== undefined) updateData.yearsExperience = request.body.years_experience;
-      if (request.body.phone !== undefined) updateData.phone = request.body.phone;
-      if (request.body.email !== undefined) updateData.email = request.body.email;
-      if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
-      if (request.body.accepting_new_clients !== undefined) updateData.acceptingNewClients = request.body.accepting_new_clients;
+      if (request.body.accepting_new_clients !== undefined) {
+        updateData.acceptingNewClients = request.body.accepting_new_clients;
+      }
+
+      // If no fields to update, return current therapist
+      if (Object.keys(updateData).length === 0) {
+        app.logger.info({ userId: session.user.id, therapistId: therapist[0].id }, 'No fields to update');
+        return therapist[0];
+      }
 
       const updated = await app.db
         .update(appSchema.therapists)
