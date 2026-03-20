@@ -472,17 +472,18 @@ export function register(app: App, fastify: FastifyInstance) {
     }
   );
 
-  // PATCH /api/therapist/profile - Update therapist profile (accepting_new_clients only)
+  // PATCH /api/therapist/profile - Update therapist profile
   fastify.patch(
     '/api/therapist/profile',
     {
       schema: {
-        description: 'Update therapist profile (accepting_new_clients only)',
+        description: 'Update therapist profile',
         tags: ['therapist'],
         body: {
           type: 'object',
           properties: {
             accepting_new_clients: { type: 'boolean' },
+            is_pinned: { type: 'boolean' },
           },
         },
         response: {
@@ -499,6 +500,7 @@ export function register(app: App, fastify: FastifyInstance) {
       request: FastifyRequest<{
         Body: {
           accepting_new_clients?: boolean;
+          is_pinned?: boolean;
         };
       }>,
       reply: FastifyReply
@@ -519,10 +521,13 @@ export function register(app: App, fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'No therapist profile linked to this account' });
       }
 
-      // Build update object with only accepting_new_clients field
+      // Build update object with only accepting_new_clients and is_pinned fields
       const updateData: Record<string, any> = {};
       if (request.body.accepting_new_clients !== undefined) {
         updateData.acceptingNewClients = request.body.accepting_new_clients;
+      }
+      if (request.body.is_pinned !== undefined) {
+        updateData.isPinned = request.body.is_pinned;
       }
 
       // If no fields to update, return current therapist
@@ -538,6 +543,93 @@ export function register(app: App, fastify: FastifyInstance) {
         .returning();
 
       app.logger.info({ userId: session.user.id, therapistId: updated[0].id }, 'Therapist profile updated');
+
+      return updated[0];
+    }
+  );
+
+  // PATCH /api/admin/therapists/:id/pin - Pin/unpin therapist (admin only)
+  fastify.patch(
+    '/api/admin/therapists/:id/pin',
+    {
+      schema: {
+        description: 'Pin or unpin a therapist (admin only)',
+        tags: ['admin', 'therapists'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid', description: 'Therapist ID' },
+          },
+        },
+        body: {
+          type: 'object',
+          required: ['is_pinned'],
+          properties: {
+            is_pinned: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Therapist updated',
+            type: 'object',
+          },
+          401: { type: 'object', properties: { error: { type: 'string' } } },
+          403: { type: 'object', properties: { error: { type: 'string' } } },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Params: { id: string };
+        Body: { is_pinned: boolean };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      // Check admin role
+      const user = await app.db
+        .select()
+        .from(authSchema.user)
+        .where(eq(authSchema.user.id, session.user.id))
+        .limit(1);
+
+      if (user.length === 0 || user[0].role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+
+      app.logger.info(
+        { adminId: session.user.id, therapistId: request.params.id, isPinned: request.body.is_pinned },
+        'Updating therapist pin status'
+      );
+
+      // Check if therapist exists
+      const therapist = await app.db
+        .select()
+        .from(appSchema.therapists)
+        .where(eq(appSchema.therapists.id, request.params.id))
+        .limit(1);
+
+      if (therapist.length === 0) {
+        app.logger.info({ therapistId: request.params.id }, 'Therapist not found');
+        return reply.status(404).send({ error: 'Therapist not found' });
+      }
+
+      // Update is_pinned
+      const updated = await app.db
+        .update(appSchema.therapists)
+        .set({ isPinned: request.body.is_pinned })
+        .where(eq(appSchema.therapists.id, request.params.id))
+        .returning();
+
+      app.logger.info(
+        { therapistId: request.params.id, isPinned: updated[0].isPinned },
+        'Therapist pin status updated'
+      );
 
       return updated[0];
     }

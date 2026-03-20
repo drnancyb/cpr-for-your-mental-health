@@ -22,6 +22,7 @@ export const therapists = pgTable(
     phone: text('phone').notNull(),
     email: text('email').notNull(),
     websiteUrl: text('website_url'),
+    isPinned: boolean('is_pinned').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

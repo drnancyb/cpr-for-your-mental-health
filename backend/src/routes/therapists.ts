@@ -469,6 +469,31 @@ async function seedTherapists(app: App) {
   } else {
     app.logger.info({ existingCount: count[0].count }, 'Therapists table already populated, skipping seed');
   }
+
+  // Insert Nancy Brooks with ON CONFLICT
+  app.logger.info('Inserting Nancy Brooks with ON CONFLICT');
+  await app.db.insert(schema.therapists).values({
+    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' as any,
+    name: 'Nancy Brooks',
+    photoUrl: 'https://i.pravatar.cc/300?u=nancybrooks',
+    title: 'PsyD, NCC, RCC',
+    bio: 'Dr. Nancy Brooks is a registered clinical counsellor with a Doctorate in Psychology. She brings a warm, collaborative approach to therapy, helping clients navigate anxiety, depression, trauma, and life transitions with evidence-based care.',
+    location: 'Vancouver',
+    gender: 'Female',
+    specialties: ['Anxiety', 'Depression', 'Trauma & PTSD', 'Life Transitions', 'Stress Management'],
+    therapyTypes: ['CBT (Cognitive Behavioural Therapy)', 'Psychodynamic Therapy', 'Mindfulness-Based Therapy', 'Person-Centred Therapy'],
+    insurances: ['Blue Cross', 'Sun Life', 'Manulife'],
+    acceptingNewClients: true,
+    sessionFee: '180',
+    languages: ['English'],
+    yearsExperience: 12,
+    phone: '',
+    email: '',
+    websiteUrl: null,
+    isPinned: true,
+    userId: null,
+  }).onConflictDoNothing();
+  app.logger.info('Nancy Brooks insert completed');
 }
 
 export function register(app: App, fastify: FastifyInstance) {
@@ -578,7 +603,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Build query with optional sorting
+      // Build query with optional sorting and default ordering by is_pinned and created_at
       const baseQuery = app.db
         .select()
         .from(schema.therapists)
@@ -589,7 +614,7 @@ export function register(app: App, fastify: FastifyInstance) {
           ? baseQuery.orderBy(asc(schema.therapists.sessionFee))
           : request.query.sort === 'price_desc'
           ? baseQuery.orderBy(desc(schema.therapists.sessionFee))
-          : baseQuery
+          : baseQuery.orderBy(desc(schema.therapists.isPinned), desc(schema.therapists.createdAt))
       );
 
       app.logger.info({ count: therapists.length, sort: request.query.sort }, 'Therapists fetched');

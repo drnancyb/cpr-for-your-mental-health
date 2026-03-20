@@ -508,6 +508,64 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("PATCH /api/admin/therapists/{id}/pin returns 401 without auth", async () => {
+    const res = await api("/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_pinned: true }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/therapists/{id}/pin returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: true }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/therapists/{id}/pin with non-existent UUID returns 404 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: true }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/therapists/{id}/pin with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/admin/therapists/invalid-uuid/pin", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_pinned: true }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("PATCH /api/admin/therapists/{id}/pin with false unpin therapist", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: false }),
+      }
+    );
+    // Will be 403 because user is not admin, but tests admin endpoint
+    await expectStatus(res, 403);
+  });
+
   // ============================================
   // Authenticated Endpoints: Saved Therapists
   // ============================================

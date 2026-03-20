@@ -1,0 +1,1 @@
+ALTER TABLE "therapists" ADD COLUMN "is_pinned" boolean DEFAULT false NOT NULL;
