@@ -151,7 +151,7 @@ export function register(app: App, fastify: FastifyInstance) {
           type: 'object',
           required: ['id'],
           properties: {
-            id: { type: 'string' },
+            id: { type: 'string', format: 'uuid' },
           },
         },
         body: {
@@ -277,7 +277,7 @@ export function register(app: App, fastify: FastifyInstance) {
           type: 'object',
           required: ['id'],
           properties: {
-            id: { type: 'string' },
+            id: { type: 'string', format: 'uuid' },
           },
         },
         response: {

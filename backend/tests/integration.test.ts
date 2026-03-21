@@ -386,7 +386,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/applications/{id} returns 403 for non-admin user (admin endpoint)", async () => {
+  test("PATCH /api/admin/applications/{id} with non-existent UUID returns 403 for non-admin", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000",
       authToken,
@@ -475,9 +475,9 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/therapists/{id} returns 403 for non-admin user (admin endpoint)", async () => {
+  test("PATCH /api/admin/therapists/{id} with invalid UUID format returns 400", async () => {
     const res = await authenticatedApi(
-      "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
+      "/api/admin/therapists/invalid-uuid",
       authToken,
       {
         method: "PATCH",
@@ -487,7 +487,7 @@ describe("API Integration Tests", () => {
         }),
       }
     );
-    await expectStatus(res, 403);
+    await expectStatus(res, 400);
   });
 
   test("DELETE /api/admin/therapists/{id} returns 401 without auth", async () => {
@@ -506,6 +506,17 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 403);
+  });
+
+  test("DELETE /api/admin/therapists/{id} with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/therapists/invalid-uuid",
+      authToken,
+      {
+        method: "DELETE",
+      }
+    );
+    await expectStatus(res, 400);
   });
 
   test("PATCH /api/admin/therapists/{id}/pin returns 401 without auth", async () => {
@@ -530,7 +541,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/therapists/{id}/pin with non-existent UUID returns 404 for non-admin", async () => {
+  test("PATCH /api/admin/therapists/{id}/pin with non-existent UUID returns 403 for non-admin", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
       authToken,
@@ -552,7 +563,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
-  test("PATCH /api/admin/therapists/{id}/pin with false unpin therapist", async () => {
+  test("PATCH /api/admin/therapists/{id}/pin with is_pinned false returns 403 for non-admin", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
       authToken,
@@ -562,7 +573,6 @@ describe("API Integration Tests", () => {
         body: JSON.stringify({ is_pinned: false }),
       }
     );
-    // Will be 403 because user is not admin, but tests admin endpoint
     await expectStatus(res, 403);
   });
 
@@ -729,6 +739,18 @@ describe("API Integration Tests", () => {
     }
   });
 
+  test("POST /api/bookings without required fields returns 400", async () => {
+    const res = await authenticatedApi("/api/bookings", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        therapist_id: therapistId,
+        // missing message and contact_method
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============================================
   // Admin Endpoints: Bookings
   // ============================================
@@ -774,6 +796,19 @@ describe("API Integration Tests", () => {
     }
   });
 
+  test("PATCH /api/admin/bookings/{id} with pending status returns 403 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/bookings/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "pending" }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
   // ============================================
   // Admin Endpoints: Subscriptions
   // ============================================
@@ -816,6 +851,18 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("POST /api/admin/subscriptions without required fields returns 400 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/subscriptions", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        therapist_id: therapistId,
+        // missing status and plan
+      }),
+    });
+    await expectStatus(res, 400, 403);
+  });
+
   test("PATCH /api/admin/subscriptions/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/subscriptions/00000000-0000-0000-0000-000000000000", {
       method: "PATCH",
@@ -842,7 +889,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/subscriptions/{id} with non-existent UUID returns 404 for non-admin", async () => {
+  test("PATCH /api/admin/subscriptions/{id} with non-existent UUID returns 403 for non-admin", async () => {
     const res = await authenticatedApi(
       "/api/admin/subscriptions/00000000-0000-0000-0000-000000000000",
       authToken,
@@ -932,6 +979,18 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/notifications without required fields returns 400 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/notifications", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test",
+        // missing message and target
+      }),
+    });
+    await expectStatus(res, 400, 403);
   });
 
   // ============================================
@@ -1025,6 +1084,24 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({ status: "in_progress" }),
     });
     await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/support/{id} with resolved status returns 403 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "resolved" }),
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/support/{id} without required status returns 400 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await expectStatus(res, 400, 403);
   });
 
   // ============================================
@@ -1124,7 +1201,7 @@ describe("API Integration Tests", () => {
 
   test("GET /api/therapist/profile returns therapist profile if user is therapist", async () => {
     const res = await authenticatedApi("/api/therapist/profile", authToken);
-    // May return 200 if user is a therapist, or error if not
+    // May return 200 if user is a therapist, or 404 if not
     await expectStatus(res, 200, 404);
   });
 
@@ -1148,6 +1225,17 @@ describe("API Integration Tests", () => {
       }),
     });
     // May return 200 if user is a therapist, or 404 if not
+    await expectStatus(res, 200, 404);
+  });
+
+  test("PATCH /api/therapist/profile with is_pinned flag", async () => {
+    const res = await authenticatedApi("/api/therapist/profile", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        is_pinned: true,
+      }),
+    });
     await expectStatus(res, 200, 404);
   });
 
