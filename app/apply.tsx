@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   Alert,
+  Switch,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -372,6 +373,7 @@ export default function ApplyScreen() {
 
   // Step 3 fields
   const [insurances, setInsurances] = useState<string[]>([]);
+  const [acceptingNewClients, setAcceptingNewClients] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -478,6 +480,7 @@ export default function ApplyScreen() {
       insurances,
       languages,
       website_url: websiteUrl.trim() || undefined,
+      accepting_new_clients: acceptingNewClients,
     };
 
     console.log('[Apply] Submitting application:', JSON.stringify(payload));
@@ -868,6 +871,31 @@ export default function ApplyScreen() {
                 }}
                 required
               />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: COLORS.surfaceSecondary,
+                  borderRadius: 12,
+                  borderCurve: 'continuous',
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                }}
+              >
+                <Text style={{ fontSize: 15, color: COLORS.text, fontFamily: 'DMSans_400Regular' }}>
+                  Accepting new clients
+                </Text>
+                <Switch
+                  value={acceptingNewClients}
+                  onValueChange={(val) => {
+                    console.log('[Apply] Accepting new clients toggled:', val);
+                    setAcceptingNewClients(val);
+                  }}
+                  trackColor={{ false: COLORS.textTertiary, true: COLORS.primary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
             </SectionCard>
 
             <SectionCard title="Review Your Application">
@@ -896,6 +924,7 @@ export default function ApplyScreen() {
               </View>
               <View style={{ height: 1, backgroundColor: COLORS.divider }} />
               <ReviewRow label="Insurances" value={insurances.join(', ')} />
+              <ReviewRow label="Accepting new clients" value={acceptingNewClients ? 'Yes' : 'No'} />
             </SectionCard>
           </>
         )}
