@@ -259,11 +259,7 @@ export default function AdvertiseScreen() {
             Choose a plan
           </Text>
 
-<<<<<<< HEAD
-          {/* Tier 2 — Featured (elevated) */}
-=======
           {/* Tier 1 — Featured (elevated) */}
->>>>>>> origin/main
           <View
             style={{
               backgroundColor: COLORS.surface,
