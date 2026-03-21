@@ -16,7 +16,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import {
@@ -648,22 +648,8 @@ export default function AdminDashboard() {
   }
 
   if (!user) {
-    return (
-      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Stack.Screen options={{ title: 'Admin', headerBackButtonDisplayMode: 'minimal' }} />
-        <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 12, textAlign: 'center' }}>
-          Sign in required
-        </Text>
-        <AnimatedPressable onPress={() => {
-          console.log('[Admin] Sign in button pressed');
-          router.push('/auth-screen');
-        }}>
-          <View style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 32, paddingVertical: 14 }}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Sign In</Text>
-          </View>
-        </AnimatedPressable>
-      </View>
-    );
+    console.log('[Admin] No user — redirecting to /admin-login');
+    return <Redirect href="/admin-login" />;
   }
 
   if (user.role !== 'admin') {

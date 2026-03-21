@@ -248,6 +248,10 @@ export default function RootLayout() {
                       headerBackButtonDisplayMode: 'minimal',
                     }}
                   />
+                  <Stack.Screen
+                    name="admin-login"
+                    options={{ headerShown: false }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <SystemBars style="auto" />
