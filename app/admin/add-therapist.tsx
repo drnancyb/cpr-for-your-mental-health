@@ -34,7 +34,7 @@ const COLORS = {
 
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const LOCATIONS = [
-  'Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond',
+  'All of BC', 'Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond',
   'Kelowna', 'Abbotsford', 'Kamloops', 'Nanaimo', 'Prince George',
 ];
 const LANGUAGES = ['English', 'French', 'Mandarin', 'Cantonese', 'Punjabi', 'Spanish', 'Tagalog'];

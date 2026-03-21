@@ -34,7 +34,7 @@ const COLORS = {
   divider: 'rgba(45, 122, 95, 0.05)',
 };
 
-const BC_CITIES = ['Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond', 'Kelowna', 'Abbotsford', 'Kamloops', 'Nanaimo', 'Prince George'];
+const BC_CITIES = ['All of BC', 'Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond', 'Kelowna', 'Abbotsford', 'Kamloops', 'Nanaimo', 'Prince George'];
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const LANGUAGES_OPTIONS = ['English', 'French', 'Mandarin', 'Cantonese', 'Punjabi', 'Spanish', 'Tagalog'];
 const SPECIALTIES_OPTIONS = [

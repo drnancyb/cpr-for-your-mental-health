@@ -117,7 +117,7 @@ const INSURANCES = [
   'Pacific Blue Cross', 'MSP', 'No Insurance Required',
 ];
 const LOCATIONS = [
-  'Vancouver', 'Burnaby', 'Richmond', 'Surrey', 'North Vancouver', 'West Vancouver',
+  'All of BC', 'Vancouver', 'Burnaby', 'Richmond', 'Surrey', 'North Vancouver', 'West Vancouver',
   'Coquitlam', 'Langley', 'Abbotsford', 'Victoria', 'Kelowna', 'Online/Virtual',
 ];
 
