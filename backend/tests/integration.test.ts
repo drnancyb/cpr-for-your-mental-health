@@ -260,20 +260,21 @@ describe("API Integration Tests", () => {
     const res = await api("/api/admin/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: adminUser.email }),
+      body: JSON.stringify({ email: adminUser.email, secret: "CPR-ADMIN-2024" }),
     });
     const data = await res.json();
-    if (data.success) {
+    if (data && data.success) {
       adminToken = bootstrapToken;
-    } else if (res.status === 400) {
+    } else {
+      // If first attempt failed, try with another user
       const { token: token2, user: user2 } = await signUpTestUser();
       const res2 = await api("/api/admin/bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user2.email }),
+        body: JSON.stringify({ email: user2.email, secret: "CPR-ADMIN-2024" }),
       });
       const data2 = await res2.json();
-      if (data2.success) {
+      if (data2 && data2.success) {
         adminToken = token2;
       }
     }
@@ -287,7 +288,7 @@ describe("API Integration Tests", () => {
     const res = await api("/api/admin/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: authEmail }),
+      body: JSON.stringify({ email: authEmail, secret: "CPR-ADMIN-2024" }),
     });
     await expectStatus(res, 200, 400);
     const data = await res.json();
@@ -298,7 +299,7 @@ describe("API Integration Tests", () => {
     const res = await api("/api/admin/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "nonexistent-user-xyz@example.com" }),
+      body: JSON.stringify({ email: "nonexistent-user-xyz@example.com", secret: "CPR-ADMIN-2024" }),
     });
     await expectStatus(res, 404);
     const data = await res.json();
@@ -310,7 +311,7 @@ describe("API Integration Tests", () => {
     const res = await api("/api/admin/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: newUser.email }),
+      body: JSON.stringify({ email: newUser.email, secret: "CPR-ADMIN-2024" }),
     });
     await expectStatus(res, 200, 400);
   });
