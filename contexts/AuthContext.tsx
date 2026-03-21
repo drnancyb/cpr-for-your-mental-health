@@ -22,7 +22,7 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
-  fetchUser: () => Promise<void>;
+  fetchUser: (forceRefresh?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -40,12 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = useCallback(async () => {
+  const fetchUser = useCallback(async (forceRefresh = false) => {
     try {
       const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-      const sessionPromise = authClient.getSession().then(s => s).catch(() => null);
+      const sessionPromise = authClient.getSession(
+        forceRefresh ? { fetchOptions: { cache: 'no-store' } } : undefined
+      ).then(s => s).catch(() => null);
       const session = await Promise.race([sessionPromise, timeoutPromise]);
       if (session && (session as any)?.data?.user) {
+        console.log('[AuthContext] fetchUser got user:', (session as any).data.user?.email, 'role:', (session as any).data.user?.role);
         setUser((session as any).data.user as AuthUser);
       } else {
         setUser(null);
@@ -88,8 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result?.error) {
       throw new Error(result.error.message || String(result.error.statusText) || 'Sign in failed');
     }
-    console.log('[AuthContext] Sign in succeeded, fetching user session');
-    await fetchUser();
+    console.log('[AuthContext] Sign in succeeded, fetching fresh user session');
+    await fetchUser(true);
   }, [fetchUser]);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, name: string) => {

@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
-import { api } from '@/utils/api';
+
+const BACKEND_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+const ADMIN_SECRET = 'CPR-ADMIN-2024';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -47,22 +49,32 @@ export default function AdminSetupScreen() {
 
     setLoading(true);
     try {
-      console.log('[AdminSetup] POST /api/admin/bootstrap', { email: email.trim() });
-      await api.post('/api/admin/bootstrap', { email: email.trim() });
-      console.log('[AdminSetup] Bootstrap success');
+      console.log('[AdminSetup] POST /api/admin/force-promote', { email: email.trim() });
+      const response = await fetch(`${BACKEND_URL}/api/admin/force-promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), secret: ADMIN_SECRET }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.log('[AdminSetup] force-promote failed, status:', response.status, 'body:', text);
+        if (response.status === 404) {
+          setInlineError('No account found with that email. Please sign up first.');
+        } else if (response.status === 403) {
+          setInlineError('Invalid admin secret. Contact support.');
+        } else {
+          setInlineError(`Error ${response.status}: ${text || 'Something went wrong.'}`);
+        }
+        return;
+      }
+
+      console.log('[AdminSetup] force-promote success');
       setScreenState('success');
     } catch (e: unknown) {
-      const status = (e as { status?: number }).status;
       const message = e instanceof Error ? e.message : 'Something went wrong.';
-      console.log('[AdminSetup] Bootstrap error, status:', status, 'message:', message);
-
-      if (status === 400) {
-        setScreenState('disabled');
-      } else if (status === 404) {
-        setInlineError('No account found with that email. Please sign up first.');
-      } else {
-        setInlineError(message || 'Something went wrong. Please try again.');
-      }
+      console.log('[AdminSetup] force-promote error:', message);
+      setInlineError(message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -13,8 +13,10 @@ import {
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react-native';
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Settings } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
+
+const BACKEND_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
 const COLORS = {
   background: '#0F1E2B',
@@ -31,7 +33,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading, signInWithEmail } = useAuth();
+  const { user, loading: authLoading, signInWithEmail, fetchUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +60,12 @@ export default function AdminLoginScreen() {
     try {
       console.log('[AdminLogin] Calling signInWithEmail for:', email.trim());
       await signInWithEmail(email.trim(), password);
-      console.log('[AdminLogin] Sign in succeeded, navigating to /admin');
+
+      // Force a fresh session fetch so the latest role from the DB is reflected
+      console.log('[AdminLogin] Forcing fresh session refresh after sign-in');
+      await fetchUser(true);
+
+      console.log('[AdminLogin] Session refreshed, navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
@@ -67,6 +74,11 @@ export default function AdminLoginScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoToSetup = () => {
+    console.log('[AdminLogin] First time setup pressed, navigating to /admin-setup');
+    router.push('/admin-setup');
   };
 
   const handleBackToApp = () => {
@@ -324,6 +336,31 @@ export default function AdminLoginScreen() {
             }}
           >
             Back to App
+          </Text>
+        </TouchableOpacity>
+
+        {/* First time setup link */}
+        <TouchableOpacity
+          onPress={handleGoToSetup}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            marginTop: 12,
+            paddingVertical: 8,
+          }}
+        >
+          <Settings size={13} color={COLORS.textTertiary} strokeWidth={2} />
+          <Text
+            style={{
+              fontSize: 13,
+              color: COLORS.textTertiary,
+              fontFamily: 'DMSans_400Regular',
+            }}
+          >
+            First time setup?
           </Text>
         </TouchableOpacity>
       </ScrollView>
