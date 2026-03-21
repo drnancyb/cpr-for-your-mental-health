@@ -408,6 +408,24 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/applications lists applications (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/applications", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.applications)).toBe(true);
+    }
+  });
+
+  test("GET /api/admin/applications with status filter (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/applications?status=pending", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.applications)).toBe(true);
+    }
+  });
+
   test("GET /api/admin/applications/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000");
     await expectStatus(res, 401);
@@ -427,6 +445,19 @@ describe("API Integration Tests", () => {
       authToken
     );
     await expectStatus(res, 400);
+  });
+
+  test("GET /api/admin/applications/{id} retrieves application (admin positive case)", async () => {
+    if (adminToken && applicationId) {
+      const res = await authenticatedApi(
+        `/api/admin/applications/${applicationId}`,
+        adminToken
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.application).toBeDefined();
+      expect(Array.isArray(data.messages)).toBe(true);
+    }
   });
 
   test("POST /api/admin/applications/{id}/approve returns 401 without auth", async () => {
@@ -459,6 +490,23 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 400);
+  });
+
+  test("POST /api/admin/applications/{id}/approve approves application (admin positive case)", async () => {
+    if (adminToken && applicationId) {
+      const res = await authenticatedApi(
+        `/api/admin/applications/${applicationId}/approve`,
+        adminToken,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.therapist_id).toBeDefined();
+    }
   });
 
   test("POST /api/admin/applications/{id}/reject returns 401 without auth", async () => {
@@ -494,6 +542,47 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 400);
+  });
+
+  test("POST /api/admin/applications/{id}/reject rejects application (admin positive case)", async () => {
+    if (adminToken) {
+      // Create a new application to reject
+      const { token: rejectToken } = await signUpTestUser();
+      const createRes = await authenticatedApi("/api/applications", rejectToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Dr. To Be Rejected",
+          title: "Therapist",
+          bio: "Will be rejected",
+          location: "Boston",
+          gender: "Male",
+          specialties: ["Test"],
+          therapy_types: ["CBT"],
+          insurances: ["Test"],
+          session_fee: 100,
+          languages: ["English"],
+          years_experience: 5,
+          phone: "555-9999",
+          email: "reject@example.com",
+        }),
+      });
+      const appData = await createRes.json();
+      const rejectAppId = appData.id;
+
+      const res = await authenticatedApi(
+        `/api/admin/applications/${rejectAppId}/reject`,
+        adminToken,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Insufficient qualifications" }),
+        }
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    }
   });
 
   test("POST /api/admin/applications/{id}/messages returns 401 without auth", async () => {
@@ -544,6 +633,24 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400, 403);
   });
 
+  test("POST /api/admin/applications/{id}/messages adds message (admin positive case)", async () => {
+    if (adminToken && applicationId) {
+      const res = await authenticatedApi(
+        `/api/admin/applications/${applicationId}/messages`,
+        adminToken,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "Please provide more details about your experience" }),
+        }
+      );
+      await expectStatus(res, 201);
+      const data = await res.json();
+      expect(data.id).toBeDefined();
+      expect(data.message).toBe("Please provide more details about your experience");
+    }
+  });
+
   test("GET /api/admin/applications/{id}/messages returns 401 without auth", async () => {
     const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/messages");
     await expectStatus(res, 401);
@@ -563,6 +670,18 @@ describe("API Integration Tests", () => {
       authToken
     );
     await expectStatus(res, 400);
+  });
+
+  test("GET /api/admin/applications/{id}/messages retrieves messages (admin positive case)", async () => {
+    if (adminToken && applicationId) {
+      const res = await authenticatedApi(
+        `/api/admin/applications/${applicationId}/messages`,
+        adminToken
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.messages)).toBe(true);
+    }
   });
 
   // ============================================
@@ -1000,6 +1119,15 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/bookings retrieves all bookings (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/bookings", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.bookings)).toBe(true);
+    }
+  });
+
   test("PATCH /api/admin/bookings/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/bookings/00000000-0000-0000-0000-000000000000", {
       method: "PATCH",
@@ -1055,6 +1183,17 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 400, 403);
+  });
+
+  test("PATCH /api/admin/bookings/{id} updates booking (admin positive case)", async () => {
+    if (adminToken && bookingId) {
+      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, adminToken, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "confirmed", admin_notes: "Confirmed with therapist" }),
+      });
+      await expectStatus(res, 200);
+    }
   });
 
   // ============================================
@@ -1291,6 +1430,15 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/content retrieves all content (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/content", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.content)).toBe(true);
+    }
+  });
+
   test("PATCH /api/admin/content/{key} returns 401 without auth", async () => {
     const res = await api("/api/admin/content/welcome-message", {
       method: "PATCH",
@@ -1374,6 +1522,15 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/support retrieves all support requests (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/support", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.requests)).toBe(true);
+    }
+  });
+
   test("PATCH /api/admin/support/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/support/00000000-0000-0000-0000-000000000000", {
       method: "PATCH",
@@ -1408,6 +1565,36 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({}),
     });
     await expectStatus(res, 400, 403);
+  });
+
+  test("PATCH /api/admin/support/{id} updates support request (admin positive case)", async () => {
+    if (adminToken) {
+      // Create a support request first
+      const supportRes = await api("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Test Support",
+          email: "support@example.com",
+          subject: "Test Issue",
+          message: "Need help with app",
+          role: "client",
+        }),
+      });
+      const supportData = await supportRes.json();
+      const newSupportId = supportData.id;
+
+      const res = await authenticatedApi(
+        `/api/admin/support/${newSupportId}`,
+        adminToken,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "in_progress" }),
+        }
+      );
+      await expectStatus(res, 200);
+    }
   });
 
   // ============================================
