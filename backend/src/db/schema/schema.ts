@@ -256,3 +256,26 @@ export const notificationPreferences = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+export const applicationMessages = pgTable(
+  'application_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    applicationId: uuid('application_id').notNull(),
+    adminId: text('admin_id').notNull(),
+    message: text('message').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.applicationId],
+      foreignColumns: [therapistApplications.id],
+      name: 'application_messages_application_id_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.adminId],
+      foreignColumns: [user.id],
+      name: 'application_messages_admin_id_fk',
+    }).onDelete('no action'),
+  ]
+);

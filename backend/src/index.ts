@@ -5,6 +5,7 @@ import * as authSchema from './db/schema/auth-schema.js';
 import * as therapistsRoutes from './routes/therapists.js';
 import * as applicationsRoutes from './routes/applications.js';
 import * as adminTherapistsRoutes from './routes/admin-therapists.js';
+import * as adminApplicationsReviewRoutes from './routes/admin-applications-review.js';
 import * as savedAndBookingsRoutes from './routes/saved-and-bookings.js';
 import * as adminAnalyticsRoutes from './routes/admin-analytics.js';
 import * as clientPreferencesRoutes from './routes/client-preferences.js';
@@ -103,6 +104,7 @@ async function seedAppContent() {
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
 adminTherapistsRoutes.register(app, app.fastify);
+adminApplicationsReviewRoutes.register(app, app.fastify);
 savedAndBookingsRoutes.register(app, app.fastify);
 adminAnalyticsRoutes.register(app, app.fastify);
 clientPreferencesRoutes.register(app, app.fastify);

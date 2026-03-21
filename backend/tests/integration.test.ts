@@ -368,33 +368,133 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/applications/{id} returns 401 without auth", async () => {
-    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000", {
-      method: "PATCH",
+  test("GET /api/admin/applications/{id} with non-existent UUID returns 403 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000",
+      authToken
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/applications/{id}/approve returns 401 without auth", async () => {
+    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/approve", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "approved" }),
     });
     await expectStatus(res, 401);
   });
 
-  test("PATCH /api/admin/applications/{id} returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi(`/api/admin/applications/${applicationId}`, authToken, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "approved" }),
-    });
+  test("POST /api/admin/applications/{id}/approve returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/approve",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/applications/{id} with non-existent UUID returns 403 for non-admin", async () => {
+  test("POST /api/admin/applications/{id}/approve with non-existent UUID returns 403 for non-admin", async () => {
     const res = await authenticatedApi(
-      "/api/admin/applications/00000000-0000-0000-0000-000000000000",
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/approve",
       authToken,
       {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "approved" }),
       }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/applications/{id}/reject returns 401 without auth", async () => {
+    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/reject", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: "Incomplete application" }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/admin/applications/{id}/reject returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/reject",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Incomplete application" }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/applications/{id}/reject with non-existent UUID returns 403 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/reject",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Does not meet criteria" }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/applications/{id}/messages returns 401 without auth", async () => {
+    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Please provide more information" }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/admin/applications/{id}/messages returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/messages",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "Please provide more information" }),
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("POST /api/admin/applications/{id}/messages without required message returns 400 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/messages",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }
+    );
+    await expectStatus(res, 400, 403);
+  });
+
+  test("GET /api/admin/applications/{id}/messages returns 401 without auth", async () => {
+    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/messages");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/applications/{id}/messages returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/messages",
+      authToken
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("GET /api/admin/applications/{id}/messages with non-existent UUID returns 403 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/messages",
+      authToken
     );
     await expectStatus(res, 403);
   });
