@@ -247,6 +247,18 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Public Endpoint: Admin Lookup
+  // ============================================
+
+  test("GET /admin/lookup/nancy-brooks returns lookup results", async () => {
+    const res = await api("/admin/lookup/nancy-brooks");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.user_results)).toBe(true);
+    expect(Array.isArray(data.therapist_results)).toBe(true);
+  });
+
+  // ============================================
   // Authenticated Endpoints: Applications (User)
   // ============================================
 
