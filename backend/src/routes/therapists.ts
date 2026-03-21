@@ -3,40 +3,7 @@ import { eq, and, ilike, sql, asc, desc } from 'drizzle-orm';
 import * as schema from '../db/schema/schema.js';
 import type { App } from '../index.js';
 
-
-async function seedTherapists(app: App) {
-  app.logger.info('Seeding Nancy Brooks to therapists table');
-
-  // Insert Nancy Brooks with ON CONFLICT
-  await app.db.insert(schema.therapists).values({
-    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' as any,
-    name: 'Nancy Brooks',
-    photoUrl: 'https://i.pravatar.cc/300?u=nancybrooks',
-    title: 'PsyD, NCC, RCC',
-    bio: 'Dr. Nancy Brooks is a registered clinical counsellor with a Doctorate in Psychology. She brings a warm, collaborative approach to therapy, helping clients navigate anxiety, depression, trauma, and life transitions with evidence-based care.',
-    location: 'Vancouver',
-    gender: 'Female',
-    specialties: ['Anxiety', 'Depression', 'Trauma & PTSD', 'Life Transitions', 'Stress Management'],
-    therapyTypes: ['CBT (Cognitive Behavioural Therapy)', 'Psychodynamic Therapy', 'Mindfulness-Based Therapy', 'Person-Centred Therapy'],
-    insurances: ['Blue Cross', 'Sun Life', 'Manulife'],
-    acceptingNewClients: true,
-    sessionFee: '180',
-    languages: ['English'],
-    yearsExperience: 12,
-    phone: '',
-    email: '',
-    websiteUrl: null,
-    isPinned: true,
-    userId: null,
-  }).onConflictDoNothing();
-  app.logger.info('Nancy Brooks seeding completed');
-}
-
 export function register(app: App, fastify: FastifyInstance) {
-  // Seed data on startup
-  seedTherapists(app).catch((err) => {
-    app.logger.error({ err }, 'Failed to seed therapists');
-  });
 
   fastify.get(
     '/api/therapists',

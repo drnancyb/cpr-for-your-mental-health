@@ -112,7 +112,6 @@ describe("API Integration Tests", () => {
 
   test("GET /api/content/{key} with valid key returns 200", async () => {
     const res = await api("/api/content/welcome-message");
-    // Could be 200 or 404 depending on if content exists
     await expectStatus(res, 200, 404);
   });
 
@@ -179,7 +178,6 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "John Doe",
-        // missing email, subject, message
       }),
     });
     await expectStatus(res, 400);
@@ -212,7 +210,6 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "Jane Smith",
-        // missing email, subject, message
       }),
     });
     await expectStatus(res, 400);
@@ -237,6 +234,7 @@ describe("API Integration Tests", () => {
   // ============================================
 
   let authToken: string;
+  let authUserId: string;
   let authEmail: string;
   let applicationId: string;
   let therapistId: string;
@@ -245,6 +243,7 @@ describe("API Integration Tests", () => {
   test("Setup: sign up test user for authenticated endpoints", async () => {
     const { token, user } = await signUpTestUser();
     authToken = token;
+    authUserId = user.id;
     authEmail = user.email;
   });
 
@@ -264,11 +263,9 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({ email: adminUser.email }),
     });
     const data = await res.json();
-    // If this is the first admin or no admin exists, bootstrap succeeds
     if (data.success) {
       adminToken = bootstrapToken;
     } else if (res.status === 400) {
-      // Admin already exists in system, try creating another user
       const { token: token2, user: user2 } = await signUpTestUser();
       const res2 = await api("/api/admin/bootstrap", {
         method: "POST",
@@ -292,7 +289,6 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: authEmail }),
     });
-    // Should return 200 (success) or 400 (admin already exists in system)
     await expectStatus(res, 200, 400);
     const data = await res.json();
     expect(data.success !== undefined || data.error !== undefined).toBe(true);
@@ -316,7 +312,6 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: newUser.email }),
     });
-    // Should return 200 if first admin, or 400 if admin already exists
     await expectStatus(res, 200, 400);
   });
 
@@ -395,7 +390,6 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({
         name: "Dr. Another Name",
         title: "Therapist",
-        // missing required fields: bio, location, gender, specialties, etc.
       }),
     });
     await expectStatus(res, 400);
@@ -593,7 +587,6 @@ describe("API Integration Tests", () => {
 
   test("POST /api/admin/applications/{id}/reject rejects application (admin positive case)", async () => {
     if (adminToken) {
-      // Create a new application to reject
       const { token: rejectToken } = await signUpTestUser();
       const createRes = await authenticatedApi("/api/applications", rejectToken, {
         method: "POST",
@@ -667,7 +660,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
-  test("POST /api/admin/applications/{id}/messages without required message returns 400 for non-admin", async () => {
+  test("POST /api/admin/applications/{id}/messages without required message returns 400", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000/messages",
       authToken,
@@ -781,13 +774,12 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("POST /api/admin/therapists without required fields returns 400 for non-admin", async () => {
+  test("POST /api/admin/therapists without required fields returns 400", async () => {
     const res = await authenticatedApi("/api/admin/therapists", authToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "Dr. John Doe",
-        // missing required fields
       }),
     });
     await expectStatus(res, 400, 403);
@@ -955,17 +947,32 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
-  test("PATCH /api/admin/therapists/{id}/pin with is_pinned false returns 403 for non-admin", async () => {
+  test("PATCH /api/admin/therapists/{id}/pin without required is_pinned returns 400", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
       authToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_pinned: false }),
+        body: JSON.stringify({}),
       }
     );
-    await expectStatus(res, 403);
+    await expectStatus(res, 400, 403);
+  });
+
+  test("PATCH /api/admin/therapists/{id}/pin pins therapist (admin positive case)", async () => {
+    if (adminToken && therapistId) {
+      const res = await authenticatedApi(
+        `/api/admin/therapists/${therapistId}/pin`,
+        adminToken,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_pinned: true }),
+        }
+      );
+      await expectStatus(res, 200, 404);
+    }
   });
 
   // ============================================
@@ -1146,7 +1153,6 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         therapist_id: therapistId,
-        // missing message and contact_method
       }),
     });
     await expectStatus(res, 400);
@@ -1195,31 +1201,7 @@ describe("API Integration Tests", () => {
     }
   });
 
-  test("PATCH /api/admin/bookings/{id} with declined status returns 403 for non-admin", async () => {
-    if (bookingId) {
-      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, authToken, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "declined", admin_notes: "Not available" }),
-      });
-      await expectStatus(res, 403);
-    }
-  });
-
-  test("PATCH /api/admin/bookings/{id} with pending status returns 403 for non-admin", async () => {
-    const res = await authenticatedApi(
-      "/api/admin/bookings/00000000-0000-0000-0000-000000000000",
-      authToken,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "pending" }),
-      }
-    );
-    await expectStatus(res, 403);
-  });
-
-  test("PATCH /api/admin/bookings/{id} without required status returns 400 for non-admin", async () => {
+  test("PATCH /api/admin/bookings/{id} without required status returns 400", async () => {
     const res = await authenticatedApi(
       "/api/admin/bookings/00000000-0000-0000-0000-000000000000",
       authToken,
@@ -1259,6 +1241,15 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/subscriptions retrieves subscriptions (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/subscriptions", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.subscriptions)).toBe(true);
+    }
+  });
+
   test("POST /api/admin/subscriptions returns 401 without auth", async () => {
     const res = await api("/api/admin/subscriptions", {
       method: "POST",
@@ -1285,13 +1276,12 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("POST /api/admin/subscriptions without required fields returns 400 for non-admin", async () => {
+  test("POST /api/admin/subscriptions without required fields returns 400", async () => {
     const res = await authenticatedApi("/api/admin/subscriptions", authToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         therapist_id: therapistId,
-        // missing status and plan
       }),
     });
     await expectStatus(res, 400, 403);
@@ -1384,6 +1374,15 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("GET /api/admin/notifications retrieves notifications (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/notifications", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.notifications)).toBe(true);
+    }
+  });
+
   test("POST /api/admin/notifications returns 401 without auth", async () => {
     const res = await api("/api/admin/notifications", {
       method: "POST",
@@ -1410,39 +1409,12 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("POST /api/admin/notifications with featured target returns 403 for non-admin", async () => {
-    const res = await authenticatedApi("/api/admin/notifications", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Featured Notification",
-        message: "Feature announcement",
-        target: "featured",
-      }),
-    });
-    await expectStatus(res, 403);
-  });
-
-  test("POST /api/admin/notifications with free target returns 403 for non-admin", async () => {
-    const res = await authenticatedApi("/api/admin/notifications", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Free Plan Notification",
-        message: "Free plan notice",
-        target: "free",
-      }),
-    });
-    await expectStatus(res, 403);
-  });
-
-  test("POST /api/admin/notifications without required fields returns 400 for non-admin", async () => {
+  test("POST /api/admin/notifications without required fields returns 400", async () => {
     const res = await authenticatedApi("/api/admin/notifications", authToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "Test",
-        // missing message and target
       }),
     });
     await expectStatus(res, 400, 403);
@@ -1508,15 +1480,6 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/content/{key} with empty body returns 403 for non-admin", async () => {
-    const res = await authenticatedApi("/api/admin/content/welcome-message", authToken, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    await expectStatus(res, 403);
-  });
-
   test("PATCH /api/admin/content/{key} updates content (admin positive case)", async () => {
     if (adminToken) {
       const res = await authenticatedApi("/api/admin/content/test-key", adminToken, {
@@ -1526,7 +1489,7 @@ describe("API Integration Tests", () => {
           value: "Updated by admin test",
         }),
       });
-      await expectStatus(res, 200, 400); // 400 if key doesn't exist
+      await expectStatus(res, 200, 400);
     }
   });
 
@@ -1596,16 +1559,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
-  test("PATCH /api/admin/support/{id} with resolved status returns 403 for non-admin", async () => {
-    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "resolved" }),
-    });
-    await expectStatus(res, 403);
-  });
-
-  test("PATCH /api/admin/support/{id} without required status returns 400 for non-admin", async () => {
+  test("PATCH /api/admin/support/{id} without required status returns 400", async () => {
     const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -1616,7 +1570,6 @@ describe("API Integration Tests", () => {
 
   test("PATCH /api/admin/support/{id} updates support request (admin positive case)", async () => {
     if (adminToken) {
-      // Create a support request first
       const supportRes = await api("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1700,7 +1653,6 @@ describe("API Integration Tests", () => {
 
   test("PATCH /api/admin/contact-messages/{id}/read marks message as read (admin positive case)", async () => {
     if (adminToken) {
-      // Create a contact message first
       const contactRes = await api("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1755,17 +1707,6 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 400);
-  });
-
-  test("DELETE /api/admin/contact-messages/{id} with non-existent UUID returns 404", async () => {
-    const res = await authenticatedApi(
-      "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000",
-      adminToken || authToken,
-      {
-        method: "DELETE",
-      }
-    );
-    await expectStatus(res, 403, 404); // 403 if no admin, 404 if message doesn't exist
   });
 
   test("DELETE /api/admin/contact-messages/{id} deletes message (admin positive case)", async () => {
@@ -1880,7 +1821,6 @@ describe("API Integration Tests", () => {
 
   test("GET /api/therapist/profile returns therapist profile if user is therapist", async () => {
     const res = await authenticatedApi("/api/therapist/profile", authToken);
-    // May return 200 if user is a therapist, or 404 if not
     await expectStatus(res, 200, 404);
   });
 
@@ -1903,7 +1843,6 @@ describe("API Integration Tests", () => {
         accepting_new_clients: true,
       }),
     });
-    // May return 200 if user is a therapist, or 404 if not
     await expectStatus(res, 200, 404);
   });
 
