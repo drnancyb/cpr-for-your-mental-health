@@ -1,11 +1,11 @@
 // Global error logging for runtime errors
 // Captures console.log/warn/error and sends to Natively server for AI debugging
 
-import { Platform } from "react-native";
-import Constants from "expo-constants";
-
 // Declare __DEV__ global (React Native global for development mode detection)
 declare const __DEV__: boolean;
+
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 // Simple debouncing to prevent duplicate logs
 const recentLogs: { [key: string]: boolean } = {};
@@ -25,7 +25,7 @@ const shouldMuteMessage = (message: string): boolean => {
 };
 
 // Queue for batching logs
-let logQueue: { level: string; message: string; source: string; timestamp: string; platform: string }[] = [];
+let logQueue: Array<{ level: string; message: string; source: string; timestamp: string; platform: string }> = [];
 let flushTimeout: ReturnType<typeof setTimeout> | null = null;
 const FLUSH_INTERVAL = 500; // Flush every 500ms
 
@@ -91,11 +91,6 @@ const getLogServerUrl = (): string | null => {
 // Track if we've logged fetch errors to avoid spam
 let fetchErrorLogged = false;
 
-// Hoisted reference to the original console.log so flushLogs can use it
-// without going through the intercepted version (avoids recursion).
-// Captured once at module load time, before any overrides.
-const originalLog = console.log.bind(console);
-
 // Flush the log queue to server
 const flushLogs = async () => {
   if (logQueue.length === 0) return;
@@ -120,8 +115,10 @@ const flushLogs = async () => {
         // Log fetch errors only once to avoid spam
         if (!fetchErrorLogged) {
           fetchErrorLogged = true;
-          // Use the captured original console to avoid recursion
-          originalLog('[Natively] Fetch error (will not repeat):', e.message || e);
+          // Use a different method to avoid recursion - write directly without going through our intercept
+          if (typeof window !== 'undefined' && window.console) {
+            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
+          }
         }
       });
     } catch (e) {
@@ -277,21 +274,11 @@ const stringifyArgs = (args: any[]): string => {
   }).join(' ');
 };
 
-// Guard against double-invocation (e.g. if setupErrorLogging is called manually
-// after the auto-init at the bottom of this file already ran).
-let loggingInitialized = false;
-
 export const setupErrorLogging = () => {
   // Don't initialize in production builds - no need for log forwarding
   if (!__DEV__) {
     return;
   }
-
-  // Prevent double-patching console methods
-  if (loggingInitialized) {
-    return;
-  }
-  loggingInitialized = true;
 
   // Store original console methods BEFORE any modifications
   const originalConsoleLog = console.log;

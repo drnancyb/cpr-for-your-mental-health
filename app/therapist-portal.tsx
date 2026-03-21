@@ -229,6 +229,7 @@ export default function TherapistPortalScreen() {
         specialties: JSON.stringify(profile.specialties),
         therapy_types: JSON.stringify(profile.therapy_types),
         insurances: JSON.stringify(profile.insurances),
+        accepting_new_clients: String(profile.accepting_new_clients),
         mode: 'therapist-self-edit',
       },
     });

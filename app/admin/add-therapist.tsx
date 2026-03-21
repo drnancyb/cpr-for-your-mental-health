@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Switch,
+  Alert,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { api } from '@/utils/api';
@@ -197,7 +198,7 @@ export default function AddTherapistScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const screenTitle = isEdit ? 'Edit Therapist' : 'Add Therapist';
+  const screenTitle = isSelfEdit ? 'Edit My Profile' : isEdit ? 'Edit Therapist' : 'Add Therapist';
   const submitLabel = isEdit ? 'Save Changes' : 'Add Therapist';
 
   const toggleMulti = useCallback((arr: string[], setArr: (v: string[]) => void, val: string) => {
@@ -253,20 +254,24 @@ export default function AddTherapistScreen() {
         console.log('[AddTherapist] PATCH /api/therapist/profile (self-edit)', body);
         await api.patch('/api/therapist/profile', body);
         console.log('[AddTherapist] Therapist self-profile updated successfully');
+        Alert.alert('Profile Updated', 'Your changes have been submitted for review.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
       } else if (isEdit) {
         console.log('[AddTherapist] PATCH /api/admin/therapists/', params.id, body);
         await api.patch(`/api/admin/therapists/${params.id}`, body);
         console.log('[AddTherapist] Therapist updated successfully');
+        router.back();
       } else {
         console.log('[AddTherapist] POST /api/admin/therapists', body);
         await api.post('/api/admin/therapists', body);
         console.log('[AddTherapist] Therapist created successfully');
+        router.back();
       }
-      router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong';
       console.error('[AddTherapist] Submit error:', msg);
-      setErrors({ name: msg });
+      Alert.alert('Save Failed', msg);
     } finally {
       setSubmitting(false);
     }
