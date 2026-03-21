@@ -132,7 +132,7 @@ export default function FilterSheet() {
   const handleClearAll = () => {
     console.log('[FilterSheet] Clearing all filters');
     const cleared: Filters = {
-      location: null,
+      location: [],
       gender: null,
       specialty: null,
       therapy_type: null,
@@ -151,9 +151,20 @@ export default function FilterSheet() {
     setLocalFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const toggle = <K extends keyof Omit<Filters, 'search'>>(key: K, value: string) => {
+  const toggleLocation = (value: string) => {
+    console.log('[FilterSheet] Toggle location:', value);
+    setLocalFilters(prev => {
+      const current = prev.location;
+      const next = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value];
+      return { ...prev, location: next };
+    });
+  };
+
+  const toggle = <K extends keyof Omit<Filters, 'search' | 'location'>>(key: K, value: string) => {
     const current = localFilters[key];
-    setLocal(key, current === value ? null : value as Filters[K]);
+    setLocal(key, (current === value ? null : value) as Filters[K]);
   };
 
   const genderOptions = options?.genders ?? ['Male', 'Female', 'Non-binary'];
@@ -229,8 +240,8 @@ export default function FilterSheet() {
               <SelectRow
                 key={loc}
                 label={loc}
-                selected={localFilters.location === loc}
-                onSelect={() => toggle('location', loc)}
+                selected={localFilters.location.includes(loc)}
+                onSelect={() => toggleLocation(loc)}
               />
             ))}
           </View>

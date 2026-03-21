@@ -64,7 +64,7 @@ export default function IndexScreen() {
   const fetchTherapists = useCallback(async (searchOverride?: string) => {
     const searchValue = searchOverride !== undefined ? searchOverride : filters.search;
     const params = new URLSearchParams();
-    if (filters.location) params.set('location', filters.location);
+    filters.location.forEach(loc => params.append('location[]', loc));
     if (filters.gender) params.set('gender', filters.gender);
     if (filters.specialty) params.set('specialty', filters.specialty);
     if (filters.therapy_type) params.set('therapy_type', filters.therapy_type);
@@ -423,8 +423,13 @@ export default function IndexScreen() {
         </AnimatedPressable>
 
         {FILTER_CHIPS.map((chip) => {
-          const isActive = !!filters[chip.key];
-          const activeLabel = isActive ? filters[chip.key]! : chip.label;
+          const rawValue = filters[chip.key];
+          const isActive = Array.isArray(rawValue) ? rawValue.length > 0 : !!rawValue;
+          const activeLabel = Array.isArray(rawValue) && rawValue.length > 0
+            ? rawValue.length === 1 ? rawValue[0] : `${chip.label} (${rawValue.length})`
+            : !Array.isArray(rawValue) && rawValue
+              ? rawValue
+              : chip.label;
           return (
             <FilterChip
               key={chip.key}

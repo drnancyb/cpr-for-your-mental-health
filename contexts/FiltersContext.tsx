@@ -1,7 +1,7 @@
 import React, { createContext, useState, useCallback } from 'react';
 
 export interface Filters {
-  location: string | null;
+  location: string[];
   gender: string | null;
   specialty: string | null;
   therapy_type: string | null;
@@ -10,7 +10,7 @@ export interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
-  location: null,
+  location: [],
   gender: null,
   specialty: null,
   therapy_type: null,
@@ -50,7 +50,7 @@ export function FiltersProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const activeFilterCount =
-    (filters.location ? 1 : 0) +
+    (filters.location.length > 0 ? 1 : 0) +
     (filters.gender ? 1 : 0) +
     (filters.specialty ? 1 : 0) +
     (filters.therapy_type ? 1 : 0) +
