@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Slot } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShieldOff } from 'lucide-react-native';
 
@@ -46,5 +46,5 @@ export default function AdminLayout() {
   }
 
   console.log('[AdminLayout] Admin user confirmed:', user.email);
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Slot />;
 }
