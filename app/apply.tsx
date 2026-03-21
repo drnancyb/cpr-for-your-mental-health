@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -489,11 +490,9 @@ export default function ApplyScreen() {
       const status = (e as { status?: number })?.status;
       const msg = e instanceof Error ? e.message : 'Submission failed.';
       console.error('[Apply] Submission error, status:', status, 'message:', msg);
-      if (status === 409) {
-        setError('You have already submitted an application.');
-      } else {
-        setError(msg);
-      }
+      const alertMsg = status === 409 ? 'You have already submitted an application.' : msg;
+      setError(alertMsg);
+      Alert.alert('Submission Failed', alertMsg);
     } finally {
       setSubmitting(false);
     }

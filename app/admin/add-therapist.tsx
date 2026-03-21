@@ -143,12 +143,6 @@ interface FormErrors {
   insurances?: string;
 }
 
-function parseArrayParam(val: string | string[] | undefined): string[] {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  try { return JSON.parse(val); } catch { return []; }
-}
-
 interface TherapistProfile {
   id: string;
   name: string;
@@ -172,49 +166,33 @@ interface TherapistProfile {
 export default function AddTherapistScreen() {
   const params = useLocalSearchParams<{
     id?: string;
-    name?: string;
-    title?: string;
-    photo_url?: string;
-    gender?: string;
-    location?: string;
-    years_experience?: string;
-    session_fee?: string;
-    phone?: string;
-    email?: string;
-    website_url?: string;
-    bio?: string;
-    languages?: string;
-    specialties?: string;
-    therapy_types?: string;
-    insurances?: string;
-    accepting_new_clients?: string;
     mode?: string;
   }>();
 
   const isEdit = !!params.id;
   const isSelfEdit = params.mode === 'therapist-self-edit';
 
-  // Form state — starts empty; populated either from params (admin edit) or API fetch (self-edit)
-  const [name, setName] = useState(params.name ?? '');
-  const [title, setTitle] = useState(params.title ?? '');
-  const [photoUrl, setPhotoUrl] = useState(params.photo_url ?? '');
-  const [gender, setGender] = useState(params.gender ?? '');
-  const [location, setLocation] = useState(params.location ?? '');
-  const [yearsExp, setYearsExp] = useState(params.years_experience ?? '');
-  const [sessionFee, setSessionFee] = useState(params.session_fee ?? '');
-  const [phone, setPhone] = useState(params.phone ?? '');
-  const [email, setEmail] = useState(params.email ?? '');
-  const [websiteUrl, setWebsiteUrl] = useState(params.website_url ?? '');
-  const [bio, setBio] = useState(params.bio ?? '');
-  const [languages, setLanguages] = useState<string[]>(parseArrayParam(params.languages));
-  const [specialties, setSpecialties] = useState<string[]>(parseArrayParam(params.specialties));
-  const [therapyTypes, setTherapyTypes] = useState<string[]>(parseArrayParam(params.therapy_types));
-  const [insurances, setInsurances] = useState<string[]>(parseArrayParam(params.insurances));
-  const [acceptingNewClients, setAcceptingNewClients] = useState(
-    params.accepting_new_clients !== undefined ? params.accepting_new_clients === 'true' : true
-  );
 
-  const [profileLoading, setProfileLoading] = useState(isSelfEdit);
+  // Form state — starts empty; always populated via API fetch when editing
+  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [gender, setGender] = useState('');
+  const [location, setLocation] = useState('');
+  const [yearsExp, setYearsExp] = useState('');
+  const [sessionFee, setSessionFee] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [bio, setBio] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [therapyTypes, setTherapyTypes] = useState<string[]>([]);
+  const [insurances, setInsurances] = useState<string[]>([]);
+  const [acceptingNewClients, setAcceptingNewClients] = useState(true);
+
+  // Loading state: true whenever we need to fetch an existing profile
+  const [profileLoading, setProfileLoading] = useState(isEdit);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -225,40 +203,60 @@ export default function AddTherapistScreen() {
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
   }, []);
 
-  // When in self-edit mode, fetch the full profile from the API to pre-populate the form.
+  const populateForm = useCallback((data: TherapistProfile) => {
+    setName(data.name ?? '');
+    setTitle(data.title ?? '');
+    setPhotoUrl(data.photo_url ?? '');
+    setGender(data.gender ?? '');
+    setLocation(data.location ?? '');
+    setYearsExp(String(data.years_experience ?? ''));
+    setSessionFee(String(data.session_fee ?? ''));
+    setPhone(data.phone ?? '');
+    setEmail(data.email ?? '');
+    setWebsiteUrl(data.website_url ?? '');
+    setBio(data.bio ?? '');
+    setLanguages(Array.isArray(data.languages) ? data.languages : []);
+    setSpecialties(Array.isArray(data.specialties) ? data.specialties : []);
+    setTherapyTypes(Array.isArray(data.therapy_types) ? data.therapy_types : []);
+    setInsurances(Array.isArray(data.insurances) ? data.insurances : []);
+    setAcceptingNewClients(data.accepting_new_clients ?? true);
+  }, []);
+
+  // When editing, always fetch the full profile from the API.
   // Passing large data through route params is unreliable (URL length limits, encoding issues).
   useEffect(() => {
-    if (!isSelfEdit) return;
-    console.log('[AddTherapist] Self-edit mode — fetching profile from API');
-    api.get<TherapistProfile>('/api/therapist/profile')
-      .then((data) => {
-        console.log('[AddTherapist] Profile fetched successfully:', data.name);
-        setName(data.name ?? '');
-        setTitle(data.title ?? '');
-        setPhotoUrl(data.photo_url ?? '');
-        setGender(data.gender ?? '');
-        setLocation(data.location ?? '');
-        setYearsExp(String(data.years_experience ?? ''));
-        setSessionFee(String(data.session_fee ?? ''));
-        setPhone(data.phone ?? '');
-        setEmail(data.email ?? '');
-        setWebsiteUrl(data.website_url ?? '');
-        setBio(data.bio ?? '');
-        setLanguages(Array.isArray(data.languages) ? data.languages : []);
-        setSpecialties(Array.isArray(data.specialties) ? data.specialties : []);
-        setTherapyTypes(Array.isArray(data.therapy_types) ? data.therapy_types : []);
-        setInsurances(Array.isArray(data.insurances) ? data.insurances : []);
-        setAcceptingNewClients(data.accepting_new_clients ?? true);
-      })
-      .catch((e) => {
-        const msg = e instanceof Error ? e.message : 'Failed to load profile';
-        console.error('[AddTherapist] Profile fetch error:', msg);
-        setProfileLoadError(msg);
-      })
-      .finally(() => setProfileLoading(false));
-  }, [isSelfEdit]);
+    if (!isEdit) return;
+    if (isSelfEdit) {
+      console.log('[AddTherapist] Self-edit mode — fetching profile from GET /api/therapist/profile');
+      api.get<TherapistProfile>('/api/therapist/profile')
+        .then((data) => {
+          console.log('[AddTherapist] Self-edit profile fetched:', data.name);
+          populateForm(data);
+        })
+        .catch((e) => {
+          const msg = e instanceof Error ? e.message : 'Failed to load profile';
+          console.error('[AddTherapist] Self-edit profile fetch error:', msg);
+          setProfileLoadError(msg);
+        })
+        .finally(() => setProfileLoading(false));
+    } else {
+      // Admin edit — fetch from admin endpoint
+      console.log('[AddTherapist] Admin edit mode — fetching profile from GET /api/admin/therapists/', params.id);
+      api.get<TherapistProfile>(`/api/admin/therapists/${params.id}`)
+        .then((data) => {
+          console.log('[AddTherapist] Admin edit profile fetched:', data.name);
+          populateForm(data);
+        })
+        .catch((e) => {
+          const msg = e instanceof Error ? e.message : 'Failed to load therapist';
+          console.error('[AddTherapist] Admin edit profile fetch error:', msg);
+          setProfileLoadError(msg);
+        })
+        .finally(() => setProfileLoading(false));
+    }
+  }, [isEdit, isSelfEdit, params.id, populateForm]);
 
-  const screenTitle = isSelfEdit ? 'Edit My Profile' : isEdit ? 'Edit Therapist' : 'Add Therapist';
+  const screenTitle = isSelfEdit ? 'Edit Profile' : isEdit ? 'Edit Therapist' : 'Add Therapist';
   const submitLabel = isEdit ? 'Save Changes' : 'Add Therapist';
 
   if (profileLoading) {
@@ -353,12 +351,16 @@ export default function AddTherapistScreen() {
         console.log('[AddTherapist] PATCH /api/admin/therapists/', params.id, body);
         await api.patch(`/api/admin/therapists/${params.id}`, body);
         console.log('[AddTherapist] Therapist updated successfully');
-        router.back();
+        Alert.alert('Therapist Updated', 'The therapist profile has been updated.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
       } else {
         console.log('[AddTherapist] POST /api/admin/therapists', body);
         await api.post('/api/admin/therapists', body);
         console.log('[AddTherapist] Therapist created successfully');
-        router.back();
+        Alert.alert('Therapist Added', 'The new therapist has been added to the directory.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong';

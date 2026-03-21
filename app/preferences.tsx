@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -298,6 +299,7 @@ export default function PreferencesScreen() {
       const msg = e instanceof Error ? e.message : 'Failed to save preferences';
       console.error('[Preferences] Save error:', msg);
       setError(msg);
+      Alert.alert('Save Failed', msg);
     } finally {
       setSaving(false);
     }

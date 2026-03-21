@@ -332,9 +332,7 @@ export default function IndexScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
       >
-                <NotificationBell />
-        
-<AnimatedPressable
+        <AnimatedPressable
           onPress={handleOpenFilters}
           scaleValue={0.95}
         >
