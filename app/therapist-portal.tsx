@@ -209,27 +209,11 @@ export default function TherapistPortalScreen() {
 
   const handleEditProfile = useCallback(() => {
     if (!profile) return;
-    console.log('[TherapistPortal] Edit profile pressed:', profile.id);
+    console.log('[TherapistPortal] Edit profile pressed, navigating with id only:', profile.id);
     router.push({
       pathname: '/admin/add-therapist',
       params: {
         id: profile.id,
-        name: profile.name,
-        title: profile.title,
-        photo_url: profile.photo_url ?? '',
-        gender: profile.gender,
-        location: profile.location,
-        years_experience: String(profile.years_experience),
-        session_fee: String(profile.session_fee),
-        phone: profile.phone,
-        email: profile.email,
-        website_url: profile.website_url ?? '',
-        bio: profile.bio,
-        languages: JSON.stringify(profile.languages),
-        specialties: JSON.stringify(profile.specialties),
-        therapy_types: JSON.stringify(profile.therapy_types),
-        insurances: JSON.stringify(profile.insurances),
-        accepting_new_clients: String(profile.accepting_new_clients),
         mode: 'therapist-self-edit',
       },
     });

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -149,6 +149,26 @@ function parseArrayParam(val: string | string[] | undefined): string[] {
   try { return JSON.parse(val); } catch { return []; }
 }
 
+interface TherapistProfile {
+  id: string;
+  name: string;
+  title: string;
+  location: string;
+  accepting_new_clients: boolean;
+  photo_url?: string;
+  bio: string;
+  specialties: string[];
+  therapy_types: string[];
+  insurances: string[];
+  languages: string[];
+  session_fee: number;
+  years_experience: number;
+  phone: string;
+  email: string;
+  website_url?: string;
+  gender: string;
+}
+
 export default function AddTherapistScreen() {
   const params = useLocalSearchParams<{
     id?: string;
@@ -174,7 +194,7 @@ export default function AddTherapistScreen() {
   const isEdit = !!params.id;
   const isSelfEdit = params.mode === 'therapist-self-edit';
 
-  // Form state
+  // Form state — starts empty; populated either from params (admin edit) or API fetch (self-edit)
   const [name, setName] = useState(params.name ?? '');
   const [title, setTitle] = useState(params.title ?? '');
   const [photoUrl, setPhotoUrl] = useState(params.photo_url ?? '');
@@ -194,16 +214,88 @@ export default function AddTherapistScreen() {
     params.accepting_new_clients !== undefined ? params.accepting_new_clients === 'true' : true
   );
 
+  const [profileLoading, setProfileLoading] = useState(isSelfEdit);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const screenTitle = isSelfEdit ? 'Edit My Profile' : isEdit ? 'Edit Therapist' : 'Add Therapist';
-  const submitLabel = isEdit ? 'Save Changes' : 'Add Therapist';
-
+  // Must be declared before any early returns to satisfy Rules of Hooks
   const toggleMulti = useCallback((arr: string[], setArr: (v: string[]) => void, val: string) => {
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
   }, []);
+
+  // When in self-edit mode, fetch the full profile from the API to pre-populate the form.
+  // Passing large data through route params is unreliable (URL length limits, encoding issues).
+  useEffect(() => {
+    if (!isSelfEdit) return;
+    console.log('[AddTherapist] Self-edit mode — fetching profile from API');
+    api.get<TherapistProfile>('/api/therapist/profile')
+      .then((data) => {
+        console.log('[AddTherapist] Profile fetched successfully:', data.name);
+        setName(data.name ?? '');
+        setTitle(data.title ?? '');
+        setPhotoUrl(data.photo_url ?? '');
+        setGender(data.gender ?? '');
+        setLocation(data.location ?? '');
+        setYearsExp(String(data.years_experience ?? ''));
+        setSessionFee(String(data.session_fee ?? ''));
+        setPhone(data.phone ?? '');
+        setEmail(data.email ?? '');
+        setWebsiteUrl(data.website_url ?? '');
+        setBio(data.bio ?? '');
+        setLanguages(Array.isArray(data.languages) ? data.languages : []);
+        setSpecialties(Array.isArray(data.specialties) ? data.specialties : []);
+        setTherapyTypes(Array.isArray(data.therapy_types) ? data.therapy_types : []);
+        setInsurances(Array.isArray(data.insurances) ? data.insurances : []);
+        setAcceptingNewClients(data.accepting_new_clients ?? true);
+      })
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : 'Failed to load profile';
+        console.error('[AddTherapist] Profile fetch error:', msg);
+        setProfileLoadError(msg);
+      })
+      .finally(() => setProfileLoading(false));
+  }, [isSelfEdit]);
+
+  const screenTitle = isSelfEdit ? 'Edit My Profile' : isEdit ? 'Edit Therapist' : 'Add Therapist';
+  const submitLabel = isEdit ? 'Save Changes' : 'Add Therapist';
+
+  if (profileLoading) {
+
+    return (
+      <>
+        <Stack.Screen options={{ title: screenTitle, headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }} />
+        <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={COLORS.primary} size="large" />
+          <Text style={{ marginTop: 12, fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular' }}>
+            Loading your profile…
+          </Text>
+        </View>
+      </>
+    );
+  }
+
+  if (profileLoadError) {
+    return (
+      <>
+        <Stack.Screen options={{ title: screenTitle, headerLargeTitle: false, headerBackButtonDisplayMode: 'minimal' }} />
+        <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8, textAlign: 'center' }}>
+            Couldn't load profile
+          </Text>
+          <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginBottom: 20 }}>
+            {profileLoadError}
+          </Text>
+          <AnimatedPressable onPress={() => router.back()} scaleValue={0.97}>
+            <View style={{ backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Go Back</Text>
+            </View>
+          </AnimatedPressable>
+        </View>
+      </>
+    );
+  }
 
   const validate = (): boolean => {
     const e: FormErrors = {};
