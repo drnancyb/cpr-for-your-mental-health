@@ -702,6 +702,17 @@ export default function AdminDashboard() {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <AnimatedPressable
                 onPress={() => {
+                  console.log('[Admin] Therapist Applications button pressed');
+                  router.push('/admin/applications');
+                }}
+                scaleValue={0.9}
+              >
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center' }}>
+                  <Users size={17} color={COLORS.primary} strokeWidth={2} />
+                </View>
+              </AnimatedPressable>
+              <AnimatedPressable
+                onPress={() => {
                   console.log('[Admin] Content button pressed');
                   router.push('/admin/content');
                 }}

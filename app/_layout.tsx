@@ -121,6 +121,22 @@ export default function RootLayout() {
                     }}
                   />
                   <Stack.Screen
+                    name="admin/applications"
+                    options={{
+                      title: 'Therapist Applications',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin/application-detail"
+                    options={{
+                      title: 'Application',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
                     name="admin/application/[id]"
                     options={{
                       title: 'Application',
