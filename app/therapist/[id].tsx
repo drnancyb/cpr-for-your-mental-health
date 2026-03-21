@@ -285,10 +285,14 @@ export default function TherapistDetailScreen() {
     );
   }
 
-  const initials = getInitials(therapist.name);
-  const feeDisplay = `$${Number(therapist.session_fee).toFixed(0)}`;
-  const expDisplay = `${therapist.years_experience} yrs`;
-  const langDisplay = `${therapist.languages.length}`;
+  const initials = getInitials(therapist.name ?? '');
+  const feeDisplay = therapist.session_fee != null ? `$${Number(therapist.session_fee).toFixed(0)}` : 'N/A';
+  const expDisplay = therapist.years_experience != null ? `${therapist.years_experience} yrs` : 'N/A';
+  const languages = Array.isArray(therapist.languages) ? therapist.languages : [];
+  const specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  const therapyTypes = Array.isArray(therapist.therapy_types) ? therapist.therapy_types : [];
+  const insurances = Array.isArray(therapist.insurances) ? therapist.insurances : [];
+  const langDisplay = `${languages.length}`;
   const acceptingText = therapist.accepting_new_clients ? 'Accepting new clients' : 'Not accepting clients';
 
   const bookmarkIcon = savedId
@@ -492,7 +496,7 @@ export default function TherapistDetailScreen() {
         </View>
 
         {/* Specialties */}
-        {therapist.specialties.length > 0 ? (
+        {specialties.length > 0 ? (
           <View
             style={{
               marginHorizontal: 16,
@@ -507,7 +511,7 @@ export default function TherapistDetailScreen() {
           >
             <SectionTitle title="Specialties" />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {therapist.specialties.map((s) => (
+              {specialties.map((s) => (
                 <TagChip key={s} label={s} />
               ))}
             </View>
@@ -515,7 +519,7 @@ export default function TherapistDetailScreen() {
         ) : null}
 
         {/* Therapy Types */}
-        {therapist.therapy_types.length > 0 ? (
+        {therapyTypes.length > 0 ? (
           <View
             style={{
               marginHorizontal: 16,
@@ -530,7 +534,7 @@ export default function TherapistDetailScreen() {
           >
             <SectionTitle title="Therapy Types" />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {therapist.therapy_types.map((t) => (
+              {therapyTypes.map((t) => (
                 <TagChip key={t} label={t} />
               ))}
             </View>
@@ -538,7 +542,7 @@ export default function TherapistDetailScreen() {
         ) : null}
 
         {/* Insurance */}
-        {therapist.insurances.length > 0 ? (
+        {insurances.length > 0 ? (
           <View
             style={{
               marginHorizontal: 16,
@@ -553,7 +557,7 @@ export default function TherapistDetailScreen() {
           >
             <SectionTitle title="Insurance Accepted" />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {therapist.insurances.map((ins) => (
+              {insurances.map((ins) => (
                 <View
                   key={ins}
                   style={{
@@ -580,7 +584,7 @@ export default function TherapistDetailScreen() {
         ) : null}
 
         {/* Languages */}
-        {therapist.languages.length > 0 ? (
+        {languages.length > 0 ? (
           <View
             style={{
               marginHorizontal: 16,
@@ -595,7 +599,7 @@ export default function TherapistDetailScreen() {
           >
             <SectionTitle title="Languages" />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {therapist.languages.map((lang) => (
+              {languages.map((lang) => (
                 <View
                   key={lang}
                   style={{

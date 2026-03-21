@@ -82,7 +82,7 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
     ]).start();
   }, [index, opacity, translateY]);
 
-  const displayedSpecialties = therapist.specialties.slice(0, 3);
+  const displayedSpecialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 3) : [];
   const feeDisplay = `$${Number(therapist.session_fee).toFixed(0)} / session`;
   const expDisplay = `${therapist.years_experience} yrs`;
   const initials = getInitials(therapist.name);
