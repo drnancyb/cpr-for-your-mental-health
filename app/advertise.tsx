@@ -61,12 +61,6 @@ const PROVIDER_TERMS = [
   'You are responsible for maintaining appropriate licensure and practicing within your professional scope and ethical guidelines.',
 ];
 
-const FREE_FEATURES = [
-  'Basic profile in the directory of providers',
-  'Listed in search results',
-  'Standard visibility',
-];
-
 const FEATURED_FEATURES = [
   'Appears at top of search results',
   'Highlighted profile card',
@@ -95,11 +89,6 @@ export default function AdvertiseScreen() {
   const handleGetFeatured = () => {
     console.log('[Advertise] Get Featured button pressed — navigating to paywall');
     router.push('/paywall');
-  };
-
-  const handleGetListedFree = () => {
-    console.log('[Advertise] Get Listed Free button pressed — navigating to apply');
-    router.push('/apply');
   };
 
   const handleNotifyMe = () => {
@@ -269,103 +258,6 @@ export default function AdvertiseScreen() {
           >
             Choose a plan
           </Text>
-
-          {/* Tier 1 — Free */}
-          <View
-            style={{
-              backgroundColor: COLORS.surface,
-              borderRadius: 16,
-              borderCurve: 'continuous',
-              padding: 20,
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 17,
-                fontWeight: '700',
-                color: COLORS.text,
-                fontFamily: 'DMSans_700Bold',
-                marginBottom: 4,
-              }}
-            >
-              Free Listing
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
-              <Text
-                style={{
-                  fontSize: 30,
-                  fontWeight: '700',
-                  color: COLORS.text,
-                  fontFamily: 'DMSans_700Bold',
-                  letterSpacing: -0.5,
-                }}
-              >
-                $0
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: COLORS.textSecondary,
-                  fontFamily: 'DMSans_400Regular',
-                }}
-              >
-                / month
-              </Text>
-            </View>
-            <Text
-              style={{
-                fontSize: 12,
-                color: COLORS.textTertiary,
-                fontFamily: 'DMSans_400Regular',
-                marginBottom: 16,
-              }}
-            >
-              No credit card required
-            </Text>
-            <View style={{ gap: 8, marginBottom: 18 }}>
-              {FREE_FEATURES.map((feature) => (
-                <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle size={15} color={COLORS.textTertiary} />
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: COLORS.textSecondary,
-                      fontFamily: 'DMSans_400Regular',
-                      flex: 1,
-                    }}
-                  >
-                    {feature}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              onPress={handleGetListedFree}
-              activeOpacity={0.8}
-              style={{
-                borderWidth: 1.5,
-                borderColor: COLORS.primary,
-                borderRadius: 12,
-                borderCurve: 'continuous',
-                paddingVertical: 13,
-                alignItems: 'center',
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: '600',
-                  color: COLORS.primary,
-                  fontFamily: 'DMSans_600SemiBold',
-                }}
-              >
-                Get Listed Free
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Tier 2 — Featured (elevated) */}
           <View
