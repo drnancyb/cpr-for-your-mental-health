@@ -241,13 +241,20 @@ export function register(app: App, fastify: FastifyInstance) {
             websiteUrl: app_record.websiteUrl,
             userId: app_record.userId,
             isPinned: false,
+            licenseDocuments: app_record.licenseDocuments || [],
           });
 
           app.logger.info({ applicationId: id }, 'Therapist created from application');
         } else {
+          // Update existing therapist with license documents from application
+          await app.db
+            .update(appSchema.therapists)
+            .set({ licenseDocuments: app_record.licenseDocuments || [] })
+            .where(eq(appSchema.therapists.userId, app_record.userId));
+
           app.logger.info(
             { applicationId: id, userId: app_record.userId },
-            'Therapist already exists for this user, skipping creation'
+            'Therapist already exists for this user, updated license documents'
           );
         }
       }

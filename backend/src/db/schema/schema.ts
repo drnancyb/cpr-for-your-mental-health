@@ -23,6 +23,7 @@ export const therapists = pgTable(
     email: text('email').notNull(),
     websiteUrl: text('website_url'),
     isPinned: boolean('is_pinned').notNull().default(false),
+    licenseDocuments: text('license_documents').array().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -56,6 +57,7 @@ export const therapistApplications = pgTable('therapist_applications', {
   websiteUrl: text('website_url'),
   adminNotes: text('admin_notes'),
   rejectionReason: text('rejection_reason'),
+  licenseDocuments: text('license_documents').array().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -290,3 +292,22 @@ export const contactMessages = pgTable('contact_messages', {
   read: boolean('read').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const uploadedDocuments = pgTable(
+  'uploaded_documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    filename: text('filename').notNull(),
+    mimeType: text('mime_type').notNull(),
+    fileData: text('file_data').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: 'uploaded_documents_user_id_fk',
+    }).onDelete('cascade'),
+  ]
+);

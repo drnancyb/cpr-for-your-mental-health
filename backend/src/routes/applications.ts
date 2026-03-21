@@ -94,6 +94,7 @@ export function register(app: App, fastify: FastifyInstance) {
             email: { type: 'string' },
             photo_url: { type: ['string', 'null'] },
             website_url: { type: ['string', 'null'] },
+            license_documents: { type: ['array', 'null'], items: { type: 'string' } },
           },
         },
         response: {
@@ -131,6 +132,7 @@ export function register(app: App, fastify: FastifyInstance) {
           email: string;
           photo_url?: string | null;
           website_url?: string | null;
+          license_documents?: string[] | null;
         };
       }>,
       reply: FastifyReply
@@ -177,6 +179,7 @@ export function register(app: App, fastify: FastifyInstance) {
           email: request.body.email,
           photoUrl: request.body.photo_url || null,
           websiteUrl: request.body.website_url || null,
+          licenseDocuments: request.body.license_documents || [],
         })
         .returning();
 

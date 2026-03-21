@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { api, authenticatedApi, signUpTestUser, expectStatus } from "./helpers";
+import { api, authenticatedApi, signUpTestUser, expectStatus, createTestFile } from "./helpers";
 
 describe("API Integration Tests", () => {
   // ============================================
@@ -490,6 +490,49 @@ describe("API Integration Tests", () => {
     if (adminToken) {
       const res = await authenticatedApi(
         "/api/admin/applications/00000000-0000-0000-0000-000000000000",
+        adminToken
+      );
+      await expectStatus(res, 404);
+    }
+  });
+
+  test("GET /api/admin/applications/{id}/documents returns 401 without auth", async () => {
+    const res = await api("/api/admin/applications/00000000-0000-0000-0000-000000000000/documents");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/applications/{id}/documents returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/00000000-0000-0000-0000-000000000000/documents",
+      authToken
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("GET /api/admin/applications/{id}/documents with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/applications/invalid-uuid/documents",
+      authToken
+    );
+    await expectStatus(res, 400);
+  });
+
+  test("GET /api/admin/applications/{id}/documents retrieves documents (admin positive case)", async () => {
+    if (adminToken && applicationId) {
+      const res = await authenticatedApi(
+        `/api/admin/applications/${applicationId}/documents`,
+        adminToken
+      );
+      await expectStatus(res, 200, 404);
+      const data = await res.json();
+      expect(data.license_documents !== undefined).toBe(true);
+    }
+  });
+
+  test("GET /api/admin/applications/{id}/documents with non-existent UUID returns 404", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi(
+        "/api/admin/applications/00000000-0000-0000-0000-000000000000/documents",
         adminToken
       );
       await expectStatus(res, 404);
@@ -1772,5 +1815,101 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data).toBeDefined();
+  });
+
+  // ============================================
+  // File Upload Endpoints
+  // ============================================
+
+  let uploadedDocumentId: string;
+
+  test("POST /api/upload/license-document returns 401 without auth", async () => {
+    const form = new FormData();
+    form.append("file", createTestFile("license.pdf", "License content"));
+    const res = await api("/api/upload/license-document", {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/upload/license-document uploads file with auth", async () => {
+    const form = new FormData();
+    form.append("file", createTestFile("license.pdf", "License document content"));
+    const res = await authenticatedApi("/api/upload/license-document", authToken, {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.url).toBeDefined();
+    uploadedDocumentId = data.url;
+  });
+
+  test("GET /api/upload/license-document/file/{id} returns 401 without auth", async () => {
+    const res = await api("/api/upload/license-document/file/00000000-0000-0000-0000-000000000000");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/upload/license-document/file/{id} with non-existent ID returns 404", async () => {
+    const res = await authenticatedApi(
+      "/api/upload/license-document/file/00000000-0000-0000-0000-000000000000",
+      authToken
+    );
+    await expectStatus(res, 404);
+  });
+
+  test("GET /api/upload/license-document/file/{id} with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi(
+      "/api/upload/license-document/file/invalid-uuid",
+      authToken
+    );
+    await expectStatus(res, 400);
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Therapist License Documents
+  // ============================================
+
+  test("POST /api/therapist/license-documents returns 401 without auth", async () => {
+    const res = await api("/api/therapist/license-documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_urls: ["http://example.com/doc1.pdf"],
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/therapist/license-documents updates documents with valid URLs", async () => {
+    const res = await authenticatedApi("/api/therapist/license-documents", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_urls: ["http://example.com/license1.pdf", "http://example.com/license2.pdf"],
+      }),
+    });
+    await expectStatus(res, 200, 404);
+  });
+
+  test("POST /api/therapist/license-documents with empty array updates documents", async () => {
+    const res = await authenticatedApi("/api/therapist/license-documents", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_urls: [],
+      }),
+    });
+    await expectStatus(res, 200, 404);
+  });
+
+  test("POST /api/therapist/license-documents without required field returns 400", async () => {
+    const res = await authenticatedApi("/api/therapist/license-documents", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await expectStatus(res, 400, 401, 404);
   });
 });

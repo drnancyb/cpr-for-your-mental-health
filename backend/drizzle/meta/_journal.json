@@ -78,6 +78,13 @@
       "when": 1774131952380,
       "tag": "20260321222552_pale_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774132347017,
+      "tag": "20260321223227_solid_scrambler",
+      "breakpoints": true
     }
   ]
 }
