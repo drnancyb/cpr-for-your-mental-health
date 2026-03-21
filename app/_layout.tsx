@@ -225,6 +225,22 @@ export default function RootLayout() {
                     }}
                   />
                   <Stack.Screen
+                    name="contact"
+                    options={{
+                      title: 'Contact Us',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin/contact-messages"
+                    options={{
+                      title: 'Contact Messages',
+                      headerLargeTitle: false,
+                      headerBackButtonDisplayMode: 'minimal',
+                    }}
+                  />
+                  <Stack.Screen
                     name="admin-setup"
                     options={{
                       title: 'Admin Setup',

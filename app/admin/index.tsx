@@ -153,7 +153,7 @@ const STATUS_TABS = [
 ] as const;
 
 type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined;
-type MainTab = 'applications' | 'therapists' | 'bookings' | 'analytics' | 'subscriptions' | 'notifications' | 'support';
+type MainTab = 'applications' | 'therapists' | 'bookings' | 'analytics' | 'subscriptions' | 'notifications' | 'support' | 'contact';
 
 interface AdminBooking {
   id: string;
@@ -752,6 +752,7 @@ export default function AdminDashboard() {
         <MainTabButton label="Subscriptions" active={mainTab === 'subscriptions'} onPress={() => { console.log('[Admin] Main tab: Subscriptions'); setMainTab('subscriptions'); }} />
         <MainTabButton label="Notifications" active={mainTab === 'notifications'} onPress={() => { console.log('[Admin] Main tab: Notifications'); setMainTab('notifications'); }} />
         <MainTabButton label="Support" active={mainTab === 'support'} onPress={() => { console.log('[Admin] Main tab: Support'); setMainTab('support'); }} />
+        <MainTabButton label="Contact Messages" active={mainTab === 'contact'} onPress={() => { console.log('[Admin] Main tab: Contact Messages'); router.push('/admin/contact-messages'); }} />
       </ScrollView>
 
       {mainTab === 'applications' ? (

@@ -9,11 +9,11 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { CheckCircle, Send, AlertCircle, Mail, Phone, ChevronRight } from 'lucide-react-native';
+import { CheckCircle, Send, AlertCircle, Mail, Phone, ChevronRight, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
@@ -171,6 +171,30 @@ export default function SupportScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 120, paddingTop: 8 }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Contact Admin Card */}
+          <AnimatedPressable
+            onPress={() => {
+              console.log('[Support] Contact Us button pressed');
+              router.push('/contact');
+            }}
+            scaleValue={0.98}
+          >
+            <View style={{ backgroundColor: COLORS.primary, borderRadius: 16, marginBottom: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageCircle size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff', fontFamily: 'DMSans_700Bold' }}>
+                  Contact Us
+                </Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                  Send a message directly to the admin
+                </Text>
+              </View>
+              <ChevronRight size={18} color="rgba(255,255,255,0.7)" />
+            </View>
+          </AnimatedPressable>
+
           {/* Direct Contact Card */}
           <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' }}>
             <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
