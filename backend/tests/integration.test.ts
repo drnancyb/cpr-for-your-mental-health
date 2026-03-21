@@ -186,6 +186,53 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Public Endpoints: Contact
+  // ============================================
+
+  test("POST /api/contact creates a contact message", async () => {
+    const res = await api("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Jane Smith",
+        email: "jane@example.com",
+        subject: "General inquiry",
+        message: "I have a question about the platform",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.id).toBeDefined();
+  });
+
+  test("POST /api/contact without required fields returns 400", async () => {
+    const res = await api("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Jane Smith",
+        // missing email, subject, message
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("POST /api/contact with empty message returns 400", async () => {
+    const res = await api("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Jane Smith",
+        email: "jane@example.com",
+        subject: "Test",
+        message: "",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  // ============================================
   // Authentication Setup
   // ============================================
 
@@ -1594,6 +1641,145 @@ describe("API Integration Tests", () => {
         }
       );
       await expectStatus(res, 200);
+    }
+  });
+
+  // ============================================
+  // Admin Endpoints: Contact Messages
+  // ============================================
+
+  let contactMessageId: string;
+
+  test("GET /api/admin/contact-messages returns 401 without auth", async () => {
+    const res = await api("/api/admin/contact-messages");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/admin/contact-messages returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/contact-messages", authToken);
+    await expectStatus(res, 403);
+  });
+
+  test("GET /api/admin/contact-messages retrieves all messages (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/contact-messages", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data.messages)).toBe(true);
+    }
+  });
+
+  test("PATCH /api/admin/contact-messages/{id}/read returns 401 without auth", async () => {
+    const res = await api("/api/admin/contact-messages/00000000-0000-0000-0000-000000000000/read", {
+      method: "PATCH",
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PATCH /api/admin/contact-messages/{id}/read returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000/read",
+      authToken,
+      {
+        method: "PATCH",
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/contact-messages/{id}/read with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/contact-messages/invalid-uuid/read",
+      authToken,
+      {
+        method: "PATCH",
+      }
+    );
+    await expectStatus(res, 400);
+  });
+
+  test("PATCH /api/admin/contact-messages/{id}/read marks message as read (admin positive case)", async () => {
+    if (adminToken) {
+      // Create a contact message first
+      const contactRes = await api("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Test Contact",
+          email: "contact@example.com",
+          subject: "Contact Test",
+          message: "This is a test contact message",
+        }),
+      });
+      const contactData = await contactRes.json();
+      const newMessageId = contactData.id;
+
+      const res = await authenticatedApi(
+        `/api/admin/contact-messages/${newMessageId}/read`,
+        adminToken,
+        {
+          method: "PATCH",
+        }
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      contactMessageId = newMessageId;
+    }
+  });
+
+  test("DELETE /api/admin/contact-messages/{id} returns 401 without auth", async () => {
+    const res = await api("/api/admin/contact-messages/00000000-0000-0000-0000-000000000000", {
+      method: "DELETE",
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("DELETE /api/admin/contact-messages/{id} returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "DELETE",
+      }
+    );
+    await expectStatus(res, 403);
+  });
+
+  test("DELETE /api/admin/contact-messages/{id} with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/contact-messages/invalid-uuid",
+      authToken,
+      {
+        method: "DELETE",
+      }
+    );
+    await expectStatus(res, 400);
+  });
+
+  test("DELETE /api/admin/contact-messages/{id} with non-existent UUID returns 404", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000",
+      adminToken || authToken,
+      {
+        method: "DELETE",
+      }
+    );
+    await expectStatus(res, 403, 404); // 403 if no admin, 404 if message doesn't exist
+  });
+
+  test("DELETE /api/admin/contact-messages/{id} deletes message (admin positive case)", async () => {
+    if (adminToken && contactMessageId) {
+      const res = await authenticatedApi(
+        `/api/admin/contact-messages/${contactMessageId}`,
+        adminToken,
+        {
+          method: "DELETE",
+        }
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
     }
   });
 

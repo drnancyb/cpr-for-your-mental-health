@@ -64,6 +64,13 @@
       "when": 1774124654166,
       "tag": "20260321202414_secret_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774126391302,
+      "tag": "20260321205311_breezy_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import * as clientPreferencesRoutes from './routes/client-preferences.js';
 import * as supportRoutes from './routes/support.js';
 import * as adminBootstrapRoutes from './routes/admin-bootstrap.js';
 import * as adminLookupRoutes from './routes/admin-lookup.js';
+import * as contactRoutes from './routes/contact.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -112,6 +113,7 @@ clientPreferencesRoutes.register(app, app.fastify);
 supportRoutes.register(app, app.fastify);
 adminBootstrapRoutes.register(app, app.fastify);
 adminLookupRoutes.register(app, app.fastify);
+contactRoutes.register(app, app.fastify);
 
 // Health check endpoint
 app.fastify.get('/', {
