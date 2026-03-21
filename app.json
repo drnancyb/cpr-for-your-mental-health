@@ -24,10 +24,7 @@
         "NSUserNotificationsUsageDescription": "CPR uses notifications to keep you updated on your bookings and messages from therapists."
       },
       "entitlements": {
-        "aps-environment": "production",
-        "com.apple.security.application-groups": [
-          "group.ca.cpresources.app.onesignal"
-        ]
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -48,12 +45,6 @@
       "bundler": "metro"
     },
     "plugins": [
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "production"
-        }
-      ],
       "expo-font",
       "expo-router",
       "expo-web-browser",
