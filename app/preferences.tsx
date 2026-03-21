@@ -287,7 +287,7 @@ export default function PreferencesScreen() {
     setSaving(true);
     setError(null);
     try {
-      await api.patch('/api/preferences', prefs);
+      await api.put('/api/preferences', prefs);
       console.log('[Preferences] Preferences saved successfully');
       setSaved(true);
       if (Platform.OS === 'ios') {
