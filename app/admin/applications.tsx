@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  TouchableOpacity,
+  ScrollView,
+  Animated,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { Clock, CheckCircle, XCircle, ChevronRight, ClipboardList } from 'lucide-react-native';
@@ -28,9 +29,10 @@ const COLORS = {
   warning: '#F59E0B',
 };
 
-type StatusFilter = 'pending' | 'approved' | 'rejected';
+type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined;
 
 const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+  { key: undefined, label: 'All' },
   { key: 'pending', label: 'Pending' },
   { key: 'approved', label: 'Approved' },
   { key: 'rejected', label: 'Rejected' },
@@ -38,7 +40,7 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 
 interface Application {
   id: string;
-  status: StatusFilter;
+  status: 'pending' | 'approved' | 'rejected';
   name: string;
   title?: string;
   email: string;
@@ -87,9 +89,62 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function SkeletonCard() {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [opacity]);
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        backgroundColor: COLORS.surface,
+        marginHorizontal: 16,
+        marginBottom: 10,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.surfaceSecondary }} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: COLORS.surfaceSecondary }} />
+        <View style={{ width: '40%', height: 12, borderRadius: 6, backgroundColor: COLORS.surfaceSecondary }} />
+        <View style={{ width: '30%', height: 10, borderRadius: 5, backgroundColor: COLORS.surfaceSecondary }} />
+      </View>
+      <View style={{ width: 64, height: 24, borderRadius: 12, backgroundColor: COLORS.surfaceSecondary }} />
+    </Animated.View>
+  );
+}
+
+function AnimatedListItem({ index, children }: { index: number; children: React.ReactNode }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 300, delay: index * 50, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 300, delay: index * 50, useNativeDriver: true }),
+    ]).start();
+  }, [index, opacity, translateY]);
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export default function ApplicationsListScreen() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<StatusFilter>('pending');
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>(undefined);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,11 +152,13 @@ export default function ApplicationsListScreen() {
 
   const fetchApplications = useCallback(async (status: StatusFilter) => {
     setError(null);
-    const path = `/api/admin/applications?status=${status}`;
+    const path = status
+      ? `/api/admin/applications?status=${status}`
+      : '/api/admin/applications';
     console.log('[Applications] Fetching GET', path);
     try {
       const data = await api.get<Application[]>(path);
-      console.log('[Applications] Fetched', data.length, status, 'applications');
+      console.log('[Applications] Fetched', data.length, 'applications, filter:', status ?? 'all');
       setApplications(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load applications.';
@@ -113,88 +170,102 @@ export default function ApplicationsListScreen() {
   useEffect(() => {
     setLoading(true);
     setApplications([]);
-    fetchApplications(activeTab).finally(() => setLoading(false));
-  }, [activeTab, fetchApplications]);
+    fetchApplications(activeFilter).finally(() => setLoading(false));
+  }, [activeFilter, fetchApplications]);
+
+  // Refetch when screen comes back into focus (after approve/reject)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Applications] Screen focused — refetching');
+      fetchApplications(activeFilter);
+    }, [activeFilter, fetchApplications])
+  );
 
   const handleRefresh = useCallback(async () => {
-    console.log('[Applications] Pull-to-refresh, tab:', activeTab);
+    console.log('[Applications] Pull-to-refresh, filter:', activeFilter ?? 'all');
     setRefreshing(true);
-    await fetchApplications(activeTab);
+    await fetchApplications(activeFilter);
     setRefreshing(false);
-  }, [fetchApplications, activeTab]);
+  }, [fetchApplications, activeFilter]);
 
-  const handleTabPress = (tab: StatusFilter) => {
-    console.log('[Applications] Tab pressed:', tab);
-    setActiveTab(tab);
+  const handleFilterPress = (filter: StatusFilter) => {
+    console.log('[Applications] Filter pressed:', filter ?? 'all');
+    setActiveFilter(filter);
   };
 
   const handleCardPress = (item: Application) => {
     console.log('[Applications] Card tapped:', item.id, item.name);
-    router.push(`/admin/application-detail?id=${item.id}`);
+    router.push(`/admin/applications/${item.id}`);
   };
+
+  const pendingCount = applications.filter((a) => a.status === 'pending').length;
+  const approvedCount = applications.filter((a) => a.status === 'approved').length;
+  const rejectedCount = applications.filter((a) => a.status === 'rejected').length;
+
+  const filterLabel = activeFilter
+    ? activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)
+    : 'All';
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <Stack.Screen
         options={{
-          title: 'Therapist Applications',
-          headerLargeTitle: false,
+          title: 'Applications',
+          headerLargeTitle: true,
           headerBackButtonDisplayMode: 'minimal',
         }}
       />
 
-      {/* Segment control */}
-      <View
-        style={{
+      {/* Filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 10,
+          paddingBottom: 8,
+          gap: 8,
           flexDirection: 'row',
-          marginHorizontal: 16,
-          marginTop: 12,
-          marginBottom: 8,
-          backgroundColor: COLORS.surfaceSecondary,
-          borderRadius: 12,
-          borderCurve: 'continuous',
-          padding: 3,
-          gap: 2,
         }}
+        style={{ flexGrow: 0, backgroundColor: COLORS.background }}
       >
         {STATUS_TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
+          const isActive = activeFilter === tab.key;
           return (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => handleTabPress(tab.key)}
-              activeOpacity={0.8}
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 10,
-                backgroundColor: isActive ? COLORS.surface : 'transparent',
-                alignItems: 'center',
-                shadowColor: isActive ? '#000' : 'transparent',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: isActive ? 0.08 : 0,
-                shadowRadius: 2,
-                elevation: isActive ? 2 : 0,
-              }}
+            <AnimatedPressable
+              key={String(tab.key)}
+              onPress={() => handleFilterPress(tab.key)}
+              scaleValue={0.95}
             >
-              <Text
+              <View
                 style={{
-                  fontSize: 13,
-                  fontWeight: isActive ? '600' : '400',
-                  color: isActive ? COLORS.text : COLORS.textSecondary,
-                  fontFamily: isActive ? 'DMSans_600SemiBold' : 'DMSans_400Regular',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: isActive ? COLORS.primary : COLORS.surface,
+                  borderWidth: 1,
+                  borderColor: isActive ? COLORS.primary : COLORS.border,
                 }}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isActive ? '#fff' : COLORS.textSecondary,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </View>
+            </AnimatedPressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={COLORS.primary} />
+        <View style={{ paddingTop: 8 }}>
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
         </View>
       ) : error ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -204,6 +275,7 @@ export default function ApplicationsListScreen() {
               color: COLORS.danger,
               fontFamily: 'DMSans_400Regular',
               textAlign: 'center',
+              marginBottom: 16,
             }}
           >
             {error}
@@ -212,9 +284,8 @@ export default function ApplicationsListScreen() {
             onPress={() => {
               console.log('[Applications] Retry pressed');
               setLoading(true);
-              fetchApplications(activeTab).finally(() => setLoading(false));
+              fetchApplications(activeFilter).finally(() => setLoading(false));
             }}
-            style={{ marginTop: 16 }}
           >
             <View
               style={{
@@ -232,7 +303,7 @@ export default function ApplicationsListScreen() {
                   fontFamily: 'DMSans_600SemiBold',
                 }}
               >
-                Retry
+                Try again
               </Text>
             </View>
           </AnimatedPressable>
@@ -241,13 +312,31 @@ export default function ApplicationsListScreen() {
         <FlatList
           data={applications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 4 }}
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 4 }}
+          contentInsetAdjustmentBehavior="automatic"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={COLORS.primary}
             />
+          }
+          ListHeaderComponent={
+            applications.length > 0 && activeFilter === undefined ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 10,
+                  paddingHorizontal: 16,
+                  paddingBottom: 8,
+                  paddingTop: 4,
+                }}
+              >
+                <StatPill label="Pending" value={pendingCount} color={COLORS.warning} />
+                <StatPill label="Approved" value={approvedCount} color={COLORS.success} />
+                <StatPill label="Rejected" value={rejectedCount} color={COLORS.danger} />
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             <View
@@ -280,7 +369,7 @@ export default function ApplicationsListScreen() {
                   textAlign: 'center',
                 }}
               >
-                No {activeTab} applications
+                No {filterLabel.toLowerCase()} applications
               </Text>
               <Text
                 style={{
@@ -291,13 +380,15 @@ export default function ApplicationsListScreen() {
                   lineHeight: 20,
                 }}
               >
-                {activeTab === 'pending'
+                {activeFilter === 'pending'
                   ? 'New applications will appear here for review.'
-                  : `No applications have been ${activeTab} yet.`}
+                  : activeFilter
+                  ? `No applications have been ${activeFilter} yet.`
+                  : 'No applications have been submitted yet.'}
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const location = item.city ?? item.location ?? '';
             const submittedDate = new Date(item.created_at).toLocaleDateString('en-CA', {
               month: 'short',
@@ -306,105 +397,135 @@ export default function ApplicationsListScreen() {
             });
             const initial = item.name ? item.name.charAt(0).toUpperCase() : '?';
             return (
-              <AnimatedPressable
-                onPress={() => handleCardPress(item)}
-                scaleValue={0.98}
-              >
-                <View
-                  style={{
-                    backgroundColor: COLORS.surface,
-                    marginBottom: 10,
-                    borderRadius: 16,
-                    borderCurve: 'continuous',
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: COLORS.border,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                  }}
+              <AnimatedListItem index={index}>
+                <AnimatedPressable
+                  onPress={() => handleCardPress(item)}
+                  scaleValue={0.98}
                 >
-                  {/* Avatar */}
                   <View
                     style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 23,
-                      backgroundColor: COLORS.primaryMuted,
+                      backgroundColor: COLORS.surface,
+                      marginHorizontal: 16,
+                      marginBottom: 10,
+                      borderRadius: 16,
+                      borderCurve: 'continuous',
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: COLORS.border,
+                      flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
+                      gap: 12,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <Text
+                    {/* Avatar */}
+                    <View
                       style={{
-                        fontSize: 17,
-                        fontWeight: '700',
-                        color: COLORS.primary,
-                        fontFamily: 'DMSans_700Bold',
+                        width: 46,
+                        height: 46,
+                        borderRadius: 23,
+                        backgroundColor: COLORS.primaryMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
-                      {initial}
-                    </Text>
-                  </View>
-
-                  {/* Info */}
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: '600',
-                        color: COLORS.text,
-                        fontFamily: 'DMSans_600SemiBold',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: COLORS.textSecondary,
-                        fontFamily: 'DMSans_400Regular',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {item.email}
-                    </Text>
-                    {location ? (
                       <Text
                         style={{
-                          fontSize: 12,
-                          color: COLORS.textTertiary,
-                          fontFamily: 'DMSans_400Regular',
+                          fontSize: 17,
+                          fontWeight: '700',
+                          color: COLORS.primary,
+                          fontFamily: 'DMSans_700Bold',
                         }}
                       >
-                        {location}
+                        {initial}
                       </Text>
-                    ) : null}
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: COLORS.textTertiary,
-                        fontFamily: 'DMSans_400Regular',
-                        marginTop: 2,
-                      }}
-                    >
-                      {submittedDate}
-                    </Text>
-                  </View>
+                    </View>
 
-                  {/* Status + chevron */}
-                  <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                    <StatusBadge status={item.status} />
-                    <ChevronRight size={16} color={COLORS.textTertiary} />
+                    {/* Info */}
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '600',
+                          color: COLORS.text,
+                          fontFamily: 'DMSans_600SemiBold',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: COLORS.textSecondary,
+                          fontFamily: 'DMSans_400Regular',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {item.email}
+                      </Text>
+                      {location ? (
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: COLORS.textTertiary,
+                            fontFamily: 'DMSans_400Regular',
+                          }}
+                        >
+                          {location}
+                        </Text>
+                      ) : null}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: COLORS.textTertiary,
+                          fontFamily: 'DMSans_400Regular',
+                          marginTop: 2,
+                        }}
+                      >
+                        {submittedDate}
+                      </Text>
+                    </View>
+
+                    {/* Status + chevron */}
+                    <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                      <StatusBadge status={item.status} />
+                      <ChevronRight size={16} color={COLORS.textTertiary} />
+                    </View>
                   </View>
-                </View>
-              </AnimatedPressable>
+                </AnimatedPressable>
+              </AnimatedListItem>
             );
           }}
         />
       )}
+    </View>
+  );
+}
+
+function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+  const bg = color + '14';
+  const valueStr = String(value);
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: bg,
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: color + '28',
+      }}
+    >
+      <Text style={{ fontSize: 18, fontWeight: '700', color, fontFamily: 'DMSans_700Bold' }}>
+        {valueStr}
+      </Text>
+      <Text style={{ fontSize: 11, color, fontFamily: 'DMSans_400Regular', marginTop: 2, opacity: 0.8 }}>
+        {label}
+      </Text>
     </View>
   );
 }
