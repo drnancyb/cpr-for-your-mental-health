@@ -24,8 +24,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  Star,
-  CreditCard,
   AlertCircle,
   Bell,
 } from 'lucide-react-native';
@@ -552,43 +550,10 @@ export default function TherapistPortalScreen() {
               </View>
             </View>
           ) : (
-            <View>
-              <View style={{ backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Star size={16} color={COLORS.warning} />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.text, fontFamily: 'DMSans_700Bold' }}>
-                    Get Featured
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18, marginBottom: 4 }}>
-                  Boost your visibility and appear at the top of search results.
-                </Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.primary, fontFamily: 'DMSans_700Bold' }}>
-                  $29.99/month
-                </Text>
-              </View>
-              <AnimatedPressable
-                onPress={() => { console.log('[TherapistPortal] Get Featured pressed'); router.push('/advertise'); }}
-                scaleValue={0.97}
-              >
-                <View
-                  style={{
-                    backgroundColor: COLORS.primary,
-                    borderRadius: 12,
-                    paddingVertical: 13,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: '0 4px 16px rgba(45, 122, 95, 0.3)',
-                  }}
-                >
-                  <CreditCard size={16} color="#fff" />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
-                    Advertise Your Practice
-                  </Text>
-                </View>
-              </AnimatedPressable>
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <Text style={{ fontSize: 14, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
+                No active subscription
+              </Text>
             </View>
           )}
         </View>

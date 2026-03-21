@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Stack, router, Redirect } from 'expo-router';
-import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, FilePen, ShieldCheck, LogOut, LogIn, Bookmark, ChevronDown } from 'lucide-react-native';
+import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, ShieldCheck, LogOut, LogIn, Bookmark, ChevronDown } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
 import { TherapistCard, Therapist } from '@/components/therapist-card';
@@ -167,9 +167,9 @@ export default function IndexScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'My Preferences', 'Therapist Portal', 'My Bookings', 'View My Application', 'Advertise Your Practice', 'Contact & Support', 'Admin Setup', 'Sign Out'],
+          options: ['Cancel', 'My Preferences', 'Therapist Portal', 'My Bookings', 'View My Application', 'Contact & Support', 'Admin Setup', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 8,
+          destructiveButtonIndex: 7,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
@@ -185,15 +185,12 @@ export default function IndexScreen() {
             console.log('[Index] View Application selected');
             router.push('/apply');
           } else if (buttonIndex === 5) {
-            console.log('[Index] Advertise selected');
-            router.push('/advertise');
-          } else if (buttonIndex === 6) {
             console.log('[Index] Contact & Support selected');
             router.push('/support');
-          } else if (buttonIndex === 7) {
+          } else if (buttonIndex === 6) {
             console.log('[Index] Admin Setup selected');
             router.push('/admin-setup');
-          } else if (buttonIndex === 8) {
+          } else if (buttonIndex === 7) {
             console.log('[Index] Sign Out selected');
             signOut();
           }
@@ -208,7 +205,6 @@ export default function IndexScreen() {
           { text: 'Therapist Portal', onPress: () => { console.log('[Index] Therapist Portal pressed'); router.push('/therapist-portal'); } },
           { text: 'My Bookings', onPress: () => { console.log('[Index] My Bookings pressed'); router.push('/my-bookings'); } },
           { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
-          { text: 'Advertise Your Practice', onPress: () => { console.log('[Index] Advertise pressed'); router.push('/advertise'); } },
           { text: 'Contact & Support', onPress: () => { console.log('[Index] Contact & Support pressed'); router.push('/support'); } },
           { text: 'Admin Setup', onPress: () => { console.log('[Index] Admin Setup pressed'); router.push('/admin-setup'); } },
           { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
@@ -273,17 +269,6 @@ export default function IndexScreen() {
           <Bookmark size={20} color={COLORS.primary} />
         </TouchableOpacity>
       ) : null}
-      <TouchableOpacity
-        onPress={() => {
-          console.log('[Index] Apply button pressed');
-          router.push('/apply');
-        }}
-        activeOpacity={0.7}
-        style={{ padding: 8 }}
-        accessibilityLabel="Apply as therapist"
-      >
-        <FilePen size={20} color={COLORS.primary} />
-      </TouchableOpacity>
       {user ? (
         <TouchableOpacity
           onPress={handleUserAvatarPress}
