@@ -241,7 +241,7 @@ export default function IndexScreen() {
   const sortChipActive = sortBy !== 'default';
 
   const userInitials = user.name
-    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    ? user.name.split(' ').filter((n) => n.length > 0).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '?';
 
   // Header right buttons

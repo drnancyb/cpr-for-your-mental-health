@@ -1,7 +1,19 @@
 import * as React from "react";
 import { createContext, useCallback, useContext } from "react";
 import { Platform } from "react-native";
-import { ExtensionStorage } from "@bacons/apple-targets";
+
+// ExtensionStorage is a native-only module that requires a full native build.
+// We lazy-require it so a missing build/ directory doesn't crash the JS bundle.
+function tryReloadWidget() {
+  if (Platform.OS !== "ios") return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { ExtensionStorage } = require("@bacons/apple-targets");
+    ExtensionStorage?.reloadWidget?.();
+  } catch {
+    // Not available in Expo Go or if the native module is not built
+  }
+}
 
 type WidgetContextType = {
   refreshWidget: () => void;
@@ -11,13 +23,7 @@ const WidgetContext = createContext<WidgetContextType | null>(null);
 
 export function WidgetProvider({ children }: { children: React.ReactNode }) {
   const refreshWidget = useCallback(() => {
-    // Widget refresh is only available in native builds with @bacons/apple-targets configured
-    if (Platform.OS !== "ios") return;
-    try {
-      ExtensionStorage.reloadWidget();
-    } catch {
-      // Not available in Expo Go or if not configured
-    }
+    tryReloadWidget();
   }, []);
 
   return (
