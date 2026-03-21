@@ -301,6 +301,20 @@ describe("API Integration Tests", () => {
     applicationId = data.id;
   });
 
+  test("POST /api/applications with missing required fields returns 400", async () => {
+    const { token } = await signUpTestUser();
+    const res = await authenticatedApi("/api/applications", token, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Dr. Another Name",
+        title: "Therapist",
+        // missing required fields: bio, location, gender, specialties, etc.
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("POST /api/applications returns 409 if user already has application", async () => {
     const res = await authenticatedApi("/api/applications", authToken, {
       method: "POST",
@@ -549,6 +563,18 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 403);
   });
 
+  test("POST /api/admin/therapists without required fields returns 400 for non-admin", async () => {
+    const res = await authenticatedApi("/api/admin/therapists", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Dr. John Doe",
+        // missing required fields
+      }),
+    });
+    await expectStatus(res, 400, 403);
+  });
+
   test("PATCH /api/admin/therapists/{id} returns 401 without auth", async () => {
     const res = await api("/api/admin/therapists/00000000-0000-0000-0000-000000000000", {
       method: "PATCH",
@@ -731,6 +757,15 @@ describe("API Integration Tests", () => {
     }
   });
 
+  test("POST /api/saved without therapist_id returns 400", async () => {
+    const res = await authenticatedApi("/api/saved", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("DELETE /api/saved/{therapistId} returns 401 without auth", async () => {
     if (therapistId) {
       const res = await api(`/api/saved/${therapistId}`, {
@@ -907,6 +942,19 @@ describe("API Integration Tests", () => {
       }
     );
     await expectStatus(res, 403);
+  });
+
+  test("PATCH /api/admin/bookings/{id} without required status returns 400 for non-admin", async () => {
+    const res = await authenticatedApi(
+      "/api/admin/bookings/00000000-0000-0000-0000-000000000000",
+      authToken,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }
+    );
+    await expectStatus(res, 400, 403);
   });
 
   // ============================================
