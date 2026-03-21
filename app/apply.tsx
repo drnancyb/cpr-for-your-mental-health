@@ -400,7 +400,7 @@ export default function ApplyScreen() {
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [step]);
+  }, [step, progressAnim]);
 
   const toggleMulti = (arr: string[], val: string, setter: (v: string[]) => void) => {
     if (arr.includes(val)) {

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createContext, useCallback, useContext } from "react";
 import { Platform } from "react-native";
+import { ExtensionStorage } from "@bacons/apple-targets";
 
 type WidgetContextType = {
   refreshWidget: () => void;
@@ -13,8 +14,6 @@ export function WidgetProvider({ children }: { children: React.ReactNode }) {
     // Widget refresh is only available in native builds with @bacons/apple-targets configured
     if (Platform.OS !== "ios") return;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { ExtensionStorage } = require("@bacons/apple-targets");
       ExtensionStorage.reloadWidget();
     } catch {
       // Not available in Expo Go or if not configured

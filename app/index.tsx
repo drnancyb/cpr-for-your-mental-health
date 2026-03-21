@@ -99,7 +99,7 @@ export default function IndexScreen() {
   useEffect(() => {
     setLoading(true);
     fetchTherapists().finally(() => setLoading(false));
-  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, sortBy]);
+  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, sortBy, fetchTherapists]);
 
   const handleSearchChange = useCallback((text: string) => {
     updateFilter('search', text);
