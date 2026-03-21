@@ -1,0 +1,1 @@
+ALTER TABLE "therapist_applications" ADD COLUMN "rejection_reason" text;

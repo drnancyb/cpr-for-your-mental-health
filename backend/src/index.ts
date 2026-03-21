@@ -5,7 +5,6 @@ import * as authSchema from './db/schema/auth-schema.js';
 import * as therapistsRoutes from './routes/therapists.js';
 import * as applicationsRoutes from './routes/applications.js';
 import * as adminTherapistsRoutes from './routes/admin-therapists.js';
-import * as adminApplicationsReviewRoutes from './routes/admin-applications-review.js';
 import * as savedAndBookingsRoutes from './routes/saved-and-bookings.js';
 import * as adminAnalyticsRoutes from './routes/admin-analytics.js';
 import * as clientPreferencesRoutes from './routes/client-preferences.js';
@@ -13,6 +12,7 @@ import * as supportRoutes from './routes/support.js';
 import * as adminBootstrapRoutes from './routes/admin-bootstrap.js';
 import * as adminLookupRoutes from './routes/admin-lookup.js';
 import * as contactRoutes from './routes/contact.js';
+import * as adminApplicationsInboxRoutes from './routes/admin-applications-inbox.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -106,7 +106,6 @@ async function seedAppContent() {
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
 adminTherapistsRoutes.register(app, app.fastify);
-adminApplicationsReviewRoutes.register(app, app.fastify);
 savedAndBookingsRoutes.register(app, app.fastify);
 adminAnalyticsRoutes.register(app, app.fastify);
 clientPreferencesRoutes.register(app, app.fastify);
@@ -114,6 +113,7 @@ supportRoutes.register(app, app.fastify);
 adminBootstrapRoutes.register(app, app.fastify);
 adminLookupRoutes.register(app, app.fastify);
 contactRoutes.register(app, app.fastify);
+adminApplicationsInboxRoutes.register(app, app.fastify);
 
 // Health check endpoint
 app.fastify.get('/', {

@@ -71,6 +71,13 @@
       "when": 1774126391302,
       "tag": "20260321205311_breezy_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774131952380,
+      "tag": "20260321222552_pale_chamber",
+      "breakpoints": true
     }
   ]
 }

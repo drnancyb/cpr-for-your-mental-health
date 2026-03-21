@@ -55,6 +55,7 @@ export const therapistApplications = pgTable('therapist_applications', {
   email: text('email').notNull(),
   websiteUrl: text('website_url'),
   adminNotes: text('admin_notes'),
+  rejectionReason: text('rejection_reason'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
