@@ -15,9 +15,57 @@ import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { CheckCircle, ChevronLeft, ChevronRight, Upload, X, FileText } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import * as DocumentPicker from 'expo-document-picker';
+
+const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+
+async function uploadLicenseDocument(
+  fileUri: string,
+  fileName: string,
+  mimeType: string,
+  token: string | null,
+): Promise<string> {
+  console.log('[Apply] Uploading document:', fileName, 'mimeType:', mimeType);
+  const formData = new FormData();
+  formData.append('file', {
+    uri: fileUri,
+    name: fileName,
+    type: mimeType,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}/api/upload/license-document`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('[Apply] Upload failed, status:', res.status, text);
+    throw new Error(text || `Upload failed (${res.status})`);
+  }
+
+  const json = await res.json();
+  console.log('[Apply] Upload success, url:', json.url);
+  // Attach base64 as fallback display name via url
+  return json.url as string;
+}
+
+// Derive a display name from a document URL
+function docDisplayName(url: string, index: number): string {
+  try {
+    const parts = url.split('/');
+    const last = parts[parts.length - 1];
+    if (last && last.length > 0) return decodeURIComponent(last);
+  } catch {}
+  return `Document ${index + 1}`;
+}
 
 const COLORS = {
   background: '#F4F7F5',
@@ -374,6 +422,8 @@ export default function ApplyScreen() {
   // Step 3 fields
   const [insurances, setInsurances] = useState<string[]>([]);
   const [acceptingNewClients, setAcceptingNewClients] = useState(true);
+  const [licenseDocuments, setLicenseDocuments] = useState<string[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -404,6 +454,45 @@ export default function ApplyScreen() {
       useNativeDriver: false,
     }).start();
   }, [step, progressAnim]);
+
+  const handlePickDocument = async () => {
+    console.log('[Apply] Upload Document button pressed');
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled) {
+        console.log('[Apply] Document picker cancelled');
+        return;
+      }
+      const asset = result.assets[0];
+      const fileName = asset.name ?? `document_${Date.now()}`;
+      const mimeType = asset.mimeType ?? 'application/octet-stream';
+      console.log('[Apply] Document picked:', fileName);
+      setUploadingDoc(true);
+      try {
+        const { data: session } = await import('@/lib/auth').then((m) => m.authClient.getSession());
+        const token = session?.session?.token ?? null;
+        const url = await uploadLicenseDocument(asset.uri, fileName, mimeType, token);
+        setLicenseDocuments((prev) => [...prev, url]);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upload failed';
+        console.error('[Apply] Document upload error:', msg);
+        Alert.alert('Upload Failed', msg);
+      } finally {
+        setUploadingDoc(false);
+      }
+    } catch (e) {
+      console.error('[Apply] Document picker error:', e);
+    }
+  };
+
+  const handleRemoveDocument = (index: number) => {
+    console.log('[Apply] Remove document at index:', index);
+    setLicenseDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const toggleMulti = (arr: string[], val: string, setter: (v: string[]) => void) => {
     if (arr.includes(val)) {
@@ -481,6 +570,7 @@ export default function ApplyScreen() {
       languages,
       website_url: websiteUrl.trim() || undefined,
       accepting_new_clients: acceptingNewClients,
+      license_documents: licenseDocuments,
     };
 
     console.log('[Apply] Submitting application:', JSON.stringify(payload));
@@ -860,6 +950,71 @@ export default function ApplyScreen() {
         {/* ── Step 3: Insurance & Review ── */}
         {step === 3 && (
           <>
+            <SectionCard title="Proof of Registration / Licensure">
+              <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18 }}>
+                Upload your registration certificate, license, or any official proof of licensure (PDF, JPG, PNG)
+              </Text>
+
+              {licenseDocuments.map((url, index) => {
+                const displayName = docDisplayName(url, index);
+                return (
+                  <View
+                    key={url + index}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: COLORS.surfaceSecondary,
+                      borderRadius: 12,
+                      borderCurve: 'continuous',
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      gap: 10,
+                    }}
+                  >
+                    <FileText size={16} color={COLORS.primary} />
+                    <Text
+                      style={{ flex: 1, fontSize: 13, color: COLORS.text, fontFamily: 'DMSans_400Regular' }}
+                      numberOfLines={1}
+                    >
+                      {displayName}
+                    </Text>
+                    <AnimatedPressable onPress={() => handleRemoveDocument(index)} scaleValue={0.9}>
+                      <View style={{ padding: 4 }}>
+                        <X size={16} color={COLORS.danger} />
+                      </View>
+                    </AnimatedPressable>
+                  </View>
+                );
+              })}
+
+              <AnimatedPressable onPress={handlePickDocument} disabled={uploadingDoc} scaleValue={0.97}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: uploadingDoc ? COLORS.surfaceSecondary : COLORS.primaryMuted,
+                    borderRadius: 12,
+                    borderCurve: 'continuous',
+                    paddingVertical: 13,
+                    borderWidth: 1,
+                    borderColor: uploadingDoc ? 'transparent' : 'rgba(45, 122, 95, 0.2)',
+                    borderStyle: 'dashed',
+                  }}
+                >
+                  {uploadingDoc ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : (
+                    <Upload size={16} color={COLORS.primary} />
+                  )}
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
+                    {uploadingDoc ? 'Uploading…' : 'Upload Document'}
+                  </Text>
+                </View>
+              </AnimatedPressable>
+            </SectionCard>
+
             <SectionCard title="Insurance Accepted">
               <ChipSelector
                 label="Insurance plans"

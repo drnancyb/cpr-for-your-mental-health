@@ -26,9 +26,60 @@ import {
   Calendar,
   AlertCircle,
   Bell,
+  Upload,
+  X,
+  FileText,
+  Save,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '@/contexts/NotificationContext';
+import * as DocumentPicker from 'expo-document-picker';
+import { authClient } from '@/lib/auth';
+
+const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+
+async function uploadLicenseDocument(
+  fileUri: string,
+  fileName: string,
+  mimeType: string,
+  token: string | null,
+): Promise<string> {
+  console.log('[TherapistPortal] Uploading document:', fileName, 'mimeType:', mimeType);
+  const formData = new FormData();
+  formData.append('file', {
+    uri: fileUri,
+    name: fileName,
+    type: mimeType,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}/api/upload/license-document`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('[TherapistPortal] Upload failed, status:', res.status, text);
+    throw new Error(text || `Upload failed (${res.status})`);
+  }
+
+  const json = await res.json();
+  console.log('[TherapistPortal] Upload success, url:', json.url);
+  return json.url as string;
+}
+
+function docDisplayName(url: string, index: number): string {
+  try {
+    const parts = url.split('/');
+    const last = parts[parts.length - 1];
+    if (last && last.length > 0) return decodeURIComponent(last);
+  } catch {}
+  return `Document ${index + 1}`;
+}
 
 const COLORS = {
   background: '#F4F7F5',
@@ -64,6 +115,7 @@ interface TherapistProfile {
   email: string;
   website_url?: string;
   gender: string;
+  license_documents?: string[];
 }
 
 interface Inquiry {
@@ -140,10 +192,72 @@ export default function TherapistPortalScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptingClients, setAcceptingClients] = useState<boolean>(false);
+  const [licenseDocuments, setLicenseDocuments] = useState<string[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [savingDocs, setSavingDocs] = useState(false);
 
   useEffect(() => {
     setAcceptingClients(profile?.accepting_new_clients ?? false);
   }, [profile?.accepting_new_clients]);
+
+  useEffect(() => {
+    setLicenseDocuments(profile?.license_documents ?? []);
+  }, [profile?.license_documents]);
+
+  const handlePickDocument = useCallback(async () => {
+    console.log('[TherapistPortal] Upload Document button pressed');
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled) {
+        console.log('[TherapistPortal] Document picker cancelled');
+        return;
+      }
+      const asset = result.assets[0];
+      const fileName = asset.name ?? `document_${Date.now()}`;
+      const mimeType = asset.mimeType ?? 'application/octet-stream';
+      console.log('[TherapistPortal] Document picked:', fileName);
+      setUploadingDoc(true);
+      try {
+        const { data: session } = await authClient.getSession();
+        const token = session?.session?.token ?? null;
+        const url = await uploadLicenseDocument(asset.uri, fileName, mimeType, token);
+        setLicenseDocuments((prev) => [...prev, url]);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upload failed';
+        console.error('[TherapistPortal] Document upload error:', msg);
+        Alert.alert('Upload Failed', msg);
+      } finally {
+        setUploadingDoc(false);
+      }
+    } catch (e) {
+      console.error('[TherapistPortal] Document picker error:', e);
+    }
+  }, []);
+
+  const handleRemoveDocument = useCallback((index: number) => {
+    console.log('[TherapistPortal] Remove document at index:', index);
+    setLicenseDocuments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleSaveDocuments = useCallback(async () => {
+    console.log('[TherapistPortal] Save license documents pressed, count:', licenseDocuments.length);
+    setSavingDocs(true);
+    try {
+      await api.post('/api/therapist/license-documents', { document_urls: licenseDocuments });
+      console.log('[TherapistPortal] License documents saved successfully');
+      Alert.alert('Saved', 'Your license documents have been updated.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to save documents';
+      console.error('[TherapistPortal] Save documents error:', msg);
+      Alert.alert('Save Failed', msg);
+    } finally {
+      setSavingDocs(false);
+    }
+  }, [licenseDocuments]);
 
   const toggleAccepting = useCallback(async () => {
     const next = !acceptingClients;
@@ -512,6 +626,100 @@ export default function TherapistPortalScreen() {
               </View>
             </AnimatedPressable>
           ) : null}
+        </View>
+
+        {/* Section 2b — License Documents */}
+        <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}>
+          <SectionTitle title="License Documents" />
+
+          <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18, marginBottom: 12 }}>
+            Upload your registration certificate, license, or any official proof of licensure (PDF, JPG, PNG)
+          </Text>
+
+          {licenseDocuments.map((url, index) => {
+            const displayName = docDisplayName(url, index);
+            return (
+              <View
+                key={url + index}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: COLORS.surfaceSecondary,
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  gap: 10,
+                  marginBottom: 8,
+                }}
+              >
+                <FileText size={16} color={COLORS.primary} />
+                <Text
+                  style={{ flex: 1, fontSize: 13, color: COLORS.text, fontFamily: 'DMSans_400Regular' }}
+                  numberOfLines={1}
+                >
+                  {displayName}
+                </Text>
+                <AnimatedPressable onPress={() => handleRemoveDocument(index)} scaleValue={0.9}>
+                  <View style={{ padding: 4 }}>
+                    <X size={16} color={COLORS.danger} />
+                  </View>
+                </AnimatedPressable>
+              </View>
+            );
+          })}
+
+          <AnimatedPressable onPress={handlePickDocument} disabled={uploadingDoc} scaleValue={0.97}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: uploadingDoc ? COLORS.surfaceSecondary : COLORS.primaryMuted,
+                borderRadius: 12,
+                paddingVertical: 13,
+                borderWidth: 1,
+                borderColor: uploadingDoc ? 'transparent' : 'rgba(45, 122, 95, 0.2)',
+                borderStyle: 'dashed',
+                marginBottom: licenseDocuments.length > 0 ? 10 : 0,
+              }}
+            >
+              {uploadingDoc ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Upload size={16} color={COLORS.primary} />
+              )}
+              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
+                {uploadingDoc ? 'Uploading…' : 'Upload Document'}
+              </Text>
+            </View>
+          </AnimatedPressable>
+
+          {licenseDocuments.length > 0 && (
+            <AnimatedPressable onPress={handleSaveDocuments} disabled={savingDocs} scaleValue={0.97}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  backgroundColor: COLORS.primary,
+                  borderRadius: 12,
+                  paddingVertical: 13,
+                  opacity: savingDocs ? 0.7 : 1,
+                }}
+              >
+                {savingDocs ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Save size={16} color="#fff" />
+                )}
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
+                  {savingDocs ? 'Saving…' : 'Save Documents'}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          )}
         </View>
 
         {/* Section 3 — Subscription */}
