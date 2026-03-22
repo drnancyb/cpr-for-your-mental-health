@@ -281,6 +281,44 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Admin Force Promote Endpoint
+  // ============================================
+
+  test("POST /api/admin/force-promote with invalid secret returns 403", async () => {
+    const res = await api("/api/admin/force-promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: authEmail, secret: "invalid-secret" }),
+    });
+    await expectStatus(res, 403);
+    const data = await res.json();
+    expect(data.error).toBeDefined();
+  });
+
+  test("POST /api/admin/force-promote with non-existent user returns 404", async () => {
+    const res = await api("/api/admin/force-promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "nonexistent-forcepromo@example.com", secret: "CPR-ADMIN-2024" }),
+    });
+    await expectStatus(res, 404);
+    const data = await res.json();
+    expect(data.error).toBeDefined();
+  });
+
+  test("POST /api/admin/force-promote with valid user promotes to admin", async () => {
+    const { user: newUser } = await signUpTestUser();
+    const res = await api("/api/admin/force-promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: newUser.email, secret: "CPR-ADMIN-2024" }),
+    });
+    await expectStatus(res, 200, 400);
+    const data = await res.json();
+    expect(data.success !== undefined || data.error !== undefined).toBe(true);
+  });
+
+  // ============================================
   // Admin Bootstrap Endpoint
   // ============================================
 

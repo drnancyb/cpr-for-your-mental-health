@@ -28,6 +28,8 @@ export function register(app: App, fastify: FastifyInstance) {
             properties: {
               success: { type: 'boolean' },
               message: { type: 'string' },
+              userId: { type: 'string' },
+              email: { type: 'string' },
             },
           },
           403: {
@@ -88,6 +90,8 @@ export function register(app: App, fastify: FastifyInstance) {
       return {
         success: true,
         message: 'User promoted to admin',
+        userId: user.id,
+        email: user.email,
       };
     }
   );
