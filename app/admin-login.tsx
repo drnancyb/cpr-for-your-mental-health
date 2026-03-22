@@ -32,7 +32,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { setUser } = useAuth();
+  const { setAdminUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,8 +74,8 @@ export default function AdminLoginScreen() {
       if (!result?.user) {
         throw new Error('Invalid response from server — no user returned.');
       }
-      console.log('[AdminLogin] Setting user:', result.user.email, 'role:', result.user.role);
-      setUser(result.user);
+      console.log('[AdminLogin] Setting admin user:', result.user.email, 'role:', result.user.role);
+      setAdminUser(result.user);
       console.log('[AdminLogin] Navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {

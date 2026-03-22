@@ -24,6 +24,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   fetchUser: (forceRefresh?: boolean) => Promise<void>;
   setUser: (user: AuthUser | null) => void;
+  setAdminUser: (user: AuthUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -36,11 +37,20 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   fetchUser: async () => {},
   setUser: () => {},
+  setAdminUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [sessionUser, setSessionUser] = useState<AuthUser | null>(null);
+  const [adminOverride, setAdminOverride] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const user = adminOverride ?? sessionUser;
+  const setUser = setSessionUser;
+  const setAdminUser = useCallback((u: AuthUser | null) => {
+    console.log('[AuthContext] setAdminUser called:', u?.email ?? 'null');
+    setAdminOverride(u);
+  }, []);
 
   const fetchUser = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
@@ -54,12 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = await Promise.race([sessionPromise, timeoutPromise]);
       if (session && (session as any)?.data?.user) {
         console.log('[AuthContext] fetchUser got user:', (session as any).data.user?.email, 'role:', (session as any).data.user?.role);
-        setUser((session as any).data.user as AuthUser);
+        setSessionUser((session as any).data.user as AuthUser);
       } else {
-        setUser(null);
+        setSessionUser(null);
       }
     } catch {
-      setUser(null);
+      setSessionUser(null);
     } finally {
       if (forceRefresh) {
         setLoading(false);
@@ -163,13 +173,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('[AuthContext] signOut API threw (clearing session locally anyway):', err);
     }
-    setUser(null);
+    setSessionUser(null);
+    setAdminOverride(null);
     console.log('[AuthContext] signOut complete — user cleared');
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, fetchUser, setUser }}
+      value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, fetchUser, setUser, setAdminUser }}
     >
       {children}
     </AuthContext.Provider>
