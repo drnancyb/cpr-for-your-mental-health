@@ -66,6 +66,42 @@ async function seedAdminUser() {
   }
 }
 
+// Seed test user on startup
+async function seedTestUser() {
+  app.logger.info('Checking if test user exists');
+  try {
+    const existingTestUser = await app.db
+      .select()
+      .from(authSchema.user)
+      .where(eq(authSchema.user.email, 'test@example.com'))
+      .limit(1);
+
+    if (existingTestUser.length === 0) {
+      app.logger.info('Creating test user');
+      // Use better-auth client to create user properly with hashed password
+      const response = await fetch(`http://localhost:${process.env.PORT || 3000}/api/auth/sign-up/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'test@example.com',
+          password: 'password123',
+          name: 'Test User',
+        }),
+      });
+
+      if (response.ok) {
+        app.logger.info('Test user created successfully');
+      } else {
+        app.logger.warn({ status: response.status }, 'Failed to create test user via API');
+      }
+    } else {
+      app.logger.info('Test user already exists');
+    }
+  } catch (err) {
+    app.logger.warn({ err }, 'Test user seeding skipped (will be created on first startup)');
+  }
+}
+
 // Seed app content on startup
 async function seedAppContent() {
   app.logger.info('Checking if app content is seeded');
@@ -139,7 +175,11 @@ app.fastify.get('/', {
 
 await app.run();
 
-// Seed admin user and app content after app is running
+// Seed test user, admin user, and app content after app is running
+seedTestUser().catch((err) => {
+  app.logger.error({ err }, 'Failed to seed test user');
+});
+
 seedAdminUser().catch((err) => {
   app.logger.error({ err }, 'Failed to seed admin user');
 });
