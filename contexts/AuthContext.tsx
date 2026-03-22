@@ -117,8 +117,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result?.error) {
       throw new Error(result.error.message || String(result.error.statusText) || 'Sign in failed');
     }
-    console.log('[AuthContext] Sign in succeeded, fetching fresh user session');
-    await fetchUser(true);
+    // If the response already contains the user, set it immediately so navigation
+    // triggers without waiting for a second round-trip.
+    if ((result as any)?.data?.user) {
+      console.log('[AuthContext] Sign in: setting user from response directly:', (result as any).data.user?.email);
+      setSessionUser((result as any).data.user as AuthUser);
+    } else {
+      console.log('[AuthContext] Sign in succeeded, fetching fresh user session');
+      await fetchUser(true);
+    }
   }, [fetchUser]);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, name: string) => {
@@ -134,8 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result?.error) {
       throw new Error(result.error.message || 'Sign up failed');
     }
-    console.log('[AuthContext] Sign up succeeded, fetching user session');
-    await fetchUser();
+    // If the response already contains the user, set it immediately.
+    if ((result as any)?.data?.user) {
+      console.log('[AuthContext] Sign up: setting user from response directly:', (result as any).data.user?.email);
+      setSessionUser((result as any).data.user as AuthUser);
+    } else {
+      console.log('[AuthContext] Sign up succeeded, fetching user session');
+      await fetchUser(true);
+    }
   }, [fetchUser]);
 
   const signInWithGoogle = useCallback(async () => {
