@@ -5,58 +5,16 @@ import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
-  // Helper to authenticate via Bearer token from Authorization header
-  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      app.logger.warn({}, 'No Bearer token in Authorization header');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
+  const requireAuth = app.requireAuth();
 
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Look up the session by token
-    const sessions = await app.db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, token))
-      .limit(1);
-
-    if (sessions.length === 0) {
-      app.logger.warn({}, 'Invalid session token');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    const sessionRecord = sessions[0];
-
-    // Check if session is expired
-    if (new Date() > sessionRecord.expiresAt) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    // Fetch user data - always fresh from DB to get current role
+  // Helper to get fresh user data from DB (ensures role is current)
+  async function getFreshUser(userId: string) {
     const users = await app.db
       .select()
       .from(authSchema.user)
-      .where(eq(authSchema.user.id, sessionRecord.userId))
+      .where(eq(authSchema.user.id, userId))
       .limit(1);
-
-    if (users.length === 0) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    return { user: users[0], session: sessionRecord };
-  }
-
-  // Alias for non-admin authenticated endpoints
-  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
-    return await requireAuthBearer(request, reply);
+    return users.length > 0 ? users[0] : null;
   }
 
   // Helper to optionally get user session (for analytics)
@@ -146,16 +104,17 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
 
-      app.logger.info({ adminId: auth.user.id }, 'Fetching analytics');
+      app.logger.info({ adminId: session.user.id }, 'Fetching analytics');
 
       // Count total users
       const [totalUsersResult] = await app.db
@@ -258,7 +217,7 @@ export function register(app: App, fastify: FastifyInstance) {
         bookings_by_status: bookingStatusMap,
       };
 
-      app.logger.info({ adminId: auth.user.id }, 'Analytics retrieved');
+      app.logger.info({ adminId: session.user.id }, 'Analytics retrieved');
 
       return { stats };
     }
@@ -289,16 +248,17 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
 
-      app.logger.info({ adminId: auth.user.id }, 'Fetching subscriptions');
+      app.logger.info({ adminId: session.user.id }, 'Fetching subscriptions');
 
       const subscriptions = await app.db
         .select({
@@ -368,11 +328,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -386,7 +347,7 @@ export function register(app: App, fastify: FastifyInstance) {
         .insert(appSchema.therapistSubscriptions)
         .values({
           therapistId: request.body.therapist_id,
-          userId: auth.user.id,
+          userId: session.user.id,
           status: request.body.status,
           plan: request.body.plan,
           amountPaid: request.body.amount_paid?.toString() || null,
@@ -474,11 +435,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -567,16 +529,17 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
 
-      app.logger.info({ adminId: auth.user.id }, 'Fetching notifications');
+      app.logger.info({ adminId: session.user.id }, 'Fetching notifications');
 
       const notifications = await app.db
         .select()
@@ -625,11 +588,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -675,7 +639,7 @@ export function register(app: App, fastify: FastifyInstance) {
           title: request.body.title,
           message: request.body.message,
           target: request.body.target,
-          sentBy: auth.user.id,
+          sentBy: session.user.id,
           recipientCount,
         })
         .returning();
@@ -717,16 +681,17 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
 
-      app.logger.info({ adminId: auth.user.id }, 'Fetching all content');
+      app.logger.info({ adminId: session.user.id }, 'Fetching all content');
 
       const content = await app.db
         .select({
@@ -781,11 +746,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -812,7 +778,7 @@ export function register(app: App, fastify: FastifyInstance) {
           .update(appSchema.appContent)
           .set({
             value: request.body.value,
-            updatedBy: auth.user.id,
+            updatedBy: session.user.id,
             updatedAt: sql`now()`,
           })
           .where(eq(appSchema.appContent.key, request.params.key))
@@ -824,7 +790,7 @@ export function register(app: App, fastify: FastifyInstance) {
           .values({
             key: request.params.key,
             value: request.body.value,
-            updatedBy: auth.user.id,
+            updatedBy: session.user.id,
           })
           .returning();
         content = inserted[0];

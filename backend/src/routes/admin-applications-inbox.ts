@@ -5,53 +5,16 @@ import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
-  // Helper to authenticate via Bearer token from Authorization header
-  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      app.logger.warn({}, 'No Bearer token in Authorization header');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
+  const requireAuth = app.requireAuth();
 
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Look up the session by token
-    const sessions = await app.db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, token))
-      .limit(1);
-
-    if (sessions.length === 0) {
-      app.logger.warn({}, 'Invalid session token');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    const sessionRecord = sessions[0];
-
-    // Check if session is expired
-    if (new Date() > sessionRecord.expiresAt) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    // Fetch user data - always fresh from DB to get current role
+  // Helper to get fresh user data from DB (ensures role is current)
+  async function getFreshUser(userId: string) {
     const users = await app.db
       .select()
       .from(authSchema.user)
-      .where(eq(authSchema.user.id, sessionRecord.userId))
+      .where(eq(authSchema.user.id, userId))
       .limit(1);
-
-    if (users.length === 0) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
-      await reply.status(401).send({ error: 'Unauthorized' });
-      return null;
-    }
-
-    return { user: users[0], session: sessionRecord };
+    return users.length > 0 ? users[0] : null;
   }
 
   // Helper to format application response
@@ -100,11 +63,12 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -150,11 +114,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -219,11 +184,12 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
-      if (!auth) return;
+      const session = await requireAuth(request, reply);
+      if (!session) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const freshUser = await getFreshUser(session.user.id);
+      if (!freshUser || freshUser.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }

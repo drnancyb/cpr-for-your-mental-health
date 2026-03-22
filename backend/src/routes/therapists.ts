@@ -4,6 +4,7 @@ import * as schema from '../db/schema/schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
+  const requireAuth = app.requireAuth();
 
   fastify.get(
     '/api/therapists',
@@ -276,6 +277,221 @@ export function register(app: App, fastify: FastifyInstance) {
           'Self-pay',
         ],
       };
+    }
+  );
+
+  // GET /api/therapists/me - Get authenticated therapist's own profile
+  fastify.get(
+    '/api/therapists/me',
+    {
+      schema: {
+        description: 'Get current authenticated therapist profile',
+        tags: ['therapists'],
+        response: {
+          200: {
+            description: 'Therapist profile',
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+              photoUrl: { type: 'string' },
+              title: { type: 'string' },
+              bio: { type: 'string' },
+              location: { type: 'string' },
+              gender: { type: 'string' },
+              specialties: { type: 'array', items: { type: 'string' } },
+              therapyTypes: { type: 'array', items: { type: 'string' } },
+              insurances: { type: 'array', items: { type: 'string' } },
+              acceptingNewClients: { type: 'boolean' },
+              sessionFee: { type: 'string' },
+              languages: { type: 'array', items: { type: 'string' } },
+              yearsExperience: { type: 'integer' },
+              phone: { type: 'string' },
+              email: { type: 'string' },
+              websiteUrl: { type: ['string', 'null'] },
+              createdAt: { type: 'string', format: 'date-time' },
+              userId: { type: 'string' },
+              licenseDocuments: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            type: 'object',
+            properties: { error: { type: 'string' } },
+          },
+          404: {
+            description: 'Therapist profile not found',
+            type: 'object',
+            properties: { error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info({ userId: session.user.id }, 'Fetching own therapist profile');
+
+      const therapist = await app.db
+        .select()
+        .from(schema.therapists)
+        .where(eq(schema.therapists.userId, session.user.id))
+        .limit(1);
+
+      if (therapist.length === 0) {
+        app.logger.info({ userId: session.user.id }, 'Therapist profile not found');
+        return reply.status(404).send({ error: 'Therapist profile not found' });
+      }
+
+      app.logger.info({ userId: session.user.id, therapistId: therapist[0].id }, 'Therapist profile retrieved');
+      return therapist[0];
+    }
+  );
+
+  // PUT /api/therapists/me - Update authenticated therapist's own profile
+  fastify.put(
+    '/api/therapists/me',
+    {
+      schema: {
+        description: 'Update current authenticated therapist profile',
+        tags: ['therapists'],
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            photo_url: { type: 'string' },
+            title: { type: 'string' },
+            bio: { type: 'string' },
+            location: { type: 'string' },
+            gender: { type: 'string' },
+            specialties: { type: 'array', items: { type: 'string' } },
+            therapy_types: { type: 'array', items: { type: 'string' } },
+            insurances: { type: 'array', items: { type: 'string' } },
+            accepting_new_clients: { type: 'boolean' },
+            session_fee: { type: 'number' },
+            languages: { type: 'array', items: { type: 'string' } },
+            years_experience: { type: 'integer' },
+            phone: { type: 'string' },
+            email: { type: 'string' },
+            website_url: { type: 'string' },
+            license_documents: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        response: {
+          200: {
+            description: 'Updated therapist profile',
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+              photoUrl: { type: 'string' },
+              title: { type: 'string' },
+              bio: { type: 'string' },
+              location: { type: 'string' },
+              gender: { type: 'string' },
+              specialties: { type: 'array', items: { type: 'string' } },
+              therapyTypes: { type: 'array', items: { type: 'string' } },
+              insurances: { type: 'array', items: { type: 'string' } },
+              acceptingNewClients: { type: 'boolean' },
+              sessionFee: { type: 'string' },
+              languages: { type: 'array', items: { type: 'string' } },
+              yearsExperience: { type: 'integer' },
+              phone: { type: 'string' },
+              email: { type: 'string' },
+              websiteUrl: { type: ['string', 'null'] },
+              createdAt: { type: 'string', format: 'date-time' },
+              userId: { type: 'string' },
+              licenseDocuments: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            type: 'object',
+            properties: { error: { type: 'string' } },
+          },
+          404: {
+            description: 'Therapist profile not found',
+            type: 'object',
+            properties: { error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Body: {
+          name?: string;
+          photo_url?: string;
+          title?: string;
+          bio?: string;
+          location?: string;
+          gender?: string;
+          specialties?: string[];
+          therapy_types?: string[];
+          insurances?: string[];
+          accepting_new_clients?: boolean;
+          session_fee?: number;
+          languages?: string[];
+          years_experience?: number;
+          phone?: string;
+          email?: string;
+          website_url?: string;
+          license_documents?: string[];
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info({ userId: session.user.id }, 'Updating own therapist profile');
+
+      // Check if therapist exists
+      const existing = await app.db
+        .select()
+        .from(schema.therapists)
+        .where(eq(schema.therapists.userId, session.user.id))
+        .limit(1);
+
+      if (existing.length === 0) {
+        app.logger.info({ userId: session.user.id }, 'Therapist profile not found');
+        return reply.status(404).send({ error: 'Therapist profile not found' });
+      }
+
+      // Build update object from provided fields only
+      const updateData: Record<string, any> = {};
+
+      if (request.body.name !== undefined) updateData.name = request.body.name;
+      if (request.body.photo_url !== undefined) updateData.photoUrl = request.body.photo_url;
+      if (request.body.title !== undefined) updateData.title = request.body.title;
+      if (request.body.bio !== undefined) updateData.bio = request.body.bio;
+      if (request.body.location !== undefined) updateData.location = request.body.location;
+      if (request.body.gender !== undefined) updateData.gender = request.body.gender;
+      if (request.body.specialties !== undefined) updateData.specialties = request.body.specialties;
+      if (request.body.therapy_types !== undefined) updateData.therapyTypes = request.body.therapy_types;
+      if (request.body.insurances !== undefined) updateData.insurances = request.body.insurances;
+      if (request.body.accepting_new_clients !== undefined) updateData.acceptingNewClients = request.body.accepting_new_clients;
+      if (request.body.session_fee !== undefined) updateData.sessionFee = request.body.session_fee.toString();
+      if (request.body.languages !== undefined) updateData.languages = request.body.languages;
+      if (request.body.years_experience !== undefined) updateData.yearsExperience = request.body.years_experience;
+      if (request.body.phone !== undefined) updateData.phone = request.body.phone;
+      if (request.body.email !== undefined) updateData.email = request.body.email;
+      if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
+      if (request.body.license_documents !== undefined) updateData.licenseDocuments = request.body.license_documents;
+
+      const updated = await app.db
+        .update(schema.therapists)
+        .set(updateData)
+        .where(eq(schema.therapists.userId, session.user.id))
+        .returning();
+
+      app.logger.info(
+        { userId: session.user.id, therapistId: updated[0].id, updatedFields: Object.keys(updateData).length },
+        'Therapist profile updated successfully'
+      );
+
+      return updated[0];
     }
   );
 }

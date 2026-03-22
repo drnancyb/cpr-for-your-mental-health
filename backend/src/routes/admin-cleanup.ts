@@ -158,7 +158,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
         app.logger.info(
           {
-            adminId: session.user.id,
+            adminId: auth.user.id,
             deleted: result,
           },
           'Therapist cleanup completed successfully'
@@ -171,7 +171,7 @@ export function register(app: App, fastify: FastifyInstance) {
         };
       } catch (err) {
         app.logger.error(
-          { err, adminId: session.user.id },
+          { err, adminId: auth.user.id },
           'Failed to cleanup therapists'
         );
         const error = new Error('Failed to cleanup therapists');
