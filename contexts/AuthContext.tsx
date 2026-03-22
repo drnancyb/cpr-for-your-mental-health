@@ -23,6 +23,7 @@ interface AuthContextValue {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   fetchUser: (forceRefresh?: boolean) => Promise<void>;
+  setUser: (user: AuthUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -34,6 +35,7 @@ const AuthContext = createContext<AuthContextValue>({
   signInWithApple: async () => {},
   signOut: async () => {},
   fetchUser: async () => {},
+  setUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -167,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, fetchUser }}
+      value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, fetchUser, setUser }}
     >
       {children}
     </AuthContext.Provider>

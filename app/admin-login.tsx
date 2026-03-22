@@ -34,7 +34,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading, fetchUser } = useAuth();
+  const { user, loading: authLoading, setUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +52,7 @@ export default function AdminLoginScreen() {
   }
 
   const handleSignIn = async () => {
-    console.log('[AdminLogin] Sign in pressed, email:', email);
+    console.log('[AdminLogin] handleSignIn fired, email:', email);
     if (!email.trim() || !password.trim()) {
       Alert.alert('Missing Fields', 'Please enter your email and password.');
       return;
@@ -60,15 +60,21 @@ export default function AdminLoginScreen() {
     setLoading(true);
     try {
       console.log('[AdminLogin] POST /api/admin/login for:', email.trim());
-      const result = await api.post<{ token?: string; user?: { role?: string } }>('/api/admin/login', { email: email.trim(), password });
-      console.log('[AdminLogin] Sign-in succeeded, result:', JSON.stringify(result));
-      // Hydrate AuthContext with the new session so user.role === 'admin' is set
-      await fetchUser(true);
-      console.log('[AdminLogin] Session refreshed, navigating to /admin');
+      const result = await api.post<{ user?: { id: string; name: string; email: string; role?: string; image?: string | null } }>('/api/admin/login', { email: email.trim(), password });
+      console.log('[AdminLogin] Login response:', JSON.stringify(result));
+      if (!result?.user) {
+        throw new Error('Invalid response from server — no user returned.');
+      }
+      // Directly inject the admin user into AuthContext — the custom endpoint
+      // does not create a Better Auth session cookie, so fetchUser(true) would
+      // race getSession(), time out, and set user to null, breaking navigation.
+      console.log('[AdminLogin] Setting user in AuthContext:', result.user.email, 'role:', result.user.role);
+      setUser(result.user);
+      console.log('[AdminLogin] Navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
-      console.log('[AdminLogin] Sign in error:', msg);
+      console.log('[AdminLogin] Login error:', msg);
       Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);
