@@ -6,7 +6,7 @@ import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
   // Helper to authenticate via Bearer token from Authorization header
-  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
+  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       app.logger.warn({}, 'No Bearer token in Authorization header');
@@ -14,15 +14,8 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Look up the session by token
-    const sessions = await app.db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, token))
-      .limit(1);
-
+    const token = authHeader.substring(7);
+    const sessions = await app.db.select().from(authSchema.session).where(eq(authSchema.session.token, token)).limit(1);
     if (sessions.length === 0) {
       app.logger.warn({}, 'Invalid session token');
       reply.status(401).send({ error: 'Unauthorized' });
@@ -30,21 +23,13 @@ export function register(app: App, fastify: FastifyInstance) {
     }
 
     const sessionRecord = sessions[0];
-
-    // Check if session is expired
     if (new Date() > sessionRecord.expiresAt) {
       app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
       reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
-    // Fetch user data
-    const users = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, sessionRecord.userId))
-      .limit(1);
-
+    const users = await app.db.select().from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
       reply.status(401).send({ error: 'Unauthorized' });
@@ -137,11 +122,11 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAuthBearer(request, reply);
-      if (!session) return;
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
       app.logger.info(
-        { userId: session.user.id, name: request.body.name },
+        { userId: auth.user.id, name: request.body.name },
         'Creating therapist application'
       );
 
@@ -149,12 +134,12 @@ export function register(app: App, fastify: FastifyInstance) {
       const existingApp = await app.db
         .select()
         .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.userId, session.user.id))
+        .where(eq(appSchema.therapistApplications.userId, auth.user.id))
         .limit(1);
 
       if (existingApp.length > 0) {
         app.logger.warn(
-          { userId: session.user.id },
+          { userId: auth.user.id },
           'User already has an application'
         );
         return reply.status(409).send({ error: 'User already has an application' });
@@ -163,7 +148,8 @@ export function register(app: App, fastify: FastifyInstance) {
       const application = await app.db
         .insert(appSchema.therapistApplications)
         .values({
-          userId: session.user.id,
+          userId: auth.user.id,
+          status: 'pending',
           name: request.body.name,
           title: request.body.title,
           bio: request.body.bio,
@@ -184,7 +170,7 @@ export function register(app: App, fastify: FastifyInstance) {
         .returning();
 
       app.logger.info(
-        { applicationId: application[0].id, userId: session.user.id },
+        { applicationId: application[0].id, userId: auth.user.id },
         'Therapist application created'
       );
 
@@ -210,19 +196,19 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAuthBearer(request, reply);
-      if (!session) return;
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-      app.logger.info({ userId: session.user.id }, 'Fetching user application');
+      app.logger.info({ userId: auth.user.id }, 'Fetching user application');
 
       const application = await app.db
         .select()
         .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.userId, session.user.id))
+        .where(eq(appSchema.therapistApplications.userId, auth.user.id))
         .limit(1);
 
       if (application.length === 0) {
-        app.logger.info({ userId: session.user.id }, 'No application found');
+        app.logger.info({ userId: auth.user.id }, 'No application found');
         return reply.status(404).send({ error: 'Application not found' });
       }
 

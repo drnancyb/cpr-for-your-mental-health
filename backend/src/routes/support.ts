@@ -6,7 +6,7 @@ import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
   // Helper to authenticate via Bearer token from Authorization header
-  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
+  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       app.logger.warn({}, 'No Bearer token in Authorization header');
@@ -14,15 +14,8 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Look up the session by token
-    const sessions = await app.db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, token))
-      .limit(1);
-
+    const token = authHeader.substring(7);
+    const sessions = await app.db.select().from(authSchema.session).where(eq(authSchema.session.token, token)).limit(1);
     if (sessions.length === 0) {
       app.logger.warn({}, 'Invalid session token');
       await reply.status(401).send({ error: 'Unauthorized' });
@@ -30,21 +23,13 @@ export function register(app: App, fastify: FastifyInstance) {
     }
 
     const sessionRecord = sessions[0];
-
-    // Check if session is expired
     if (new Date() > sessionRecord.expiresAt) {
       app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
       await reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
-    // Fetch user data - always fresh from DB to get current role
-    const users = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, sessionRecord.userId))
-      .limit(1);
-
+    const users = await app.db.select().from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
       await reply.status(401).send({ error: 'Unauthorized' });
@@ -52,11 +37,6 @@ export function register(app: App, fastify: FastifyInstance) {
     }
 
     return { user: users[0], session: sessionRecord };
-  }
-
-  // Alias for non-admin authenticated endpoints
-  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
-    return await requireAuthBearer(request, reply);
   }
 
   // Helper to try getting user session without requiring it
@@ -167,7 +147,7 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuthBearer(request, reply);
+      const auth = await requireAuth(request, reply);
       if (!auth) return;
 
       if (auth.user.role !== 'admin') {
@@ -228,7 +208,7 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuthBearer(request, reply);
+      const auth = await requireAuth(request, reply);
       if (!auth) return;
 
       if (auth.user.role !== 'admin') {

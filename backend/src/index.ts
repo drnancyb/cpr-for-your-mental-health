@@ -1,5 +1,5 @@
 import { createApplication } from "@specific-dev/framework";
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import * as appSchema from './db/schema/schema.js';
 import * as authSchema from './db/schema/auth-schema.js';
 import { hash } from 'bcryptjs';
@@ -196,6 +196,34 @@ async function seedAppContent() {
   }
 }
 
+// Clean up invalid status values in therapist_applications
+async function cleanupApplicationStatuses() {
+  app.logger.info('Checking therapist_applications for invalid status values');
+  try {
+    // Find all rows with invalid status values (not 'pending', 'approved', or 'rejected')
+    const invalidApps = await app.db
+      .select()
+      .from(appSchema.therapistApplications)
+      .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
+
+    if (invalidApps.length > 0) {
+      app.logger.info({ count: invalidApps.length }, 'Found invalid status values, migrating to pending');
+
+      // Update all invalid status values to 'pending'
+      await app.db
+        .update(appSchema.therapistApplications)
+        .set({ status: 'pending' })
+        .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
+
+      app.logger.info({ count: invalidApps.length }, 'Invalid statuses migrated successfully');
+    } else {
+      app.logger.info('All therapist_applications have valid status values');
+    }
+  } catch (err) {
+    app.logger.warn({ err }, 'Application status cleanup skipped or failed');
+  }
+}
+
 // Register routes
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
@@ -245,6 +273,10 @@ seedAdminUser().catch((err) => {
 
 seedAppContent().catch((err) => {
   app.logger.error({ err }, 'Failed to seed app content');
+});
+
+cleanupApplicationStatuses().catch((err) => {
+  app.logger.error({ err }, 'Failed to cleanup application statuses');
 });
 
 app.logger.info('Application running');

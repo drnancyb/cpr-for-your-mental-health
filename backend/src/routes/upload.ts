@@ -8,7 +8,39 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
+  // Helper to authenticate via Bearer token from Authorization header
+  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      app.logger.warn({}, 'No Bearer token in Authorization header');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const token = authHeader.substring(7);
+    const sessions = await app.db.select().from(authSchema.session).where(eq(authSchema.session.token, token)).limit(1);
+    if (sessions.length === 0) {
+      app.logger.warn({}, 'Invalid session token');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const sessionRecord = sessions[0];
+    if (new Date() > sessionRecord.expiresAt) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const users = await app.db.select().from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
+    if (users.length === 0) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    return { user: users[0], session: sessionRecord };
+  }
 
   // Helper to check admin role
   async function isAdmin(request: FastifyRequest) {
