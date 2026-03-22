@@ -154,8 +154,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUser]);
 
   const signOut = useCallback(async () => {
-    await authClient.signOut();
+    console.log('[AuthContext] signOut called');
+    try {
+      const result = await authClient.signOut();
+      console.log('[AuthContext] signOut API result:', JSON.stringify({ error: (result as any)?.error }));
+    } catch (err) {
+      console.warn('[AuthContext] signOut API threw (clearing session locally anyway):', err);
+    }
     setUser(null);
+    console.log('[AuthContext] signOut complete — user cleared');
   }, []);
 
   return (
