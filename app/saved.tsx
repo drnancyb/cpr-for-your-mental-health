@@ -39,9 +39,9 @@ type SavedTherapist = {
     id: string;
     name: string;
     title: string;
-    photo_url: string;
+    photoUrl: string;
     location: string;
-    accepting_new_clients: boolean;
+    acceptingNewClients: boolean;
   };
 };
 
@@ -169,7 +169,7 @@ export default function SavedScreen() {
         renderItem={({ item }) => {
           const initials = getInitials(item.therapist.name);
           const isRemoving = removingId === item.id;
-          const acceptingText = item.therapist.accepting_new_clients ? 'Accepting clients' : 'Not accepting';
+          const acceptingText = item.therapist.acceptingNewClients ? 'Accepting clients' : 'Not accepting';
           return (
             <AnimatedPressable
               onPress={() => {
@@ -196,9 +196,9 @@ export default function SavedScreen() {
               >
                 {/* Avatar */}
                 <View style={{ position: 'relative', flexShrink: 0 }}>
-                  {item.therapist.photo_url ? (
+                  {item.therapist.photoUrl ? (
                     <Image
-                      source={resolveImageSource(item.therapist.photo_url)}
+                      source={resolveImageSource(item.therapist.photoUrl)}
                       style={{ width: 52, height: 52, borderRadius: 26 }}
                       contentFit="cover"
                       accessibilityLabel={`Photo of ${item.therapist.name}`}
@@ -210,7 +210,7 @@ export default function SavedScreen() {
                       </Text>
                     </View>
                   )}
-                  {item.therapist.accepting_new_clients ? (
+                  {item.therapist.acceptingNewClients ? (
                     <View style={{ position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: COLORS.success, borderWidth: 2, borderColor: COLORS.surface }} />
                   ) : null}
                 </View>
@@ -230,8 +230,8 @@ export default function SavedScreen() {
                     </Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <CheckCircle size={11} color={item.therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary} />
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: item.therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary, fontFamily: 'DMSans_600SemiBold' }}>
+                    <CheckCircle size={11} color={item.therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary} />
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: item.therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary, fontFamily: 'DMSans_600SemiBold' }}>
                       {acceptingText}
                     </Text>
                   </View>

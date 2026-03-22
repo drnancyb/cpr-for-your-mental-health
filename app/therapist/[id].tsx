@@ -257,9 +257,9 @@ export default function TherapistDetailScreen() {
   };
 
   const handleWebsite = () => {
-    if (!therapist?.website_url) return;
-    console.log('[TherapistDetail] Website button pressed:', therapist.website_url);
-    Linking.openURL(therapist.website_url);
+    if (!therapist?.websiteUrl) return;
+    console.log('[TherapistDetail] Website button pressed:', therapist.websiteUrl);
+    Linking.openURL(therapist.websiteUrl);
   };
 
   if (loading) {
@@ -286,14 +286,14 @@ export default function TherapistDetailScreen() {
   }
 
   const initials = getInitials(therapist.name ?? '');
-  const feeDisplay = therapist.session_fee != null ? `$${Number(therapist.session_fee).toFixed(0)}` : 'N/A';
-  const expDisplay = therapist.years_experience != null ? `${therapist.years_experience} yrs` : 'N/A';
+  const feeDisplay = therapist.sessionFee != null ? `$${Number(therapist.sessionFee).toFixed(0)}` : 'N/A';
+  const expDisplay = therapist.yearsExperience != null ? `${therapist.yearsExperience} yrs` : 'N/A';
   const languages = Array.isArray(therapist.languages) ? therapist.languages : [];
   const specialties = Array.isArray(therapist.specialties) ? therapist.specialties : [];
-  const therapyTypes = Array.isArray(therapist.therapy_types) ? therapist.therapy_types : [];
+  const therapyTypes = Array.isArray(therapist.therapyTypes) ? therapist.therapyTypes : [];
   const insurances = Array.isArray(therapist.insurances) ? therapist.insurances : [];
   const langDisplay = `${languages.length}`;
-  const acceptingText = therapist.accepting_new_clients ? 'Accepting new clients' : 'Not accepting clients';
+  const acceptingText = therapist.acceptingNewClients ? 'Accepting new clients' : 'Not accepting clients';
 
   const bookmarkIcon = savedId
     ? <BookmarkCheck size={22} color={COLORS.primary} />
@@ -337,9 +337,9 @@ export default function TherapistDetailScreen() {
         >
           {/* Photo */}
           <View style={{ marginBottom: 16 }}>
-            {therapist.photo_url ? (
+            {therapist.photoUrl ? (
               <Image
-                source={resolveImageSource(therapist.photo_url)}
+                source={resolveImageSource(therapist.photoUrl)}
                 style={{
                   width: 100,
                   height: 100,
@@ -427,18 +427,18 @@ export default function TherapistDetailScreen() {
               paddingHorizontal: 14,
               paddingVertical: 7,
               borderRadius: 20,
-              backgroundColor: therapist.accepting_new_clients ? '#E8F5E9' : COLORS.surfaceSecondary,
+              backgroundColor: therapist.acceptingNewClients ? '#E8F5E9' : COLORS.surfaceSecondary,
             }}
           >
             <CheckCircle
               size={14}
-              color={therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary}
+              color={therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary}
             />
             <Text
               style={{
                 fontSize: 13,
                 fontWeight: '600',
-                color: therapist.accepting_new_clients ? COLORS.success : COLORS.textTertiary,
+                color: therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary,
                 fontFamily: 'DMSans_600SemiBold',
               }}
             >
@@ -626,7 +626,7 @@ export default function TherapistDetailScreen() {
         ) : null}
 
         {/* Request Session CTA */}
-        {therapist.accepting_new_clients ? (
+        {therapist.acceptingNewClients ? (
           <View style={{ marginHorizontal: 16, marginTop: 20 }}>
             <AnimatedPressable onPress={handleRequestSession}>
               <View
@@ -725,7 +725,7 @@ export default function TherapistDetailScreen() {
           </AnimatedPressable>
 
           {/* Website — only if exists */}
-          {therapist.website_url ? (
+          {therapist.websiteUrl ? (
             <AnimatedPressable onPress={handleWebsite}>
               <View
                 style={{

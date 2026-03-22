@@ -23,22 +23,22 @@ const COLORS = {
 export interface Therapist {
   id: string;
   name: string;
-  photo_url: string;
+  photoUrl: string;
   title: string;
   bio: string;
   location: string;
   gender: string;
   specialties: string[];
-  therapy_types: string[];
+  therapyTypes: string[];
   insurances: string[];
-  accepting_new_clients: boolean;
-  session_fee: number;
+  acceptingNewClients: boolean;
+  sessionFee: number | string;
   languages: string[];
-  years_experience: number;
+  yearsExperience: number;
   phone: string;
   email: string;
-  website_url?: string;
-  created_at: string;
+  websiteUrl?: string;
+  createdAt: string;
   is_pinned?: boolean;
 }
 
@@ -83,8 +83,8 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
   }, [index, opacity, translateY]);
 
   const displayedSpecialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 3) : [];
-  const feeDisplay = `$${Number(therapist.session_fee).toFixed(0)} / session`;
-  const expDisplay = `${therapist.years_experience} yrs`;
+  const feeDisplay = `$${Number(therapist.sessionFee).toFixed(0)} / session`;
+  const expDisplay = `${therapist.yearsExperience} yrs`;
   const initials = getInitials(therapist.name);
   const isPinned = therapist.is_pinned === true;
 
@@ -143,9 +143,9 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop: isPinned ? 22 : 0 }}>
             {/* Photo with accepting badge */}
             <View style={{ position: 'relative' }}>
-              {therapist.photo_url ? (
+              {therapist.photoUrl ? (
                 <Image
-                  source={resolveImageSource(therapist.photo_url)}
+                  source={resolveImageSource(therapist.photoUrl)}
                   style={{ width: 56, height: 56, borderRadius: 28 }}
                   contentFit="cover"
                   accessibilityLabel={`Photo of ${therapist.name}`}
@@ -173,7 +173,7 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
                   </Text>
                 </View>
               )}
-              {therapist.accepting_new_clients ? (
+              {therapist.acceptingNewClients ? (
                 <View
                   style={{
                     position: 'absolute',

@@ -33,38 +33,38 @@ const COLORS = {
 
 interface TherapistProfile {
   name: string;
-  photo_url: string;
+  photoUrl: string;
   title: string;
   bio: string;
   location: string;
   gender: string;
   phone: string;
   email: string;
-  website_url: string;
-  session_fee: number | string;
-  years_experience: number | string;
-  accepting_new_clients: boolean;
+  websiteUrl: string;
+  sessionFee: number | string;
+  yearsExperience: number | string;
+  acceptingNewClients: boolean;
   specialties: string[];
-  therapy_types: string[];
+  therapyTypes: string[];
   insurances: string[];
   languages: string[];
 }
 
 const EMPTY_PROFILE: TherapistProfile = {
   name: '',
-  photo_url: '',
+  photoUrl: '',
   title: '',
   bio: '',
   location: '',
   gender: '',
   phone: '',
   email: '',
-  website_url: '',
-  session_fee: '',
-  years_experience: '',
-  accepting_new_clients: false,
+  websiteUrl: '',
+  sessionFee: '',
+  yearsExperience: '',
+  acceptingNewClients: false,
   specialties: [],
-  therapy_types: [],
+  therapyTypes: [],
   insurances: [],
   languages: [],
 };
@@ -262,11 +262,11 @@ export default function EditProfileScreen() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const addTag = useCallback((key: 'specialties' | 'therapy_types' | 'insurances' | 'languages', item: string) => {
+  const addTag = useCallback((key: 'specialties' | 'therapyTypes' | 'insurances' | 'languages', item: string) => {
     setForm((prev) => ({ ...prev, [key]: [...prev[key], item] }));
   }, []);
 
-  const removeTag = useCallback((key: 'specialties' | 'therapy_types' | 'insurances' | 'languages', index: number) => {
+  const removeTag = useCallback((key: 'specialties' | 'therapyTypes' | 'insurances' | 'languages', index: number) => {
     setForm((prev) => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
   }, []);
 
@@ -277,19 +277,19 @@ export default function EditProfileScreen() {
         console.log('[EditProfile] Profile loaded:', data?.name);
         setForm({
           name: data.name ?? '',
-          photo_url: data.photo_url ?? '',
+          photoUrl: data.photoUrl ?? '',
           title: data.title ?? '',
           bio: data.bio ?? '',
           location: data.location ?? '',
           gender: data.gender ?? '',
           phone: data.phone ?? '',
           email: data.email ?? '',
-          website_url: data.website_url ?? '',
-          session_fee: data.session_fee != null ? String(data.session_fee) : '',
-          years_experience: data.years_experience != null ? String(data.years_experience) : '',
-          accepting_new_clients: data.accepting_new_clients ?? false,
+          websiteUrl: data.websiteUrl ?? '',
+          sessionFee: data.sessionFee != null ? String(data.sessionFee) : '',
+          yearsExperience: data.yearsExperience != null ? String(data.yearsExperience) : '',
+          acceptingNewClients: data.acceptingNewClients ?? false,
           specialties: Array.isArray(data.specialties) ? data.specialties : [],
-          therapy_types: Array.isArray(data.therapy_types) ? data.therapy_types : [],
+          therapyTypes: Array.isArray(data.therapyTypes) ? data.therapyTypes : [],
           insurances: Array.isArray(data.insurances) ? data.insurances : [],
           languages: Array.isArray(data.languages) ? data.languages : [],
         });
@@ -311,24 +311,24 @@ export default function EditProfileScreen() {
     setSaving(true);
     setSaveSuccess(false);
 
-    const sessionFeeNum = form.session_fee !== '' ? Number(form.session_fee) : null;
-    const yearsExpNum = form.years_experience !== '' ? Number(form.years_experience) : null;
+    const sessionFeeNum = form.sessionFee !== '' ? Number(form.sessionFee) : null;
+    const yearsExpNum = form.yearsExperience !== '' ? Number(form.yearsExperience) : null;
 
     const payload = {
       name: form.name,
-      photo_url: form.photo_url || null,
+      photoUrl: form.photoUrl || null,
       title: form.title,
       bio: form.bio,
       location: form.location,
       gender: form.gender,
       phone: form.phone,
       email: form.email,
-      website_url: form.website_url || null,
-      session_fee: sessionFeeNum,
-      years_experience: yearsExpNum,
-      accepting_new_clients: form.accepting_new_clients,
+      websiteUrl: form.websiteUrl || null,
+      sessionFee: sessionFeeNum,
+      yearsExperience: yearsExpNum,
+      acceptingNewClients: form.acceptingNewClients,
       specialties: form.specialties,
-      therapy_types: form.therapy_types,
+      therapyTypes: form.therapyTypes,
       insurances: form.insurances,
       languages: form.languages,
     };
@@ -380,8 +380,8 @@ export default function EditProfileScreen() {
     );
   }
 
-  const sessionFeeStr = String(form.session_fee);
-  const yearsExpStr = String(form.years_experience);
+  const sessionFeeStr = String(form.sessionFee);
+  const yearsExpStr = String(form.yearsExperience);
 
   return (
     <KeyboardAvoidingView
@@ -485,8 +485,8 @@ export default function EditProfileScreen() {
           <View style={{ marginBottom: 14 }}>
             <FieldLabel label="Website" optional />
             <StyledInput
-              value={form.website_url}
-              onChangeText={(v) => setField('website_url', v)}
+              value={form.websiteUrl}
+              onChangeText={(v) => setField('websiteUrl', v)}
               placeholder="https://yourwebsite.com"
               keyboardType="url"
               autoCapitalize="none"
@@ -497,8 +497,8 @@ export default function EditProfileScreen() {
           <View style={{ marginBottom: 0 }}>
             <FieldLabel label="Photo URL" optional />
             <StyledInput
-              value={form.photo_url}
-              onChangeText={(v) => setField('photo_url', v)}
+              value={form.photoUrl}
+              onChangeText={(v) => setField('photoUrl', v)}
               placeholder="https://example.com/photo.jpg"
               keyboardType="url"
               autoCapitalize="none"
@@ -515,7 +515,7 @@ export default function EditProfileScreen() {
             <FieldLabel label="Session Fee (CAD)" optional />
             <StyledInput
               value={sessionFeeStr}
-              onChangeText={(v) => setField('session_fee', v)}
+              onChangeText={(v) => setField('sessionFee', v)}
               placeholder="150"
               keyboardType="numeric"
               autoCapitalize="none"
@@ -527,7 +527,7 @@ export default function EditProfileScreen() {
             <FieldLabel label="Years of Experience" optional />
             <StyledInput
               value={yearsExpStr}
-              onChangeText={(v) => setField('years_experience', v)}
+              onChangeText={(v) => setField('yearsExperience', v)}
               placeholder="8"
               keyboardType="numeric"
               autoCapitalize="none"
@@ -545,7 +545,7 @@ export default function EditProfileScreen() {
               paddingHorizontal: 14,
               paddingVertical: 13,
               borderWidth: 1,
-              borderColor: form.accepting_new_clients ? 'rgba(52, 168, 83, 0.2)' : COLORS.border,
+              borderColor: form.acceptingNewClients ? 'rgba(52, 168, 83, 0.2)' : COLORS.border,
             }}
           >
             <View style={{ flex: 1 }}>
@@ -557,10 +557,10 @@ export default function EditProfileScreen() {
               </Text>
             </View>
             <Switch
-              value={form.accepting_new_clients}
+              value={form.acceptingNewClients}
               onValueChange={(v) => {
-                console.log('[EditProfile] Toggle accepting_new_clients:', v);
-                setField('accepting_new_clients', v);
+                console.log('[EditProfile] Toggle acceptingNewClients:', v);
+                setField('acceptingNewClients', v);
               }}
               trackColor={{ false: '#ccc', true: '#4CAF50' }}
               thumbColor="#ffffff"
@@ -580,9 +580,9 @@ export default function EditProfileScreen() {
           />
           <TagList
             label="Therapy Types"
-            items={form.therapy_types}
-            onAdd={(item) => addTag('therapy_types', item)}
-            onRemove={(i) => removeTag('therapy_types', i)}
+            items={form.therapyTypes}
+            onAdd={(item) => addTag('therapyTypes', item)}
+            onRemove={(i) => removeTag('therapyTypes', i)}
             placeholder="e.g. CBT, DBT, EMDR…"
           />
         </View>

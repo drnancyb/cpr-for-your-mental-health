@@ -102,18 +102,18 @@ interface TherapistProfile {
   name: string;
   title: string;
   location: string;
-  accepting_new_clients: boolean;
-  photo_url?: string;
+  acceptingNewClients: boolean;
+  photoUrl?: string;
   bio: string;
   specialties: string[];
-  therapy_types: string[];
+  therapyTypes: string[];
   insurances: string[];
   languages: string[];
-  session_fee: number;
-  years_experience: number;
+  sessionFee: number | string;
+  yearsExperience: number;
   phone: string;
   email: string;
-  website_url?: string;
+  websiteUrl?: string;
   gender: string;
   license_documents?: string[];
 }
@@ -197,8 +197,8 @@ export default function TherapistPortalScreen() {
   const [savingDocs, setSavingDocs] = useState(false);
 
   useEffect(() => {
-    setAcceptingClients(profile?.accepting_new_clients ?? false);
-  }, [profile?.accepting_new_clients]);
+    setAcceptingClients(profile?.acceptingNewClients ?? false);
+  }, [profile?.acceptingNewClients]);
 
   useEffect(() => {
     setLicenseDocuments(profile?.license_documents ?? []);
