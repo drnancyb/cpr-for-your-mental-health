@@ -34,7 +34,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, fetchUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,8 +60,11 @@ export default function AdminLoginScreen() {
     setLoading(true);
     try {
       console.log('[AdminLogin] POST /api/admin/login for:', email.trim());
-      await api.post('/api/admin/login', { email: email.trim(), password });
-      console.log('[AdminLogin] Sign-in succeeded, navigating to /admin');
+      const result = await api.post<{ token?: string; user?: { role?: string } }>('/api/admin/login', { email: email.trim(), password });
+      console.log('[AdminLogin] Sign-in succeeded, result:', JSON.stringify(result));
+      // Hydrate AuthContext with the new session so user.role === 'admin' is set
+      await fetchUser(true);
+      console.log('[AdminLogin] Session refreshed, navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
