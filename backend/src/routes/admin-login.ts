@@ -64,33 +64,33 @@ export function register(app: App, fastify: FastifyInstance) {
     ) => {
       const { email, password } = request.body;
 
+      // Validate required fields
+      if (!email || !password) {
+        app.logger.warn({}, 'Admin login missing required fields');
+        return reply.status(400).send({ success: false, error: 'Missing email or password' });
+      }
+
       app.logger.info({ email }, 'Admin login attempt');
 
       try {
-        // Look up user by email (case-insensitive)
+        // Query user table for admin with this email
         const users = await app.db
           .select()
           .from(authSchema.user)
-          .where(ilike(authSchema.user.email, email))
+          .where(and(
+            ilike(authSchema.user.email, email),
+            eq(authSchema.user.role, 'admin')
+          ))
           .limit(1);
 
         if (users.length === 0) {
-          app.logger.warn({ email }, 'Admin login failed - user not found');
-          return reply.status(401).send({ error: 'Invalid credentials' });
+          app.logger.warn({ email }, 'Admin login failed - admin user not found');
+          return reply.status(401).send({ success: false, error: 'Invalid credentials' });
         }
 
         const user = users[0];
 
-        // Check if user is admin
-        if (user.role !== 'admin') {
-          app.logger.warn(
-            { userId: user.id, email },
-            'Non-admin user attempted admin login'
-          );
-          return reply.status(403).send({ error: 'Not authorized' });
-        }
-
-        // Look up credential account (email/password)
+        // Look up credential account for this user
         const accounts = await app.db
           .select()
           .from(authSchema.account)
@@ -102,24 +102,18 @@ export function register(app: App, fastify: FastifyInstance) {
           )
           .limit(1);
 
-        if (accounts.length === 0) {
-          app.logger.warn(
-            { userId: user.id, email },
-            'Admin login failed - no credential account'
-          );
-          return reply.status(401).send({ error: 'Invalid credentials' });
+        if (accounts.length === 0 || !accounts[0].password) {
+          app.logger.warn({ userId: user.id, email }, 'Admin login failed - no credential account');
+          return reply.status(401).send({ success: false, error: 'Invalid credentials' });
         }
 
         const account = accounts[0];
 
-        // Verify password using bcryptjs
-        const passwordMatch = await compare(password, account.password || '');
+        // Verify password
+        const passwordMatch = await compare(password, account.password);
         if (!passwordMatch) {
-          app.logger.warn(
-            { userId: user.id, email },
-            'Admin login failed - invalid password'
-          );
-          return reply.status(401).send({ error: 'Invalid credentials' });
+          app.logger.warn({ userId: user.id, email }, 'Admin login failed - invalid password');
+          return reply.status(401).send({ success: false, error: 'Invalid credentials' });
         }
 
         // Create session with token
@@ -134,10 +128,7 @@ export function register(app: App, fastify: FastifyInstance) {
           expiresAt,
         });
 
-        app.logger.info(
-          { userId: user.id, email },
-          'Admin login successful - session created'
-        );
+        app.logger.info({ userId: user.id, email }, 'Admin login successful');
 
         return {
           success: true,
@@ -151,7 +142,7 @@ export function register(app: App, fastify: FastifyInstance) {
         };
       } catch (err) {
         app.logger.error({ err, email }, 'Admin login error');
-        throw err;
+        return reply.status(401).send({ success: false, error: 'Invalid credentials' });
       }
     }
   );

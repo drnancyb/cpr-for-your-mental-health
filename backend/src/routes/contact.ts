@@ -38,7 +38,7 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    // Fetch user data
+    // Fetch user data - always fresh from DB to get current role
     const users = await app.db
       .select()
       .from(authSchema.user)
@@ -52,20 +52,6 @@ export function register(app: App, fastify: FastifyInstance) {
     }
 
     return { user: users[0], session: sessionRecord };
-  }
-
-  // Helper to check admin role
-  async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-    const auth = await requireAuthBearer(request, reply);
-    if (!auth) return null;
-
-    if (auth.user.role !== 'admin') {
-      app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      await reply.status(403).send({ error: 'Forbidden' });
-      return null;
-    }
-
-    return auth;
   }
 
   // POST /api/contact - Submit contact form
@@ -183,8 +169,14 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAdmin(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
+
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       app.logger.info({}, 'Fetching all contact messages');
 
@@ -233,8 +225,14 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAdmin(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
+
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       const { id } = request.params;
       app.logger.info({ messageId: id }, 'Marking contact message as read');
@@ -297,8 +295,14 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAdmin(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
+
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       const { id } = request.params;
       app.logger.info({ messageId: id }, 'Deleting contact message');

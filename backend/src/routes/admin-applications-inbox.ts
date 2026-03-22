@@ -5,7 +5,54 @@ import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
+  // Helper to authenticate via Bearer token from Authorization header
+  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      app.logger.warn({}, 'No Bearer token in Authorization header');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+    // Look up the session by token
+    const sessions = await app.db
+      .select()
+      .from(authSchema.session)
+      .where(eq(authSchema.session.token, token))
+      .limit(1);
+
+    if (sessions.length === 0) {
+      app.logger.warn({}, 'Invalid session token');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const sessionRecord = sessions[0];
+
+    // Check if session is expired
+    if (new Date() > sessionRecord.expiresAt) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    // Fetch user data - always fresh from DB to get current role
+    const users = await app.db
+      .select()
+      .from(authSchema.user)
+      .where(eq(authSchema.user.id, sessionRecord.userId))
+      .limit(1);
+
+    if (users.length === 0) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    return { user: users[0], session: sessionRecord };
+  }
 
   // Helper to format application response
   function formatApplication(app_record: any) {
@@ -53,11 +100,11 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
 
-      if (session.user.role !== 'admin') {
-        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -103,11 +150,11 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
 
-      if (session.user.role !== 'admin') {
-        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -172,11 +219,11 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
 
-      if (session.user.role !== 'admin') {
-        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }

@@ -31,17 +31,17 @@ app.withAuth();
 
 // Seed admin user on startup with proper password hashing
 async function seedAdminUser() {
-  app.logger.info('Seeding admin user with correct password');
+  app.logger.info('Seeding admin user');
   try {
     const adminEmail = 'admin@example.com';
     const adminPassword = 'Admin@Secure123!';
     const adminId = 'admin-seed-001';
-
-    // Hash password with bcrypt (10 salt rounds)
-    const hashedPassword = await hash(adminPassword, 10);
-
-    // Upsert user row
     const now = new Date();
+
+    // Hash password with bcrypt (cost factor 12)
+    const hashedPassword = await hash(adminPassword, 12);
+
+    // Upsert admin user
     await app.db
       .insert(authSchema.user)
       .values({
@@ -57,14 +57,13 @@ async function seedAdminUser() {
         target: authSchema.user.email,
         set: {
           role: 'admin',
+          name: 'Admin',
           emailVerified: true,
           updatedAt: now,
         },
       });
 
-    app.logger.info({ email: adminEmail }, 'Admin user upserted');
-
-    // Get the actual user ID for this email (in case it existed before)
+    // Get the actual user ID for this email (may differ if email already existed)
     const adminUsers = await app.db
       .select({ id: authSchema.user.id })
       .from(authSchema.user)
@@ -78,30 +77,47 @@ async function seedAdminUser() {
 
     const actualAdminId = adminUsers[0].id;
 
-    // Delete any existing credential accounts for this user
-    await app.db
-      .delete(authSchema.account)
-      .where(
-        eq(authSchema.account.userId, actualAdminId)
-      );
+    // Try to upsert credential account with conflict on (user_id, provider_id)
+    // If this fails due to missing unique constraint, fall back to delete and insert
+    try {
+      await app.db
+        .insert(authSchema.account)
+        .values({
+          id: 'admin-account-seed-001',
+          accountId: actualAdminId,
+          providerId: 'credential',
+          userId: actualAdminId,
+          password: hashedPassword,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [authSchema.account.userId, authSchema.account.providerId],
+          set: {
+            password: hashedPassword,
+            updatedAt: now,
+          },
+        });
+    } catch {
+      // Fallback: delete existing credential account and insert fresh
+      await app.db
+        .delete(authSchema.account)
+        .where(
+          eq(authSchema.account.userId, actualAdminId)
+        );
 
-    app.logger.info({ userId: actualAdminId }, 'Deleted existing credential accounts');
+      await app.db.insert(authSchema.account).values({
+        id: 'admin-account-seed-001',
+        accountId: actualAdminId,
+        providerId: 'credential',
+        userId: actualAdminId,
+        password: hashedPassword,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
-    // Insert fresh credential account with hashed password
-    await app.db.insert(authSchema.account).values({
-      id: `${actualAdminId}-credential`,
-      accountId: adminEmail,
-      providerId: 'credential',
-      userId: actualAdminId,
-      password: hashedPassword,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    app.logger.info(
-      { email: adminEmail, userId: actualAdminId },
-      'Admin credential account created with proper password hash'
-    );
+    app.logger.info({}, '[seed] Admin user seeded: admin@example.com / Admin@Secure123!');
   } catch (err) {
     app.logger.error({ err }, 'Failed to seed admin user');
   }

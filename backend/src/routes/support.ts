@@ -38,7 +38,7 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    // Fetch user data
+    // Fetch user data - always fresh from DB to get current role
     const users = await app.db
       .select()
       .from(authSchema.user)
@@ -67,20 +67,6 @@ export function register(app: App, fastify: FastifyInstance) {
     } catch {
       return null;
     }
-  }
-
-  // Helper to check admin role
-  async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-    const auth = await requireAuthBearer(request, reply);
-    if (!auth) return null;
-
-    if (auth.user.role !== 'admin') {
-      app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      await reply.status(403).send({ error: 'Forbidden' });
-      return null;
-    }
-
-    return auth;
   }
 
   // ============================================
@@ -181,10 +167,16 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAdmin(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
 
-      app.logger.info({ adminId: session.user.id }, 'Fetching all support requests');
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
+
+      app.logger.info({ adminId: auth.user.id }, 'Fetching all support requests');
 
       const requests = await app.db
         .select()
@@ -236,8 +228,14 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAdmin(request, reply);
-      if (!session) return;
+      const auth = await requireAuthBearer(request, reply);
+      if (!auth) return;
+
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       app.logger.info(
         { supportId: request.params.id, status: request.body.status },

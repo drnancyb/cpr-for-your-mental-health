@@ -38,7 +38,7 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    // Fetch user data
+    // Fetch user data - always fresh from DB to get current role
     const users = await app.db
       .select()
       .from(authSchema.user)
@@ -52,20 +52,6 @@ export function register(app: App, fastify: FastifyInstance) {
     }
 
     return { user: users[0], session: sessionRecord };
-  }
-
-  // Helper to check admin role
-  async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-    const auth = await requireAuthBearer(request, reply);
-    if (!auth) return null;
-
-    if (auth.user.role !== 'admin') {
-      app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      await reply.status(403).send({ error: 'Forbidden' });
-      return null;
-    }
-
-    return auth;
   }
 
   // DELETE /api/admin/cleanup/therapists - Delete all therapists except Nancy Brooks
@@ -99,8 +85,14 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAdmin(request, reply);
+      const auth = await requireAuthBearer(request, reply);
       if (!auth) return;
+
+      if (auth.user.role !== 'admin') {
+        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       app.logger.info(
         { adminId: auth.user.id },
@@ -166,7 +158,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
         app.logger.info(
           {
-            adminId: auth.user.id,
+            adminId: session.user.id,
             deleted: result,
           },
           'Therapist cleanup completed successfully'
@@ -179,7 +171,7 @@ export function register(app: App, fastify: FastifyInstance) {
         };
       } catch (err) {
         app.logger.error(
-          { err, adminId: auth.user.id },
+          { err, adminId: session.user.id },
           'Failed to cleanup therapists'
         );
         const error = new Error('Failed to cleanup therapists');
