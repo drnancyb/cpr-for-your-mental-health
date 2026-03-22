@@ -179,8 +179,12 @@ interface Application {
   name: string;
   title: string;
   admin_notes?: string;
+  rejection_reason?: string;
   created_at: string;
 }
+
+// The API may return the application bare or wrapped in { application: ... }
+type ApplicationApiResponse = Application | { application: Application } | null | undefined;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -432,16 +436,26 @@ export default function ApplyScreen() {
     }
     console.log('[Apply] Fetching existing application for user:', user.id);
     api
-      .get<Application>('/api/applications/me')
-      .then((app) => {
-        console.log('[Apply] Existing application found:', app.id, 'status:', app.status);
-        setExisting(app);
+      .get<ApplicationApiResponse>('/api/applications/me')
+      .then((res) => {
+        // Unwrap envelope: API may return bare object or { application: {...} }
+        const app: Application | null | undefined =
+          res && typeof res === 'object' && 'application' in res
+            ? (res as { application: Application }).application
+            : (res as Application | null | undefined);
+        if (app && app.id) {
+          console.log('[Apply] Existing application found:', app.id, 'status:', app.status);
+          setExisting(app);
+        } else {
+          console.log('[Apply] No existing application in response');
+        }
       })
       .catch((e) => {
-        if (e?.status !== 404) {
-          console.error('[Apply] Error fetching application:', e);
+        const status = (e as { status?: number })?.status;
+        if (status === 404) {
+          console.log('[Apply] No existing application found (404)');
         } else {
-          console.log('[Apply] No existing application found');
+          console.error('[Apply] Error fetching application, status:', status, e instanceof Error ? e.message : e);
         }
       })
       .finally(() => setCheckingExisting(false));
@@ -652,9 +666,12 @@ export default function ApplyScreen() {
     const statusEmoji =
       existing.status === 'approved' ? '✅' :
       existing.status === 'rejected' ? '❌' : '⏳';
-    const submittedDate = new Date(existing.created_at).toLocaleDateString('en-CA', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
+    const createdAtDate = existing.created_at ? new Date(existing.created_at) : null;
+    const submittedDate =
+      createdAtDate && !isNaN(createdAtDate.getTime())
+        ? createdAtDate.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'Unknown date';
+    const rejectionNote = existing.admin_notes ?? existing.rejection_reason ?? null;
 
     return (
       <ScrollView
@@ -723,16 +740,16 @@ export default function ApplyScreen() {
             </View>
           )}
 
-          {existing.status === 'rejected' && existing.admin_notes && (
+          {existing.status === 'rejected' && rejectionNote ? (
             <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, borderCurve: 'continuous', padding: 14, borderWidth: 1, borderColor: '#FECACA' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.danger, fontFamily: 'DMSans_600SemiBold', marginBottom: 4 }}>
                 Reason for rejection
               </Text>
               <Text style={{ fontSize: 13, color: '#991B1B', fontFamily: 'DMSans_400Regular', lineHeight: 20 }}>
-                {existing.admin_notes}
+                {rejectionNote}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
       </ScrollView>
     );
