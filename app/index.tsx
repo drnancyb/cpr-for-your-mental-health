@@ -11,9 +11,12 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 import { Stack, router, Redirect } from 'expo-router';
-import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, ShieldCheck, LogOut, LogIn, Bookmark, ChevronDown } from 'lucide-react-native';
+import { SlidersHorizontal, User, MapPin, Users, Stethoscope, Heart, Shield, ShieldCheck, LogOut, LogIn, Bookmark, ChevronDown, Settings, Calendar, FileText, HeadphonesIcon, Lock } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FilterChip } from '@/components/filter-chip';
 import { TherapistCard, Therapist } from '@/components/therapist-card';
@@ -58,6 +61,7 @@ export default function IndexScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSearchRef = useRef('');
 
@@ -200,21 +204,8 @@ export default function IndexScreen() {
         },
       );
     } else {
-      Alert.alert(
-        user?.name ?? 'Account',
-        user?.email ?? '',
-        [
-          { text: 'My Preferences', onPress: () => { console.log('[Index] My Preferences pressed'); router.push('/preferences'); } },
-          { text: 'Therapist Portal', onPress: () => { console.log('[Index] Therapist Portal pressed'); router.push('/therapist-portal'); } },
-          { text: 'My Bookings', onPress: () => { console.log('[Index] My Bookings pressed'); router.push('/my-bookings'); } },
-          { text: 'View My Application', onPress: () => { console.log('[Index] View Application pressed'); router.push('/apply'); } },
-          { text: 'Contact & Support', onPress: () => { console.log('[Index] Contact & Support pressed'); router.push('/support'); } },
-          { text: 'Admin Setup', onPress: () => { console.log('[Index] Admin Setup pressed'); router.push('/admin-setup'); } },
-          { text: 'Admin Portal', onPress: () => { console.log('[Index] Admin Portal pressed'); router.push('/admin-login'); } },
-          { text: 'Sign Out', style: 'destructive', onPress: () => { console.log('[Index] Sign Out pressed'); signOut(); } },
-          { text: 'Cancel', style: 'cancel' },
-        ],
-      );
+      console.log('[Index] Opening account menu modal');
+      setMenuVisible(true);
     }
   }, [user, signOut]);
 
@@ -596,6 +587,19 @@ export default function IndexScreen() {
     </View>
   );
 
+  const menuItems = [
+    { label: 'My Preferences', icon: <Settings size={18} color={COLORS.primary} />, onPress: () => { console.log('[Index] My Preferences pressed'); setMenuVisible(false); router.push('/preferences'); } },
+    { label: 'Therapist Portal', icon: <User size={18} color={COLORS.primary} />, onPress: () => { console.log('[Index] Therapist Portal pressed'); setMenuVisible(false); router.push('/therapist-portal'); } },
+    { label: 'My Bookings', icon: <Calendar size={18} color={COLORS.primary} />, onPress: () => { console.log('[Index] My Bookings pressed'); setMenuVisible(false); router.push('/my-bookings'); } },
+    { label: 'View My Application', icon: <FileText size={18} color={COLORS.primary} />, onPress: () => { console.log('[Index] View Application pressed'); setMenuVisible(false); router.push('/apply'); } },
+    { label: 'Contact & Support', icon: <HeadphonesIcon size={18} color={COLORS.primary} />, onPress: () => { console.log('[Index] Contact & Support pressed'); setMenuVisible(false); router.push('/support'); } },
+    { label: 'Admin Setup', icon: <Lock size={18} color={COLORS.textSecondary} />, onPress: () => { console.log('[Index] Admin Setup pressed'); setMenuVisible(false); router.push('/admin-setup'); } },
+    { label: 'Admin Portal', icon: <Shield size={18} color={COLORS.textSecondary} />, onPress: () => { console.log('[Index] Admin Portal pressed'); setMenuVisible(false); router.push('/admin-login'); } },
+  ];
+
+  const userName = user.name ?? 'Account';
+  const userEmail = user.email ?? '';
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <Stack.Screen
@@ -614,6 +618,61 @@ export default function IndexScreen() {
           },
         }}
       />
+
+      {/* Account menu modal (Android + Web) */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable
+          style={menuStyles.backdrop}
+          onPress={() => { console.log('[Index] Account menu dismissed'); setMenuVisible(false); }}
+        >
+          <Pressable style={menuStyles.sheet} onPress={() => {}}>
+            {/* User info header */}
+            <View style={menuStyles.userHeader}>
+              <View style={menuStyles.avatarLarge}>
+                <Text style={menuStyles.avatarLargeText}>{userInitials}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={menuStyles.userName} numberOfLines={1}>{userName}</Text>
+                <Text style={menuStyles.userEmail} numberOfLines={1}>{userEmail}</Text>
+              </View>
+            </View>
+
+            <View style={menuStyles.divider} />
+
+            {/* Menu items */}
+            {menuItems.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={menuStyles.menuItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={menuStyles.menuItemIcon}>{item.icon}</View>
+                <Text style={menuStyles.menuItemLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <View style={menuStyles.divider} />
+
+            {/* Sign out */}
+            <TouchableOpacity
+              style={menuStyles.menuItem}
+              onPress={() => { console.log('[Index] Sign Out pressed'); setMenuVisible(false); signOut(); }}
+              activeOpacity={0.7}
+            >
+              <View style={menuStyles.menuItemIcon}>
+                <LogOut size={18} color="#E53E3E" />
+              </View>
+              <Text style={[menuStyles.menuItemLabel, { color: '#E53E3E' }]}>Sign Out</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {loading ? (
         <FlatList
@@ -655,3 +714,85 @@ export default function IndexScreen() {
     </View>
   );
 }
+
+const menuStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+    paddingTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  avatarLarge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E8F4EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(45,122,95,0.2)',
+  },
+  avatarLargeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D7A5F',
+    fontFamily: 'DMSans_700Bold',
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A2E25',
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  userEmail: {
+    fontSize: 13,
+    color: '#5C7A6A',
+    fontFamily: 'DMSans_400Regular',
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(45,122,95,0.08)',
+    marginHorizontal: 20,
+    marginVertical: 4,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  menuItemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F4F7F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuItemLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1A2E25',
+    fontFamily: 'DMSans_400Regular',
+  },
+});
