@@ -15,7 +15,10 @@ const COLORS = {
 export default function AdminLayout() {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  // If loading but we already have a user (e.g. set via setUser after admin login),
+  // skip the spinner and proceed — don't wait for fetchUser to re-confirm.
+  if (loading && !user) {
+    console.log('[AdminLayout] Auth loading, no user yet — showing spinner');
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={COLORS.primary} />
@@ -23,7 +26,7 @@ export default function AdminLayout() {
     );
   }
 
-  if (!user) {
+  if (!loading && !user) {
     console.log('[AdminLayout] No user — redirecting to /admin-login');
     return <Redirect href="/admin-login" />;
   }

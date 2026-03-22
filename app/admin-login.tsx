@@ -12,10 +12,8 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Settings } from 'lucide-react-native';
-import { AnimatedPressable } from '@/components/AnimatedPressable';
 
 const BACKEND_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -34,22 +32,14 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading, setUser } = useAuth();
+  const { setUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
-
-  // If already logged in as admin, redirect straight to admin
-  if (!authLoading && user && user.role === 'admin') {
-    console.log('[AdminLogin] Already authenticated as admin, redirecting to /admin');
-    router.replace('/admin');
-    return null;
-  }
 
   const handleSignIn = async () => {
     console.log('[AdminLogin] handleSignIn fired, email:', email);
@@ -59,16 +49,32 @@ export default function AdminLoginScreen() {
     }
     setLoading(true);
     try {
-      console.log('[AdminLogin] POST /api/admin/login for:', email.trim());
-      const result = await api.post<{ user?: { id: string; name: string; email: string; role?: string; image?: string | null } }>('/api/admin/login', { email: email.trim(), password });
-      console.log('[AdminLogin] Login response:', JSON.stringify(result));
+      const url = `${BACKEND_URL}/api/admin/login`;
+      console.log('[AdminLogin] POST', url, 'for:', email.trim());
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      console.log('[AdminLogin] Response status:', response.status);
+      if (!response.ok) {
+        const text = await response.text();
+        console.log('[AdminLogin] Error response body:', text);
+        let message = 'Login failed.';
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed?.message || parsed?.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+      const result = await response.json();
+      console.log('[AdminLogin] Success response:', JSON.stringify(result));
       if (!result?.user) {
         throw new Error('Invalid response from server — no user returned.');
       }
-      // Directly inject the admin user into AuthContext — the custom endpoint
-      // does not create a Better Auth session cookie, so fetchUser(true) would
-      // race getSession(), time out, and set user to null, breaking navigation.
-      console.log('[AdminLogin] Setting user in AuthContext:', result.user.email, 'role:', result.user.role);
+      console.log('[AdminLogin] Setting user:', result.user.email, 'role:', result.user.role);
       setUser(result.user);
       console.log('[AdminLogin] Navigating to /admin');
       router.replace('/admin');
@@ -119,8 +125,6 @@ export default function AdminLoginScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 24,
-              borderCurve: 'continuous',
-              boxShadow: '0 8px 32px rgba(45, 122, 95, 0.4)',
             }}
           >
             <ShieldCheck size={38} color="#fff" strokeWidth={1.8} />
@@ -155,12 +159,10 @@ export default function AdminLoginScreen() {
           style={{
             backgroundColor: COLORS.surface,
             borderRadius: 22,
-            borderCurve: 'continuous',
             padding: 24,
             gap: 18,
             borderWidth: 1,
             borderColor: 'rgba(255,255,255,0.06)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
           }}
         >
           {/* Email */}
@@ -178,7 +180,6 @@ export default function AdminLoginScreen() {
               Email
             </Text>
             <TextInput
-              ref={emailRef}
               value={email}
               onChangeText={setEmail}
               placeholder="admin@example.com"
@@ -191,7 +192,6 @@ export default function AdminLoginScreen() {
               style={{
                 backgroundColor: COLORS.surfaceSecondary,
                 borderRadius: 14,
-                borderCurve: 'continuous',
                 paddingHorizontal: 16,
                 paddingVertical: 15,
                 fontSize: 16,
@@ -230,7 +230,6 @@ export default function AdminLoginScreen() {
                 style={{
                   backgroundColor: COLORS.surfaceSecondary,
                   borderRadius: 14,
-                  borderCurve: 'continuous',
                   paddingHorizontal: 16,
                   paddingRight: 52,
                   paddingVertical: 15,
@@ -243,8 +242,8 @@ export default function AdminLoginScreen() {
               />
               <TouchableOpacity
                 onPress={() => {
-                  console.log('[AdminLogin] Toggle password visibility:', !showPassword);
-                  setShowPassword(!showPassword);
+                  console.log('[AdminLogin] Toggle password visibility');
+                  setShowPassword(v => !v);
                 }}
                 style={{
                   position: 'absolute',
@@ -265,36 +264,35 @@ export default function AdminLoginScreen() {
           </View>
 
           {/* Sign In button */}
-          <AnimatedPressable onPress={handleSignIn} disabled={loading}>
-            <View
-              style={{
-                backgroundColor: COLORS.primary,
-                borderRadius: 14,
-                borderCurve: 'continuous',
-                paddingVertical: 17,
-                alignItems: 'center',
-                marginTop: 4,
-                opacity: loading ? 0.7 : 1,
-                boxShadow: '0 4px 16px rgba(45, 122, 95, 0.4)',
-              }}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '600',
-                    color: '#fff',
-                    fontFamily: 'DMSans_600SemiBold',
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  Sign In
-                </Text>
-              )}
-            </View>
-          </AnimatedPressable>
+          <TouchableOpacity
+            onPress={handleSignIn}
+            disabled={loading}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: COLORS.primary,
+              borderRadius: 14,
+              paddingVertical: 17,
+              alignItems: 'center',
+              marginTop: 4,
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: '#fff',
+                  fontFamily: 'DMSans_600SemiBold',
+                  letterSpacing: 0.2,
+                }}
+              >
+                Sign In
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Security note */}
