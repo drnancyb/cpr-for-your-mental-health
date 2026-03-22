@@ -31,7 +31,7 @@ export default function AdminLayout() {
     return <Redirect href="/admin-login" />;
   }
 
-  if (user.role !== 'admin') {
+  if (!user || user.role !== 'admin') {
     console.log('[AdminLayout] User is not admin (role:', user.role, ') — showing access denied');
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>

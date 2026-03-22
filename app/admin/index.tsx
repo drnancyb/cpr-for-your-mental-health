@@ -1143,7 +1143,8 @@ export default function AdminDashboard() {
             ) : null
           }
           renderItem={({ item }) => {
-            const initials = item.therapist.name.split(' ').slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
+            const therapistName = item.therapist?.name ?? 'Unknown';
+            const initials = therapistName.split(' ').slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
             const isPending = item.status === 'pending';
             const confirmLoading = actionLoading === item.id + '_confirm';
             const declineLoading = actionLoading === item.id + '_decline';
@@ -1174,7 +1175,7 @@ export default function AdminDashboard() {
                 {/* Header row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                    {item.therapist.photo_url ? (
+                    {item.therapist?.photo_url ? (
                       <Image source={{ uri: item.therapist.photo_url }} style={{ width: 40, height: 40, borderRadius: 20 }} />
                     ) : (
                       <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary, fontFamily: 'DMSans_700Bold' }}>{initials}</Text>
@@ -1182,7 +1183,7 @@ export default function AdminDashboard() {
                   </View>
                   <View style={{ flex: 1, gap: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold' }} numberOfLines={1}>
-                      {item.therapist.name}
+                      {therapistName}
                     </Text>
                     <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }} numberOfLines={1}>
                       {userLabel}
