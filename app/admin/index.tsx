@@ -682,7 +682,7 @@ export default function AdminDashboard() {
       <Stack.Screen
         options={{
           title: 'Admin Dashboard',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -728,8 +728,8 @@ export default function AdminDashboard() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 8, flexDirection: 'row' }}
-        style={{ backgroundColor: COLORS.background, flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' }}
+        style={{ backgroundColor: COLORS.background, flexGrow: 0, borderBottomWidth: 1, borderBottomColor: COLORS.border }}
       >
         <MainTabButton label="Applications" active={mainTab === 'applications'} onPress={() => { console.log('[Admin] Main tab: Applications'); setMainTab('applications'); }} />
         <MainTabButton label="Therapists" active={mainTab === 'therapists'} onPress={() => { console.log('[Admin] Main tab: Therapists'); setMainTab('therapists'); }} />
