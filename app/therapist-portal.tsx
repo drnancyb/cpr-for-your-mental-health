@@ -320,16 +320,9 @@ export default function TherapistPortalScreen() {
   }, [fetchAll]);
 
   const handleEditProfile = useCallback(() => {
-    if (!profile) return;
-    console.log('[TherapistPortal] Edit profile pressed, navigating with id only:', profile.id);
-    router.push({
-      pathname: '/admin/add-therapist',
-      params: {
-        id: profile.id,
-        mode: 'therapist-self-edit',
-      },
-    });
-  }, [profile]);
+    console.log('[TherapistPortal] Edit profile pressed, navigating to /therapist/edit-profile');
+    router.push('/therapist/edit-profile');
+  }, []);
 
   const bellButton = (
     <TouchableOpacity onPress={handleBellPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
