@@ -470,6 +470,71 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Authenticated Endpoints: Therapists Me
+  // ============================================
+
+  test("GET /api/therapists/me returns 401 without auth", async () => {
+    const res = await api("/api/therapists/me");
+    await expectStatus(res, 401);
+  });
+
+  test("GET /api/therapists/me returns authenticated user's therapist profile", async () => {
+    const res = await authenticatedApi("/api/therapists/me", authToken);
+    await expectStatus(res, 200, 404);
+  });
+
+  test("PUT /api/therapists/me returns 401 without auth", async () => {
+    const res = await api("/api/therapists/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Updated Name",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("PUT /api/therapists/me updates authenticated user's therapist profile", async () => {
+    const res = await authenticatedApi("/api/therapists/me", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Dr. Updated Therapist Me",
+        title: "Licensed Therapist",
+        bio: "Updated bio for therapist profile",
+      }),
+    });
+    await expectStatus(res, 200, 404);
+  });
+
+  test("PUT /api/therapists/me with comprehensive therapist info update", async () => {
+    const res = await authenticatedApi("/api/therapists/me", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Dr. Comprehensive Therapist",
+        photo_url: "https://example.com/photo.jpg",
+        title: "Licensed Clinical Therapist",
+        bio: "Comprehensive profile update",
+        location: "San Francisco",
+        gender: "Female",
+        specialties: ["Anxiety", "Depression"],
+        therapy_types: ["CBT", "ACT"],
+        insurances: ["Blue Cross", "Aetna"],
+        accepting_new_clients: true,
+        session_fee: 150,
+        languages: ["English", "Mandarin"],
+        years_experience: 12,
+        phone: "555-9876",
+        email: "therapist@example.com",
+        website_url: "https://therapist-example.com",
+        license_documents: ["https://example.com/license.pdf"],
+      }),
+    });
+    await expectStatus(res, 200, 404);
+  });
+
+  // ============================================
   // Admin Endpoints: Applications
   // ============================================
 

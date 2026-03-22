@@ -29,7 +29,7 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    const users = await app.db.select().from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
+    const users = await app.db.select({ id: authSchema.user.id, role: authSchema.user.role }).from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
       reply.status(401).send({ error: 'Unauthorized' });

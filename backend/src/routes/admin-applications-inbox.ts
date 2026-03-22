@@ -40,7 +40,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     // Fetch fresh user data from DB to ensure role is current
     const users = await app.db
-      .select()
+      .select({ id: authSchema.user.id, role: authSchema.user.role })
       .from(authSchema.user)
       .where(eq(authSchema.user.id, sessionRecord.userId))
       .limit(1);
@@ -103,8 +103,9 @@ export function register(app: App, fastify: FastifyInstance) {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const userRole = (auth.user?.role as string) || 'user';
+      if (userRole !== 'admin') {
+        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -153,8 +154,9 @@ export function register(app: App, fastify: FastifyInstance) {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const userRole = (auth.user?.role as string) || 'user';
+      if (userRole !== 'admin') {
+        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }
@@ -222,8 +224,9 @@ export function register(app: App, fastify: FastifyInstance) {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
 
-      if (auth.user.role !== 'admin') {
-        app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      const userRole = (auth.user?.role as string) || 'user';
+      if (userRole !== 'admin') {
+        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
         await reply.status(403).send({ error: 'Forbidden' });
         return;
       }

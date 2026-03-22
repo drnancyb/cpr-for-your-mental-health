@@ -32,7 +32,7 @@ export function register(app: App, fastify: FastifyInstance) {
       return null;
     }
 
-    const users = await app.db.select().from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
+    const users = await app.db.select({ id: authSchema.user.id, role: authSchema.user.role }).from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
       await reply.status(401).send({ error: 'Unauthorized' });
@@ -47,13 +47,7 @@ export function register(app: App, fastify: FastifyInstance) {
     const session = await requireAuth(request, {} as FastifyReply);
     if (!session) return false;
 
-    const user = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, session.user.id))
-      .limit(1);
-
-    return user.length > 0 && user[0].role === 'admin';
+    return session.user.role === 'admin';
   }
 
   // POST /api/upload/license-document - Upload a license document
