@@ -928,11 +928,12 @@ export default function ApplyScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: COLORS.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}
     >
       <Stack.Screen options={{ title: 'Apply as a Therapist', headerBackButtonDisplayMode: 'minimal' }} />
 
       {/* Progress bar */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>
             {stepTitle}

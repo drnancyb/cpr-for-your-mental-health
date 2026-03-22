@@ -110,6 +110,7 @@ export default function RootLayout() {
                       title: 'Apply as Therapist',
                       headerLargeTitle: false,
                       headerBackButtonDisplayMode: 'minimal',
+                      headerTransparent: false,
                     }}
                   />
                   <Stack.Screen
