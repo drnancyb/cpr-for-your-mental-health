@@ -27,8 +27,7 @@ export function register(app: App, fastify: FastifyInstance) {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              email: { type: 'string' },
-              role: { type: 'string' },
+              message: { type: 'string' },
             },
           },
           403: {
@@ -88,8 +87,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
       return {
         success: true,
-        email: user.email,
-        role: 'admin',
+        message: 'User promoted to admin',
       };
     }
   );

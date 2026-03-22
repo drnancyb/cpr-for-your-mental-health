@@ -20,7 +20,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (user.length === 0 || user[0].role !== 'admin') {
       app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
-      reply.status(403).send({ error: 'Forbidden' });
+      await reply.status(403).send({ error: 'Forbidden' });
       return null;
     }
 
@@ -179,7 +179,7 @@ export function register(app: App, fastify: FastifyInstance) {
           'Therapist saved successfully'
         );
 
-        return reply.status(201).send(response);
+        reply.status(201).send(response);
       } catch (error: any) {
         app.logger.error(
           { err: error, userId: session.user.id, therapistId: request.body.therapist_id },
@@ -421,7 +421,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Booking request created'
       );
 
-      return reply.status(201).send(response);
+      reply.status(201).send(response);
     }
   );
 

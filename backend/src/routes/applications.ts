@@ -188,7 +188,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Therapist application created'
       );
 
-      return reply.status(201).send(application[0]);
+      reply.status(201).send(application[0]);
     }
   );
 

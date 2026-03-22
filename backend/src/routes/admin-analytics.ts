@@ -20,7 +20,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (user.length === 0 || user[0].role !== 'admin') {
       app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
-      reply.status(403).send({ error: 'Forbidden' });
+      await reply.status(403).send({ error: 'Forbidden' });
       return null;
     }
 
@@ -374,7 +374,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
 
-      return reply.status(201).send(response);
+      reply.status(201).send(response);
     }
   );
 
@@ -617,7 +617,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Notification created'
       );
 
-      return reply.status(201).send({
+      reply.status(201).send({
         notification: notification[0],
         recipient_count: recipientCount,
       });
