@@ -33,7 +33,7 @@ async function seedAdminUser() {
     const existingAdmin = await app.db
       .select()
       .from(authSchema.user)
-      .where(eq(authSchema.user.email, 'admin@bctherapistfinder.ca'))
+      .where(eq(authSchema.user.email, 'admin@example.com'))
       .limit(1);
 
     if (existingAdmin.length === 0) {
@@ -43,8 +43,8 @@ async function seedAdminUser() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'admin@bctherapistfinder.ca',
-          password: 'Admin1234!',
+          email: 'admin@example.com',
+          password: 'Admin@Secure123!',
           name: 'Admin',
         }),
       });
@@ -53,7 +53,7 @@ async function seedAdminUser() {
         await app.db
           .update(authSchema.user)
           .set({ role: 'admin' })
-          .where(eq(authSchema.user.email, 'admin@bctherapistfinder.ca'));
+          .where(eq(authSchema.user.email, 'admin@example.com'));
         app.logger.info('Admin user created successfully');
       } else {
         app.logger.warn({ status: response.status }, 'Failed to create admin user via API');
