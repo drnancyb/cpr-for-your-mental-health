@@ -88,6 +88,12 @@ export function register(app: App, fastify: FastifyInstance) {
       schema: {
         description: 'Get all therapist applications (admin only)',
         tags: ['admin', 'applications'],
+        querystring: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['pending', 'approved', 'rejected'], description: 'Filter by application status' },
+          },
+        },
         response: {
           200: {
             description: 'List of therapist applications',
@@ -99,7 +105,7 @@ export function register(app: App, fastify: FastifyInstance) {
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: { status?: string } }>, reply: FastifyReply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
 
@@ -110,14 +116,28 @@ export function register(app: App, fastify: FastifyInstance) {
         return;
       }
 
-      app.logger.info({}, 'Fetching all therapist applications');
+      const { status } = request.query as { status?: string };
+      const validStatuses = ['pending', 'approved', 'rejected'];
+      const hasStatusFilter = status && validStatuses.includes(status);
 
-      const applications = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`);
+      if (hasStatusFilter) {
+        app.logger.info({ status }, 'Fetching therapist applications with status filter');
+      } else {
+        app.logger.info({}, 'Fetching all therapist applications');
+      }
 
-      app.logger.info({ count: applications.length }, 'Applications retrieved');
+      const applications = await (hasStatusFilter
+        ? app.db
+            .select()
+            .from(appSchema.therapistApplications)
+            .where(eq(appSchema.therapistApplications.status, status!))
+            .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`)
+        : app.db
+            .select()
+            .from(appSchema.therapistApplications)
+            .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`));
+
+      app.logger.info({ count: applications.length, filtered: hasStatusFilter }, 'Applications retrieved');
 
       return applications.map(formatApplication);
     }
