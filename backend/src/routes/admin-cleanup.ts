@@ -100,6 +100,7 @@ export function register(app: App, fastify: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const auth = await requireAdmin(request, reply);
+      if (!auth) return;
 
       app.logger.info(
         { adminId: auth.user.id },

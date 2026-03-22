@@ -1953,6 +1953,56 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
+  // Admin Endpoints: Login
+  // ============================================
+
+  test("POST /api/admin/login with missing email returns 400", async () => {
+    const res = await api("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: "somepassword",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("POST /api/admin/login with missing password returns 400", async () => {
+    const res = await api("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "admin@example.com",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("POST /api/admin/login with invalid credentials returns 401", async () => {
+    const res = await api("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "nonexistent@example.com",
+        password: "wrongpassword",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/admin/login with non-admin user returns 403", async () => {
+    const res = await api("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: authEmail,
+        password: "anypassword",
+      }),
+    });
+    await expectStatus(res, 401, 403);
+  });
+
+  // ============================================
   // Admin Endpoints: Cleanup
   // ============================================
 
