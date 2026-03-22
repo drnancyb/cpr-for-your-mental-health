@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Settings } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
@@ -33,7 +34,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading, signInWithEmail } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,9 +59,8 @@ export default function AdminLoginScreen() {
     }
     setLoading(true);
     try {
-      console.log('[AdminLogin] Calling signInWithEmail for:', email.trim());
-      await signInWithEmail(email.trim(), password);
-
+      console.log('[AdminLogin] POST /api/admin/login for:', email.trim());
+      await api.post('/api/admin/login', { email: email.trim(), password });
       console.log('[AdminLogin] Sign-in succeeded, navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {
