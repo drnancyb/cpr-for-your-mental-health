@@ -542,13 +542,14 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon?: 
 }
 
 function TagRow({ label, tags }: { label: string; tags: string[] }) {
+  const safeTags = Array.isArray(tags) ? tags : [];
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular', textTransform: 'uppercase', letterSpacing: 0.3 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {tags.map((tag) => (
+        {safeTags.map((tag) => (
           <View
             key={tag}
             style={{
@@ -563,7 +564,7 @@ function TagRow({ label, tags }: { label: string; tags: string[] }) {
             </Text>
           </View>
         ))}
-        {tags.length === 0 && (
+        {safeTags.length === 0 && (
           <Text style={{ fontSize: 13, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
             None listed
           </Text>

@@ -531,8 +531,9 @@ export default function AdminDashboard() {
     console.log('[Admin] Fetching bookings GET /api/admin/bookings');
     try {
       const data = await api.get<{ bookings: AdminBooking[] }>('/api/admin/bookings');
-      console.log('[Admin] Fetched', data.bookings.length, 'bookings');
-      setBookings(data.bookings);
+      const bookingsList = Array.isArray(data?.bookings) ? data.bookings : Array.isArray(data as unknown as AdminBooking[]) ? (data as unknown as AdminBooking[]) : [];
+      console.log('[Admin] Fetched', bookingsList.length, 'bookings');
+      setBookings(bookingsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load bookings.';
       console.error('[Admin] Fetch bookings error:', msg);

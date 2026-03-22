@@ -15,8 +15,7 @@ const COLORS = {
 export default function AdminLayout() {
   const { user, loading } = useAuth();
 
-  // If loading but we already have a user (e.g. set via setUser after admin login),
-  // skip the spinner and proceed — don't wait for fetchUser to re-confirm.
+  // Still loading AND no user yet — show spinner
   if (loading && !user) {
     console.log('[AdminLayout] Auth loading, no user yet — showing spinner');
     return (
@@ -26,13 +25,17 @@ export default function AdminLayout() {
     );
   }
 
+  // Done loading, no user at all — redirect to login
   if (!loading && !user) {
     console.log('[AdminLayout] No user — redirecting to /admin-login');
     return <Redirect href="/admin-login" />;
   }
 
-  if (!user || user.role !== 'admin') {
-    console.log('[AdminLayout] User is not admin (role:', user.role, ') — showing access denied');
+  // User is present but not admin — only show access denied when we are
+  // certain loading is complete (avoids flash while adminOverride is being set
+  // but the background fetchUser hasn't resolved yet)
+  if (user && user.role !== 'admin' && !loading) {
+    console.log('[AdminLayout] User is not admin (role:', user?.role, ') — showing access denied');
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
@@ -48,6 +51,17 @@ export default function AdminLayout() {
     );
   }
 
-  console.log('[AdminLayout] Admin user confirmed:', user.email);
-  return <Slot />;
+  // User is set and is admin (role check passes), or still loading but user is
+  // already present (admin override was set synchronously before fetchUser finished)
+  if (user?.role === 'admin') {
+    console.log('[AdminLayout] Admin user confirmed:', user.email);
+    return <Slot />;
+  }
+
+  // Fallback: still loading with a non-admin user present — keep spinner
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color={COLORS.primary} />
+    </View>
+  );
 }

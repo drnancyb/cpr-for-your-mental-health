@@ -1,11 +1,16 @@
 import Constants from 'expo-constants';
 import { authClient } from '@/lib/auth';
+import { getAdminToken } from '@/contexts/AuthContext';
 
 const BASE_URL =
   (Constants.expoConfig?.extra?.backendUrl as string) ||
   'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
 async function getToken(): Promise<string | null> {
+  // Admin-override token takes priority (set when logging in via /api/admin/login)
+  const adminToken = getAdminToken();
+  if (adminToken) return adminToken;
+  // Fall back to Better Auth session token for regular users
   try {
     const { data } = await authClient.getSession();
     if (data?.session?.token) return data.session.token;

@@ -4,6 +4,12 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { authClient } from '@/lib/auth';
 
+// Module-level storage for the admin token so api.ts can read it synchronously
+// without needing React context. Set when admin logs in, cleared on sign-out.
+let _adminToken: string | null = null;
+export function getAdminToken(): string | null { return _adminToken; }
+export function setAdminToken(token: string | null): void { _adminToken = token; }
+
 WebBrowser.maybeCompleteAuthSession();
 
 export interface AuthUser {
@@ -24,7 +30,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   fetchUser: (forceRefresh?: boolean) => Promise<void>;
   setUser: (user: AuthUser | null) => void;
-  setAdminUser: (user: AuthUser | null) => void;
+  setAdminUser: (user: AuthUser | null, token?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -47,8 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const user = adminOverride ?? sessionUser;
   const setUser = setSessionUser;
-  const setAdminUser = useCallback((u: AuthUser | null) => {
-    console.log('[AuthContext] setAdminUser called:', u?.email ?? 'null');
+  const setAdminUser = useCallback((u: AuthUser | null, token?: string) => {
+    console.log('[AuthContext] setAdminUser called:', u?.email ?? 'null', 'hasToken:', !!token);
+    setAdminToken(token ?? null);
     setAdminOverride(u);
   }, []);
 
@@ -173,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('[AuthContext] signOut API threw (clearing session locally anyway):', err);
     }
+    setAdminToken(null);
     setSessionUser(null);
     setAdminOverride(null);
     console.log('[AuthContext] signOut complete — user cleared');
