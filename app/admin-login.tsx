@@ -33,7 +33,7 @@ const COLORS = {
 };
 
 export default function AdminLoginScreen() {
-  const { user, loading: authLoading, signInWithEmail, fetchUser } = useAuth();
+  const { user, loading: authLoading, signInWithEmail } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,11 +61,7 @@ export default function AdminLoginScreen() {
       console.log('[AdminLogin] Calling signInWithEmail for:', email.trim());
       await signInWithEmail(email.trim(), password);
 
-      // Force a fresh session fetch so the latest role from the DB is reflected
-      console.log('[AdminLogin] Forcing fresh session refresh after sign-in');
-      await fetchUser(true);
-
-      console.log('[AdminLogin] Session refreshed, navigating to /admin');
+      console.log('[AdminLogin] Sign-in succeeded, navigating to /admin');
       router.replace('/admin');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';

@@ -41,6 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) {
+      setLoading(true);
+    }
     try {
       const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
       const sessionPromise = authClient.getSession(
@@ -55,6 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       setUser(null);
+    } finally {
+      if (forceRefresh) {
+        setLoading(false);
+      }
     }
   }, []);
 
