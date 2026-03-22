@@ -33,6 +33,7 @@ export function register(app: App, fastify: FastifyInstance) {
                   id: { type: 'string' },
                   email: { type: 'string' },
                   role: { type: 'string' },
+                  name: { type: 'string' },
                 },
               },
               token: { type: 'string' },
@@ -144,6 +145,7 @@ export function register(app: App, fastify: FastifyInstance) {
             id: user.id,
             email: user.email,
             role: user.role,
+            name: user.name,
           },
           token: sessionToken,
         };

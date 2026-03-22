@@ -2,6 +2,7 @@ import { createApplication } from "@specific-dev/framework";
 import { eq } from 'drizzle-orm';
 import * as appSchema from './db/schema/schema.js';
 import * as authSchema from './db/schema/auth-schema.js';
+import { hash } from 'bcryptjs';
 import * as therapistsRoutes from './routes/therapists.js';
 import * as applicationsRoutes from './routes/applications.js';
 import * as adminTherapistsRoutes from './routes/admin-therapists.js';
@@ -28,43 +29,81 @@ export type App = typeof app;
 // Enable Better Auth with email/password and OAuth
 app.withAuth();
 
-// Seed admin user on startup
+// Seed admin user on startup with proper password hashing
 async function seedAdminUser() {
-  app.logger.info('Checking if admin user exists');
+  app.logger.info('Seeding admin user with correct password');
   try {
-    const existingAdmin = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.email, 'admin@example.com'))
-      .limit(1);
+    const adminEmail = 'admin@example.com';
+    const adminPassword = 'Admin@Secure123!';
+    const adminId = 'admin-seed-001';
 
-    if (existingAdmin.length === 0) {
-      app.logger.info('Creating admin user');
-      // Use better-auth client to create user properly with hashed password
-      const response = await fetch(`http://localhost:${process.env.PORT || 3000}/api/auth/sign-up/email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'admin@example.com',
-          password: 'Admin@Secure123!',
-          name: 'Admin',
-        }),
+    // Hash password with bcrypt (10 salt rounds)
+    const hashedPassword = await hash(adminPassword, 10);
+
+    // Upsert user row
+    const now = new Date();
+    await app.db
+      .insert(authSchema.user)
+      .values({
+        id: adminId,
+        name: 'Admin',
+        email: adminEmail,
+        emailVerified: true,
+        role: 'admin',
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: authSchema.user.email,
+        set: {
+          role: 'admin',
+          emailVerified: true,
+          updatedAt: now,
+        },
       });
 
-      if (response.ok) {
-        await app.db
-          .update(authSchema.user)
-          .set({ role: 'admin' })
-          .where(eq(authSchema.user.email, 'admin@example.com'));
-        app.logger.info('Admin user created successfully');
-      } else {
-        app.logger.warn({ status: response.status }, 'Failed to create admin user via API');
-      }
-    } else {
-      app.logger.info('Admin user already exists');
+    app.logger.info({ email: adminEmail }, 'Admin user upserted');
+
+    // Get the actual user ID for this email (in case it existed before)
+    const adminUsers = await app.db
+      .select({ id: authSchema.user.id })
+      .from(authSchema.user)
+      .where(eq(authSchema.user.email, adminEmail))
+      .limit(1);
+
+    if (adminUsers.length === 0) {
+      app.logger.error({ email: adminEmail }, 'Failed to find admin user after upsert');
+      return;
     }
+
+    const actualAdminId = adminUsers[0].id;
+
+    // Delete any existing credential accounts for this user
+    await app.db
+      .delete(authSchema.account)
+      .where(
+        eq(authSchema.account.userId, actualAdminId)
+      );
+
+    app.logger.info({ userId: actualAdminId }, 'Deleted existing credential accounts');
+
+    // Insert fresh credential account with hashed password
+    await app.db.insert(authSchema.account).values({
+      id: `${actualAdminId}-credential`,
+      accountId: adminEmail,
+      providerId: 'credential',
+      userId: actualAdminId,
+      password: hashedPassword,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    app.logger.info(
+      { email: adminEmail, userId: actualAdminId },
+      'Admin credential account created with proper password hash'
+    );
   } catch (err) {
-    app.logger.warn({ err }, 'Admin user seeding skipped (will be created on first startup)');
+    app.logger.error({ err }, 'Failed to seed admin user');
   }
 }
 

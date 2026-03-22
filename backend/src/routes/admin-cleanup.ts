@@ -10,7 +10,7 @@ export function register(app: App, fastify: FastifyInstance) {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       app.logger.warn({}, 'No Bearer token in Authorization header');
-      reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
@@ -25,7 +25,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (sessions.length === 0) {
       app.logger.warn({}, 'Invalid session token');
-      reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
@@ -34,7 +34,7 @@ export function register(app: App, fastify: FastifyInstance) {
     // Check if session is expired
     if (new Date() > sessionRecord.expiresAt) {
       app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
-      reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
@@ -47,7 +47,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
-      reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
       return null;
     }
 
@@ -61,7 +61,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (auth.user.role !== 'admin') {
       app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      reply.status(403).send({ error: 'Forbidden' });
+      await reply.status(403).send({ error: 'Forbidden' });
       return null;
     }
 

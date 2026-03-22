@@ -10,7 +10,8 @@ export function register(app: App, fastify: FastifyInstance) {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       app.logger.warn({}, 'No Bearer token in Authorization header');
-      return reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
     }
 
     const token = authHeader.substring(7); // Remove "Bearer " prefix
@@ -24,7 +25,8 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (sessions.length === 0) {
       app.logger.warn({}, 'Invalid session token');
-      return reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
     }
 
     const sessionRecord = sessions[0];
@@ -32,7 +34,8 @@ export function register(app: App, fastify: FastifyInstance) {
     // Check if session is expired
     if (new Date() > sessionRecord.expiresAt) {
       app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
-      return reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
     }
 
     // Fetch user data
@@ -44,7 +47,8 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (users.length === 0) {
       app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
-      return reply.status(401).send({ error: 'Unauthorized' });
+      await reply.status(401).send({ error: 'Unauthorized' });
+      return null;
     }
 
     return { user: users[0], session: sessionRecord };
@@ -57,7 +61,8 @@ export function register(app: App, fastify: FastifyInstance) {
 
     if (auth.user.role !== 'admin') {
       app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      return reply.status(403).send({ error: 'Forbidden' });
+      await reply.status(403).send({ error: 'Forbidden' });
+      return null;
     }
 
     return auth;

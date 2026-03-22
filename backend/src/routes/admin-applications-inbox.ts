@@ -5,63 +5,7 @@ import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
-  // Helper to authenticate via Bearer token from Authorization header
-  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      app.logger.warn({}, 'No Bearer token in Authorization header');
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Look up the session by token
-    const sessions = await app.db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, token))
-      .limit(1);
-
-    if (sessions.length === 0) {
-      app.logger.warn({}, 'Invalid session token');
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-
-    const sessionRecord = sessions[0];
-
-    // Check if session is expired
-    if (new Date() > sessionRecord.expiresAt) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-
-    // Fetch user data
-    const users = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, sessionRecord.userId))
-      .limit(1);
-
-    if (users.length === 0) {
-      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-
-    return { user: users[0], session: sessionRecord };
-  }
-
-  // Helper to check admin role
-  async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-    const auth = await requireAuthBearer(request, reply);
-    if (!auth) return null;
-
-    if (auth.user.role !== 'admin') {
-      app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-
-    return auth;
-  }
+  const requireAuth = app.requireAuth();
 
   // Helper to format application response
   function formatApplication(app_record: any) {
@@ -109,8 +53,14 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAdmin(request, reply);
+      const session = await requireAuth(request, reply);
       if (!session) return;
+
+      if (session.user.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       app.logger.info({}, 'Fetching all therapist applications');
 
@@ -153,8 +103,14 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAdmin(request, reply);
+      const session = await requireAuth(request, reply);
       if (!session) return;
+
+      if (session.user.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       const { id } = request.params;
       app.logger.info({ applicationId: id }, 'Fetching application');
@@ -216,8 +172,14 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAdmin(request, reply);
+      const session = await requireAuth(request, reply);
       if (!session) return;
+
+      if (session.user.role !== 'admin') {
+        app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
+      }
 
       const { id } = request.params;
       const { status, rejection_reason } = request.body;
