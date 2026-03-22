@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,10 +15,31 @@ import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle, ChevronLeft, ChevronRight, Upload, X, FileText } from 'lucide-react-native';
+import { CheckCircle, ChevronLeft, ChevronRight, Upload, X, FileText, Save } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const DRAFT_KEY = 'apply_draft';
+
+interface DraftData {
+  name: string;
+  title: string;
+  gender: string;
+  yearsExperience: string;
+  location: string;
+  languages: string[];
+  bio: string;
+  sessionFee: string;
+  phone: string;
+  email: string;
+  websiteUrl: string;
+  specialties: string[];
+  therapyTypes: string[];
+  insurances: string[];
+  acceptingNewClients: boolean;
+}
 
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
@@ -406,6 +427,11 @@ export default function ApplyScreen() {
   const [step, setStep] = useState(1);
   const progressAnim = useRef(new Animated.Value(1 / 3)).current;
 
+  // Draft toast state
+  const [draftSaved, setDraftSaved] = useState(false);
+  const draftToastAnim = useRef(new Animated.Value(0)).current;
+  const draftToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Step 1 fields
   const [name, setName] = useState(user?.name ?? '');
   const [title, setTitle] = useState('');
@@ -429,6 +455,52 @@ export default function ApplyScreen() {
   const [licenseDocuments, setLicenseDocuments] = useState<string[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
+  // ── Draft helpers ──────────────────────────────────────────────────────────
+
+  const showDraftToast = useCallback(() => {
+    if (draftToastTimer.current) clearTimeout(draftToastTimer.current);
+    setDraftSaved(true);
+    Animated.sequence([
+      Animated.timing(draftToastAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1800),
+      Animated.timing(draftToastAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => setDraftSaved(false));
+    draftToastTimer.current = setTimeout(() => setDraftSaved(false), 2400);
+  }, [draftToastAnim]);
+
+  const saveDraft = useCallback(async (
+    fields: {
+      name: string; title: string; gender: string; yearsExperience: string;
+      location: string; languages: string[]; bio: string; sessionFee: string;
+      phone: string; email: string; websiteUrl: string; specialties: string[];
+      therapyTypes: string[]; insurances: string[]; acceptingNewClients: boolean;
+    }
+  ) => {
+    console.log('[Apply] Saving draft to AsyncStorage');
+    try {
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(fields));
+      showDraftToast();
+    } catch (e) {
+      console.error('[Apply] Failed to save draft:', e);
+    }
+  }, [showDraftToast]);
+
+  const handleSaveDraft = useCallback(() => {
+    console.log('[Apply] Save draft button pressed on step', step);
+    saveDraft({
+      name, title, gender, yearsExperience, location, languages,
+      bio, sessionFee, phone, email, websiteUrl, specialties,
+      therapyTypes, insurances, acceptingNewClients,
+    });
+  }, [
+    saveDraft, step,
+    name, title, gender, yearsExperience, location, languages,
+    bio, sessionFee, phone, email, websiteUrl, specialties,
+    therapyTypes, insurances, acceptingNewClients,
+  ]);
+
+  // ── Load existing application + draft on mount ─────────────────────────────
+
   useEffect(() => {
     if (!user) {
       setCheckingExisting(false);
@@ -446,14 +518,67 @@ export default function ApplyScreen() {
         if (app && app.id) {
           console.log('[Apply] Existing application found:', app.id, 'status:', app.status);
           setExisting(app);
+          // Don't load draft — user already has a submitted application
         } else {
-          console.log('[Apply] No existing application in response');
+          console.log('[Apply] No existing application — checking for saved draft');
+          AsyncStorage.getItem(DRAFT_KEY)
+            .then((raw) => {
+              if (!raw) return;
+              try {
+                const draft: DraftData = JSON.parse(raw);
+                console.log('[Apply] Draft found, pre-populating form fields');
+                if (draft.name) setName(draft.name);
+                if (draft.title) setTitle(draft.title);
+                if (draft.gender) setGender(draft.gender);
+                if (draft.yearsExperience) setYearsExperience(draft.yearsExperience);
+                if (draft.location) setLocation(draft.location);
+                if (draft.languages?.length) setLanguages(draft.languages);
+                if (draft.bio) setBio(draft.bio);
+                if (draft.sessionFee) setSessionFee(draft.sessionFee);
+                if (draft.phone) setPhone(draft.phone);
+                if (draft.email) setEmail(draft.email);
+                if (draft.websiteUrl) setWebsiteUrl(draft.websiteUrl);
+                if (draft.specialties?.length) setSpecialties(draft.specialties);
+                if (draft.therapyTypes?.length) setTherapyTypes(draft.therapyTypes);
+                if (draft.insurances?.length) setInsurances(draft.insurances);
+                if (typeof draft.acceptingNewClients === 'boolean') setAcceptingNewClients(draft.acceptingNewClients);
+              } catch (parseErr) {
+                console.warn('[Apply] Failed to parse draft:', parseErr);
+              }
+            })
+            .catch((e) => console.warn('[Apply] Failed to read draft:', e));
         }
       })
       .catch((e) => {
         const status = (e as { status?: number })?.status;
         if (status === 404) {
-          console.log('[Apply] No existing application found (404)');
+          console.log('[Apply] No existing application found (404) — checking for saved draft');
+          AsyncStorage.getItem(DRAFT_KEY)
+            .then((raw) => {
+              if (!raw) return;
+              try {
+                const draft: DraftData = JSON.parse(raw);
+                console.log('[Apply] Draft found, pre-populating form fields');
+                if (draft.name) setName(draft.name);
+                if (draft.title) setTitle(draft.title);
+                if (draft.gender) setGender(draft.gender);
+                if (draft.yearsExperience) setYearsExperience(draft.yearsExperience);
+                if (draft.location) setLocation(draft.location);
+                if (draft.languages?.length) setLanguages(draft.languages);
+                if (draft.bio) setBio(draft.bio);
+                if (draft.sessionFee) setSessionFee(draft.sessionFee);
+                if (draft.phone) setPhone(draft.phone);
+                if (draft.email) setEmail(draft.email);
+                if (draft.websiteUrl) setWebsiteUrl(draft.websiteUrl);
+                if (draft.specialties?.length) setSpecialties(draft.specialties);
+                if (draft.therapyTypes?.length) setTherapyTypes(draft.therapyTypes);
+                if (draft.insurances?.length) setInsurances(draft.insurances);
+                if (typeof draft.acceptingNewClients === 'boolean') setAcceptingNewClients(draft.acceptingNewClients);
+              } catch (parseErr) {
+                console.warn('[Apply] Failed to parse draft:', parseErr);
+              }
+            })
+            .catch((readErr) => console.warn('[Apply] Failed to read draft:', readErr));
         } else {
           console.error('[Apply] Error fetching application, status:', status, e instanceof Error ? e.message : e);
         }
@@ -592,6 +717,8 @@ export default function ApplyScreen() {
     try {
       const result = await api.post('/api/applications', payload);
       console.log('[Apply] Application submitted successfully:', result);
+      await AsyncStorage.removeItem(DRAFT_KEY);
+      console.log('[Apply] Draft cleared from AsyncStorage after successful submission');
       setSubmitted(true);
     } catch (e: unknown) {
       const status = (e as { status?: number })?.status;
@@ -1125,81 +1252,148 @@ export default function ApplyScreen() {
           paddingHorizontal: 20,
           paddingTop: 16,
           paddingBottom: insets.bottom + 16,
-          flexDirection: 'row',
-          gap: 12,
+          gap: 10,
           borderTopWidth: 1,
           borderTopColor: COLORS.border,
           boxShadow: '0 -2px 12px rgba(0,0,0,0.04)',
         }}
       >
-        {step > 1 && (
-          <AnimatedPressable onPress={handleBack} style={{ flex: 1 }}>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: COLORS.surfaceSecondary,
-                borderRadius: 14,
-                borderCurve: 'continuous',
-                paddingVertical: 15,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <ChevronLeft size={18} color={COLORS.textSecondary} />
-              <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>
-                Back
-              </Text>
-            </View>
-          </AnimatedPressable>
-        )}
-
-        {step < 3 ? (
-          <AnimatedPressable onPress={handleNext} style={{ flex: step > 1 ? 1 : undefined, width: step === 1 ? '100%' : undefined }}>
-            <View
-              style={{
-                backgroundColor: COLORS.primary,
-                borderRadius: 14,
-                borderCurve: 'continuous',
-                paddingVertical: 15,
-                paddingHorizontal: 24,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
-                Next
-              </Text>
-              <ChevronRight size={18} color="#fff" />
-            </View>
-          </AnimatedPressable>
-        ) : (
-          <AnimatedPressable onPress={handleSubmit} disabled={submitting} style={{ flex: 1 }}>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: COLORS.primary,
-                borderRadius: 14,
-                borderCurve: 'continuous',
-                paddingVertical: 15,
-                alignItems: 'center',
-                opacity: submitting ? 0.7 : 1,
-              }}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
-                  Submit application
+        {/* Primary row: Back + Next/Submit */}
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          {step > 1 && (
+            <AnimatedPressable onPress={handleBack} style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: COLORS.surfaceSecondary,
+                  borderRadius: 14,
+                  borderCurve: 'continuous',
+                  paddingVertical: 15,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <ChevronLeft size={18} color={COLORS.textSecondary} />
+                <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>
+                  Back
                 </Text>
-              )}
+              </View>
+            </AnimatedPressable>
+          )}
+
+          {step < 3 ? (
+            <AnimatedPressable onPress={handleNext} style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: COLORS.primary,
+                  borderRadius: 14,
+                  borderCurve: 'continuous',
+                  paddingVertical: 15,
+                  paddingHorizontal: 24,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
+                  Next
+                </Text>
+                <ChevronRight size={18} color="#fff" />
+              </View>
+            </AnimatedPressable>
+          ) : (
+            <AnimatedPressable onPress={handleSubmit} disabled={submitting} style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: COLORS.primary,
+                  borderRadius: 14,
+                  borderCurve: 'continuous',
+                  paddingVertical: 15,
+                  alignItems: 'center',
+                  opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
+                    Submit application
+                  </Text>
+                )}
+              </View>
+            </AnimatedPressable>
+          )}
+        </View>
+
+        {/* Save draft row — shown on steps 1 and 2 only */}
+        {step < 3 && (
+          <AnimatedPressable onPress={handleSaveDraft} scaleValue={0.97}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 10,
+                borderRadius: 12,
+                borderCurve: 'continuous',
+                backgroundColor: COLORS.primaryMuted,
+                borderWidth: 1,
+                borderColor: 'rgba(45, 122, 95, 0.12)',
+              }}
+            >
+              <Save size={15} color={COLORS.primary} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
+                Save progress
+              </Text>
             </View>
           </AnimatedPressable>
         )}
       </View>
+
+      {/* Draft saved toast */}
+      {draftSaved && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + (step < 3 ? 148 : 100),
+            alignSelf: 'center',
+            opacity: draftToastAnim,
+            transform: [
+              {
+                translateY: draftToastAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, 0],
+                }),
+              },
+            ],
+          }}
+          pointerEvents="none"
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 7,
+              backgroundColor: COLORS.text,
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+            }}
+          >
+            <CheckCircle size={15} color={COLORS.accent} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold' }}>
+              Draft saved
+            </Text>
+          </View>
+        </Animated.View>
+      )}
     </KeyboardAvoidingView>
   );
 }
