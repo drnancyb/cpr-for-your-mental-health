@@ -60,6 +60,13 @@ describe("API Integration Tests", () => {
     expect(data.therapists).toBeDefined();
   });
 
+  test("GET /api/therapists with slidingScale filter", async () => {
+    const res = await api("/api/therapists?slidingScale=true");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.therapists).toBeDefined();
+  });
+
   test("GET /api/therapists with multiple filters", async () => {
     const res = await api("/api/therapists?location=New York&gender=Female&therapy_type=CBT");
     await expectStatus(res, 200);
@@ -554,6 +561,33 @@ describe("API Integration Tests", () => {
       await expectStatus(res, 200);
       const data = await res.json();
       expect(Array.isArray(data) || Array.isArray(data.applications)).toBe(true);
+    }
+  });
+
+  test("GET /api/admin/applications with status filter 'pending'", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/applications?status=pending", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data)).toBe(true);
+    }
+  });
+
+  test("GET /api/admin/applications with status filter 'approved'", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/applications?status=approved", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data)).toBe(true);
+    }
+  });
+
+  test("GET /api/admin/applications with status filter 'rejected'", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/applications?status=rejected", adminToken);
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(Array.isArray(data)).toBe(true);
     }
   });
 

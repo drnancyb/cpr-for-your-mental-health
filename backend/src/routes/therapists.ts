@@ -55,6 +55,7 @@ export function register(app: App, fastify: FastifyInstance) {
             insurance: { type: 'string', description: 'Filter by insurance (array contains)' },
             search: { type: 'string', description: 'Search by name or bio (case-insensitive)' },
             sort: { type: 'string', enum: ['price_asc', 'price_desc'], description: 'Sort by session fee' },
+            slidingScale: { type: 'boolean', description: 'Filter by sliding scale availability' },
           },
         },
         response: {
@@ -84,6 +85,8 @@ export function register(app: App, fastify: FastifyInstance) {
                     phone: { type: 'string' },
                     email: { type: 'string' },
                     websiteUrl: { type: ['string', 'null'] },
+                    slidingScale: { type: 'boolean' },
+                    slidingScaleMinFee: { type: ['string', 'null'] },
                     createdAt: { type: 'string', format: 'date-time' },
                   },
                 },
@@ -104,6 +107,7 @@ export function register(app: App, fastify: FastifyInstance) {
           insurance?: string;
           search?: string;
           sort?: string;
+          slidingScale?: boolean | string;
         };
       }>,
       reply: FastifyReply
@@ -136,6 +140,11 @@ export function register(app: App, fastify: FastifyInstance) {
         conditions.push(
           sql`${schema.therapists.name} ILIKE ${'%' + request.query.search + '%'} OR ${schema.therapists.bio} ILIKE ${'%' + request.query.search + '%'}`
         );
+      }
+
+      if (request.query.slidingScale !== undefined) {
+        const slidingScaleValue = request.query.slidingScale === 'true' || request.query.slidingScale === true;
+        conditions.push(eq(schema.therapists.slidingScale, slidingScaleValue));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -198,6 +207,8 @@ export function register(app: App, fastify: FastifyInstance) {
               phone: { type: 'string' },
               email: { type: 'string' },
               websiteUrl: { type: ['string', 'null'] },
+              slidingScale: { type: 'boolean' },
+              slidingScaleMinFee: { type: ['string', 'null'] },
               createdAt: { type: 'string', format: 'date-time' },
             },
           },
@@ -342,6 +353,8 @@ export function register(app: App, fastify: FastifyInstance) {
               phone: { type: 'string' },
               email: { type: 'string' },
               websiteUrl: { type: ['string', 'null'] },
+              slidingScale: { type: 'boolean' },
+              slidingScaleMinFee: { type: ['string', 'null'] },
               createdAt: { type: 'string', format: 'date-time' },
               userId: { type: 'string' },
               licenseDocuments: { type: 'array', items: { type: 'string' } },
@@ -409,6 +422,8 @@ export function register(app: App, fastify: FastifyInstance) {
             email: { type: 'string' },
             website_url: { type: 'string' },
             license_documents: { type: 'array', items: { type: 'string' } },
+            sliding_scale: { type: 'boolean' },
+            sliding_scale_min_fee: { type: 'number' },
           },
         },
         response: {
@@ -433,6 +448,8 @@ export function register(app: App, fastify: FastifyInstance) {
               phone: { type: 'string' },
               email: { type: 'string' },
               websiteUrl: { type: ['string', 'null'] },
+              slidingScale: { type: 'boolean' },
+              slidingScaleMinFee: { type: ['string', 'null'] },
               createdAt: { type: 'string', format: 'date-time' },
               userId: { type: 'string' },
               licenseDocuments: { type: 'array', items: { type: 'string' } },
@@ -471,6 +488,8 @@ export function register(app: App, fastify: FastifyInstance) {
           email?: string;
           website_url?: string;
           license_documents?: string[];
+          sliding_scale?: boolean;
+          sliding_scale_min_fee?: number;
         };
       }>,
       reply: FastifyReply
@@ -512,6 +531,8 @@ export function register(app: App, fastify: FastifyInstance) {
       if (request.body.email !== undefined) updateData.email = request.body.email;
       if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
       if (request.body.license_documents !== undefined) updateData.licenseDocuments = request.body.license_documents;
+      if (request.body.sliding_scale !== undefined) updateData.slidingScale = request.body.sliding_scale;
+      if (request.body.sliding_scale_min_fee !== undefined) updateData.slidingScaleMinFee = request.body.sliding_scale_min_fee.toString();
 
       const updated = await app.db
         .update(schema.therapists)

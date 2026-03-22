@@ -24,6 +24,8 @@ export const therapists = pgTable(
     websiteUrl: text('website_url'),
     isPinned: boolean('is_pinned').notNull().default(false),
     licenseDocuments: text('license_documents').array().default([]),
+    slidingScale: boolean('sliding_scale').notNull().default(false),
+    slidingScaleMinFee: numeric('sliding_scale_min_fee'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
