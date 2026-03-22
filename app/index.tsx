@@ -73,6 +73,7 @@ export default function IndexScreen() {
     if (filters.specialty) params.set('specialty', filters.specialty);
     if (filters.therapy_type) params.set('therapy_type', filters.therapy_type);
     if (filters.insurance) params.set('insurance', filters.insurance);
+    if (filters.slidingScale) params.set('slidingScale', 'true');
     if (searchValue) params.set('search', searchValue);
     if (sortBy !== 'default') params.set('sort', sortBy);
 
@@ -98,12 +99,12 @@ export default function IndexScreen() {
       console.error('[Index] Fetch error:', msg);
       setError(msg);
     }
-  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.search, sortBy]);
+  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.slidingScale, filters.search, sortBy]);
 
   useEffect(() => {
     setLoading(true);
     fetchTherapists().finally(() => setLoading(false));
-  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, sortBy, fetchTherapists]);
+  }, [filters.location, filters.gender, filters.specialty, filters.therapy_type, filters.insurance, filters.slidingScale, sortBy, fetchTherapists]);
 
   const handleSearchChange = useCallback((text: string) => {
     updateFilter('search', text);

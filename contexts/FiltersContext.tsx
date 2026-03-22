@@ -7,6 +7,7 @@ export interface Filters {
   therapy_type: string | null;
   insurance: string | null;
   search: string;
+  slidingScale: boolean;
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -16,6 +17,7 @@ const DEFAULT_FILTERS: Filters = {
   therapy_type: null,
   insurance: null,
   search: '',
+  slidingScale: false,
 };
 
 interface FiltersContextValue {
@@ -54,7 +56,8 @@ export function FiltersProvider({ children }: { children: React.ReactNode }) {
     (filters.gender ? 1 : 0) +
     (filters.specialty ? 1 : 0) +
     (filters.therapy_type ? 1 : 0) +
-    (filters.insurance ? 1 : 0);
+    (filters.insurance ? 1 : 0) +
+    (filters.slidingScale ? 1 : 0);
 
   return (
     <FiltersContext.Provider value={{ filters, setFilters, updateFilter, clearFilters, activeFilterCount }}>

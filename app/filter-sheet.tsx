@@ -138,6 +138,7 @@ export default function FilterSheet() {
       therapy_type: null,
       insurance: null,
       search: localFilters.search,
+      slidingScale: false,
     };
     setLocalFilters(cleared);
   };
@@ -296,6 +297,19 @@ export default function FilterSheet() {
                 onSelect={() => toggle('insurance', ins)}
               />
             ))}
+          </View>
+
+          {/* Sliding Scale */}
+          <SectionHeader title="Fees" />
+          <View style={{ paddingHorizontal: 8 }}>
+            <SelectRow
+              label="Sliding Scale Available"
+              selected={localFilters.slidingScale}
+              onSelect={() => {
+                console.log('[FilterSheet] Toggle slidingScale:', !localFilters.slidingScale);
+                setLocalFilters(prev => ({ ...prev, slidingScale: !prev.slidingScale }));
+              }}
+            />
           </View>
         </ScrollView>
       )}

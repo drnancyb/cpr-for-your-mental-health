@@ -40,6 +40,8 @@ export interface Therapist {
   websiteUrl?: string;
   createdAt: string;
   is_pinned?: boolean;
+  slidingScale?: boolean;
+  slidingScaleMinFee?: number | null;
 }
 
 function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
@@ -87,6 +89,8 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
   const expDisplay = `${therapist.yearsExperience} yrs`;
   const initials = getInitials(therapist.name);
   const isPinned = therapist.is_pinned === true;
+  const hasSlidingScale = therapist.slidingScale === true;
+  const minFeeDisplay = therapist.slidingScaleMinFee != null ? `From $${Number(therapist.slidingScaleMinFee).toFixed(0)}/session` : null;
 
   const handlePress = () => {
     console.log('[TherapistCard] Pressed therapist card:', therapist.id, therapist.name);
@@ -273,30 +277,67 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
               borderTopColor: COLORS.divider,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <DollarSign size={13} color={COLORS.primary} />
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: COLORS.primary,
-                  fontFamily: 'DMSans_600SemiBold',
-                }}
-              >
-                {feeDisplay}
-              </Text>
+            <View style={{ gap: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <DollarSign size={13} color={COLORS.primary} />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: COLORS.primary,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  {feeDisplay}
+                </Text>
+              </View>
+              {minFeeDisplay ? (
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: COLORS.textSecondary,
+                    fontFamily: 'DMSans_400Regular',
+                    marginLeft: 17,
+                  }}
+                >
+                  {minFeeDisplay}
+                </Text>
+              ) : null}
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Clock size={13} color={COLORS.textTertiary} />
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: COLORS.textSecondary,
-                  fontFamily: 'DMSans_400Regular',
-                }}
-              >
-                {expDisplay}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {hasSlidingScale ? (
+                <View
+                  style={{
+                    backgroundColor: '#E8F5E9',
+                    borderRadius: 6,
+                    paddingHorizontal: 7,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '600',
+                      color: COLORS.success,
+                      fontFamily: 'DMSans_600SemiBold',
+                    }}
+                  >
+                    Sliding Scale
+                  </Text>
+                </View>
+              ) : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Clock size={13} color={COLORS.textTertiary} />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: COLORS.textSecondary,
+                    fontFamily: 'DMSans_400Regular',
+                  }}
+                >
+                  {expDisplay}
+                </Text>
+              </View>
             </View>
           </View>
         </View>

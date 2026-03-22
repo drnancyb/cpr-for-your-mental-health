@@ -294,6 +294,8 @@ export default function TherapistDetailScreen() {
   const insurances = Array.isArray(therapist.insurances) ? therapist.insurances : [];
   const langDisplay = `${languages.length}`;
   const acceptingText = therapist.acceptingNewClients ? 'Accepting new clients' : 'Not accepting clients';
+  const hasSlidingScale = therapist.slidingScale === true;
+  const minFeeDisplay = therapist.slidingScaleMinFee != null ? `From $${Number(therapist.slidingScaleMinFee).toFixed(0)}/session` : null;
 
   const bookmarkIcon = savedId
     ? <BookmarkCheck size={22} color={COLORS.primary} />
@@ -419,31 +421,58 @@ export default function TherapistDetailScreen() {
           </View>
 
           {/* Accepting badge */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-              borderRadius: 20,
-              backgroundColor: therapist.acceptingNewClients ? '#E8F5E9' : COLORS.surfaceSecondary,
-            }}
-          >
-            <CheckCircle
-              size={14}
-              color={therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary}
-            />
-            <Text
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <View
               style={{
-                fontSize: 13,
-                fontWeight: '600',
-                color: therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary,
-                fontFamily: 'DMSans_600SemiBold',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 20,
+                backgroundColor: therapist.acceptingNewClients ? '#E8F5E9' : COLORS.surfaceSecondary,
               }}
             >
-              {acceptingText}
-            </Text>
+              <CheckCircle
+                size={14}
+                color={therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary}
+              />
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary,
+                  fontFamily: 'DMSans_600SemiBold',
+                }}
+              >
+                {acceptingText}
+              </Text>
+            </View>
+            {hasSlidingScale ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  backgroundColor: '#E8F5E9',
+                }}
+              >
+                <DollarSign size={14} color={COLORS.success} />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: COLORS.success,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  Sliding Scale
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -453,7 +482,7 @@ export default function TherapistDetailScreen() {
             <StatColumn
               icon={<DollarSign size={20} color={COLORS.primary} />}
               value={feeDisplay}
-              label="Per session"
+              label={minFeeDisplay ?? 'Per session'}
             />
             <StatColumn
               icon={<Clock size={20} color={COLORS.primary} />}

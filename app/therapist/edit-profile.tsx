@@ -44,6 +44,8 @@ interface TherapistProfile {
   sessionFee: number | string;
   yearsExperience: number | string;
   acceptingNewClients: boolean;
+  slidingScale: boolean;
+  slidingScaleMinFee: number | string;
   specialties: string[];
   therapyTypes: string[];
   insurances: string[];
@@ -63,6 +65,8 @@ const EMPTY_PROFILE: TherapistProfile = {
   sessionFee: '',
   yearsExperience: '',
   acceptingNewClients: false,
+  slidingScale: false,
+  slidingScaleMinFee: '',
   specialties: [],
   therapyTypes: [],
   insurances: [],
@@ -288,6 +292,8 @@ export default function EditProfileScreen() {
           sessionFee: data.sessionFee != null ? String(data.sessionFee) : '',
           yearsExperience: data.yearsExperience != null ? String(data.yearsExperience) : '',
           acceptingNewClients: data.acceptingNewClients ?? false,
+          slidingScale: data.slidingScale ?? false,
+          slidingScaleMinFee: data.slidingScaleMinFee != null ? String(data.slidingScaleMinFee) : '',
           specialties: Array.isArray(data.specialties) ? data.specialties : [],
           therapyTypes: Array.isArray(data.therapyTypes) ? data.therapyTypes : [],
           insurances: Array.isArray(data.insurances) ? data.insurances : [],
@@ -313,6 +319,7 @@ export default function EditProfileScreen() {
 
     const sessionFeeNum = form.sessionFee !== '' ? Number(form.sessionFee) : null;
     const yearsExpNum = form.yearsExperience !== '' ? Number(form.yearsExperience) : null;
+    const slidingScaleMinFeeNum = form.slidingScale && form.slidingScaleMinFee !== '' ? Number(form.slidingScaleMinFee) : null;
 
     const payload = {
       name: form.name,
@@ -327,6 +334,8 @@ export default function EditProfileScreen() {
       sessionFee: sessionFeeNum,
       yearsExperience: yearsExpNum,
       acceptingNewClients: form.acceptingNewClients,
+      slidingScale: form.slidingScale,
+      slidingScaleMinFee: slidingScaleMinFeeNum,
       specialties: form.specialties,
       therapyTypes: form.therapyTypes,
       insurances: form.insurances,
@@ -546,6 +555,7 @@ export default function EditProfileScreen() {
               paddingVertical: 13,
               borderWidth: 1,
               borderColor: form.acceptingNewClients ? 'rgba(52, 168, 83, 0.2)' : COLORS.border,
+              marginBottom: 10,
             }}
           >
             <View style={{ flex: 1 }}>
@@ -566,6 +576,54 @@ export default function EditProfileScreen() {
               thumbColor="#ffffff"
             />
           </View>
+
+          {/* Sliding scale toggle */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: COLORS.surfaceSecondary,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              borderWidth: 1,
+              borderColor: form.slidingScale ? 'rgba(52, 168, 83, 0.2)' : COLORS.border,
+              marginBottom: form.slidingScale ? 10 : 0,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text, fontFamily: 'DMSans_600SemiBold' }}>
+                Sliding Scale
+              </Text>
+              <Text style={{ fontSize: 12, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                Offer reduced fees based on client income
+              </Text>
+            </View>
+            <Switch
+              value={form.slidingScale}
+              onValueChange={(v) => {
+                console.log('[EditProfile] Toggle slidingScale:', v);
+                setField('slidingScale', v);
+              }}
+              trackColor={{ false: '#ccc', true: '#4CAF50' }}
+              thumbColor="#ffffff"
+            />
+          </View>
+
+          {/* Minimum fee — only shown when sliding scale is on */}
+          {form.slidingScale ? (
+            <View style={{ marginBottom: 0 }}>
+              <FieldLabel label="Minimum Fee (CAD)" optional />
+              <StyledInput
+                value={String(form.slidingScaleMinFee)}
+                onChangeText={(v) => setField('slidingScaleMinFee', v)}
+                placeholder="e.g. 60"
+                keyboardType="numeric"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          ) : null}
         </View>
 
         {/* Specialties & Therapy Types */}
