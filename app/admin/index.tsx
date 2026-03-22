@@ -855,7 +855,7 @@ export default function AdminDashboard() {
                 >
                   <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.primary, fontFamily: 'DMSans_700Bold' }}>
-                      {item.name.charAt(0).toUpperCase()}
+                      {(item.name ?? '?').charAt(0).toUpperCase()}
                     </Text>
                   </View>
                   <View style={{ flex: 1, gap: 3 }}>
@@ -1002,10 +1002,10 @@ export default function AdminDashboard() {
             const roleColor = item.role === 'therapist' ? COLORS.primary : item.role === 'client' ? '#7C3AED' : COLORS.textSecondary;
             const statusColor = item.status === 'resolved' ? COLORS.success : item.status === 'in_progress' ? '#3B82F6' : COLORS.warning;
             const statusBg = item.status === 'resolved' ? '#D1FAE5' : item.status === 'in_progress' ? '#DBEAFE' : '#FEF3C7';
-            const statusLabel = item.status === 'in_progress' ? 'In Progress' : item.status.charAt(0).toUpperCase() + item.status.slice(1);
+            const statusLabel = item.status === 'in_progress' ? 'In Progress' : (item.status ?? '').charAt(0).toUpperCase() + (item.status ?? '').slice(1);
             const inProgressLoading = supportActionLoading === item.id + '_in_progress';
             const resolvedLoading = supportActionLoading === item.id + '_resolved';
-            const msgPreview = item.message.length > 80 ? item.message.slice(0, 80) + '…' : item.message;
+            const msgPreview = (item.message ?? '').length > 80 ? (item.message ?? '').slice(0, 80) + '…' : (item.message ?? '');
 
             return (
               <AnimatedPressable
@@ -1591,7 +1591,7 @@ function MainTabButton({ label, active, onPress }: { label: string; active: bool
 }
 
 function TherapistRow({ therapist, onEdit, onDelete }: { therapist: Therapist; onEdit: () => void; onDelete: () => void }) {
-  const initials = therapist.name.split(' ').slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
+  const initials = (therapist.name ?? '').split(' ').slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
   return (
     <View style={{ backgroundColor: COLORS.surface, marginHorizontal: 16, marginBottom: 10, borderRadius: 16, borderCurve: 'continuous', padding: 14, borderWidth: 1, borderColor: COLORS.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
