@@ -1951,4 +1951,34 @@ describe("API Integration Tests", () => {
     });
     await expectStatus(res, 400, 401, 404);
   });
+
+  // ============================================
+  // Admin Endpoints: Cleanup
+  // ============================================
+
+  test("DELETE /api/admin/cleanup/therapists returns 401 without auth", async () => {
+    const res = await api("/api/admin/cleanup/therapists", {
+      method: "DELETE",
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("DELETE /api/admin/cleanup/therapists returns 403 for non-admin user", async () => {
+    const res = await authenticatedApi("/api/admin/cleanup/therapists", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 403);
+  });
+
+  test("DELETE /api/admin/cleanup/therapists cleans up therapists (admin positive case)", async () => {
+    if (adminToken) {
+      const res = await authenticatedApi("/api/admin/cleanup/therapists", adminToken, {
+        method: "DELETE",
+      });
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.deleted).toBeDefined();
+    }
+  });
 });

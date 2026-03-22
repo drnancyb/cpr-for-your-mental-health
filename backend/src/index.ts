@@ -13,6 +13,7 @@ import * as adminBootstrapRoutes from './routes/admin-bootstrap.js';
 import * as adminLookupRoutes from './routes/admin-lookup.js';
 import * as contactRoutes from './routes/contact.js';
 import * as adminApplicationsInboxRoutes from './routes/admin-applications-inbox.js';
+import * as adminCleanupRoutes from './routes/admin-cleanup.js';
 import * as uploadRoutes from './routes/upload.js';
 
 const schema = { ...appSchema, ...authSchema };
@@ -151,6 +152,7 @@ adminBootstrapRoutes.register(app, app.fastify);
 adminLookupRoutes.register(app, app.fastify);
 contactRoutes.register(app, app.fastify);
 adminApplicationsInboxRoutes.register(app, app.fastify);
+adminCleanupRoutes.register(app, app.fastify);
 uploadRoutes.register(app, app.fastify);
 
 // Health check endpoint

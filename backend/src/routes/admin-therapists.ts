@@ -5,27 +5,67 @@ import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
 
 export function register(app: App, fastify: FastifyInstance) {
-  const requireAuth = app.requireAuth();
+  // Helper to authenticate via Bearer token from Authorization header
+  async function requireAuthBearer(request: FastifyRequest, reply: FastifyReply) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      app.logger.warn({}, 'No Bearer token in Authorization header');
+      reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+    // Look up the session by token
+    const sessions = await app.db
+      .select()
+      .from(authSchema.session)
+      .where(eq(authSchema.session.token, token))
+      .limit(1);
+
+    if (sessions.length === 0) {
+      app.logger.warn({}, 'Invalid session token');
+      reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    const sessionRecord = sessions[0];
+
+    // Check if session is expired
+    if (new Date() > sessionRecord.expiresAt) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'Session token expired');
+      reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    // Fetch user data
+    const users = await app.db
+      .select()
+      .from(authSchema.user)
+      .where(eq(authSchema.user.id, sessionRecord.userId))
+      .limit(1);
+
+    if (users.length === 0) {
+      app.logger.warn({ userId: sessionRecord.userId }, 'User not found for valid session');
+      reply.status(401).send({ error: 'Unauthorized' });
+      return null;
+    }
+
+    return { user: users[0], session: sessionRecord };
+  }
 
   // Helper to check admin role
   async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-    const session = await requireAuth(request, reply);
-    if (!session) return null;
+    const auth = await requireAuthBearer(request, reply);
+    if (!auth) return null;
 
-    const user = await app.db
-      .select()
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, session.user.id))
-      .limit(1);
-
-    if (user.length === 0 || user[0].role !== 'admin') {
-      app.logger.warn({ userId: session.user.id }, 'Non-admin user attempted admin access');
-      const err = new Error('Forbidden');
-      (err as any).statusCode = 403;
-      throw err;
+    if (auth.user.role !== 'admin') {
+      app.logger.warn({ userId: auth.user.id }, 'Non-admin user attempted admin access');
+      reply.status(403).send({ error: 'Forbidden' });
+      return null;
     }
 
-    return session;
+    return auth;
   }
 
   // POST /api/admin/therapists - Create new therapist
