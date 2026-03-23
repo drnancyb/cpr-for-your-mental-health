@@ -147,8 +147,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ adminId: auth.user.id }, 'Fetching analytics');
@@ -291,8 +290,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ adminId: auth.user.id }, 'Fetching subscriptions');
@@ -371,8 +369,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info(
@@ -479,8 +476,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ subscriptionId: request.params.id }, 'Updating subscription');
@@ -573,8 +569,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ adminId: auth.user.id }, 'Fetching notifications');
@@ -632,8 +627,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ target: request.body.target }, 'Creating notification');
@@ -726,8 +720,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info({ adminId: auth.user.id }, 'Fetching all content');
@@ -791,8 +784,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.code(403).send({ error: 'Forbidden' });
-        return;
+        return reply.code(403).send({ error: 'Forbidden' });
       }
 
       // Validate value is provided

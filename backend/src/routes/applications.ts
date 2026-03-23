@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import * as appSchema from '../db/schema/schema.js';
 import * as authSchema from '../db/schema/auth-schema.js';
 import type { App } from '../index.js';
@@ -130,19 +130,25 @@ export function register(app: App, fastify: FastifyInstance) {
         'Creating therapist application'
       );
 
-      // Check if user already has an application
-      const existingApp = await app.db
+      // Check if user already has an active application (pending or approved)
+      // Users with rejected or withdrawn applications can resubmit
+      const existingActiveApp = await app.db
         .select()
         .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.userId, auth.user.id))
+        .where(
+          and(
+            eq(appSchema.therapistApplications.userId, auth.user.id),
+            inArray(appSchema.therapistApplications.status, ['pending', 'approved'])
+          )
+        )
         .limit(1);
 
-      if (existingApp.length > 0) {
+      if (existingActiveApp.length > 0) {
         app.logger.warn(
           { userId: auth.user.id },
-          'User already has an application'
+          'User already has an active application'
         );
-        return reply.status(409).send({ error: 'User already has an application' });
+        return reply.status(409).send({ error: 'User already has an active application' });
       }
 
       const application = await app.db
