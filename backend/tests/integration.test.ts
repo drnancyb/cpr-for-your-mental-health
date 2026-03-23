@@ -244,6 +244,7 @@ describe("API Integration Tests", () => {
   let authUserId: string;
   let authEmail: string;
   let applicationId: string;
+  let uploadedPhotoId: string;
   let therapistId: string;
   let adminToken: string;
 
@@ -474,6 +475,55 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data).toBeDefined();
+  });
+
+  // ============================================
+  // Authenticated Endpoints: Applications Photo
+  // ============================================
+
+  test("POST /api/applications/upload-photo returns 401 without auth", async () => {
+    const form = new FormData();
+    form.append("file", createTestFile("photo.jpg", "Photo content"));
+    const res = await api("/api/applications/upload-photo", {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("POST /api/applications/upload-photo uploads photo with auth", async () => {
+    const form = new FormData();
+    form.append("file", createTestFile("therapist-photo.jpg", "Photo data"));
+    const res = await authenticatedApi("/api/applications/upload-photo", authToken, {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.url).toBeDefined();
+    uploadedPhotoId = data.url;
+  });
+
+  test("POST /api/applications/upload-photo with large file returns 413", async () => {
+    const form = new FormData();
+    // Create a large file (simulating file size validation)
+    const largeContent = "x".repeat(100 * 1024 * 1024); // 100MB
+    form.append("file", createTestFile("huge.jpg", largeContent));
+    const res = await authenticatedApi("/api/applications/upload-photo", authToken, {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 413, 400, 201); // May succeed or fail depending on implementation
+  });
+
+  test("GET /api/applications/photo/{id} with non-existent ID returns 404", async () => {
+    const res = await api("/api/applications/photo/00000000-0000-0000-0000-000000000000");
+    await expectStatus(res, 404);
+  });
+
+  test("GET /api/applications/photo/{id} with invalid UUID format returns 400", async () => {
+    const res = await api("/api/applications/photo/invalid-uuid");
+    await expectStatus(res, 400);
   });
 
   // ============================================

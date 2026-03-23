@@ -29,6 +29,9 @@ export type App = typeof app;
 // Enable Better Auth with email/password and OAuth
 app.withAuth();
 
+// Enable storage for file uploads
+app.withStorage();
+
 // Seed admin user on startup with proper password hashing
 async function seedAdminUser() {
   app.logger.info('Seeding admin user');

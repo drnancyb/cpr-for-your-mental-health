@@ -303,6 +303,7 @@ export const uploadedDocuments = pgTable(
     filename: text('filename').notNull(),
     mimeType: text('mime_type').notNull(),
     fileData: text('file_data').notNull(),
+    storageKey: text('storage_key'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
