@@ -74,7 +74,6 @@ async function uploadLicenseDocument(
 
   const json = await res.json();
   console.log('[Apply] Upload success, url:', json.url);
-  // Attach base64 as fallback display name via url
   return json.url as string;
 }
 
@@ -426,6 +425,7 @@ export default function ApplyScreen() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const progressAnim = useRef(new Animated.Value(1 / 3)).current;
+  const scrollRef = useRef<ScrollView>(null);
 
   // Draft toast state
   const [draftSaved, setDraftSaved] = useState(false);
@@ -673,19 +673,21 @@ export default function ApplyScreen() {
     if (step === 1) {
       const err = validateStep1();
       if (err) { setError(err); return; }
-      console.log('[Apply] Step 1 validated, advancing to step 2');
+      console.log('[Apply] Next pressed — step 1 validated, advancing to step 2');
     } else if (step === 2) {
       const err = validateStep2();
       if (err) { setError(err); return; }
-      console.log('[Apply] Step 2 validated, advancing to step 3');
+      console.log('[Apply] Next pressed — step 2 validated, advancing to step 3');
     }
     setStep((s) => s + 1);
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
   };
 
   const handleBack = () => {
-    console.log('[Apply] Going back to step', step - 1);
+    console.log('[Apply] Back pressed — going to step', step - 1);
     setError(null);
     setStep((s) => s - 1);
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
   };
 
   const handleSubmit = async () => {
@@ -712,7 +714,7 @@ export default function ApplyScreen() {
       license_documents: licenseDocuments,
     };
 
-    console.log('[Apply] Submitting application:', JSON.stringify(payload));
+    console.log('[Apply] Submit application pressed:', JSON.stringify(payload));
     setSubmitting(true);
     try {
       const result = await api.post('/api/applications', payload);
@@ -957,8 +959,10 @@ export default function ApplyScreen() {
         </View>
       </View>
 
+      {/* Scrollable form content */}
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 120, gap: 20 }}
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 200, gap: 20 }}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -1237,12 +1241,9 @@ export default function ApplyScreen() {
             </Text>
           </View>
         ) : null}
-
-        {/* Disclaimer */}
-        <DisclaimerBanner />
       </ScrollView>
 
-      {/* Bottom navigation */}
+      {/* Pinned bottom area: disclaimer + nav buttons */}
       <View
         style={{
           position: 'absolute',
@@ -1250,111 +1251,120 @@ export default function ApplyScreen() {
           left: 0,
           right: 0,
           backgroundColor: COLORS.surface,
-          paddingHorizontal: 20,
-          paddingTop: 16,
-          paddingBottom: insets.bottom + 16,
-          gap: 10,
           borderTopWidth: 1,
           borderTopColor: COLORS.border,
           boxShadow: '0 -2px 12px rgba(0,0,0,0.04)',
         }}
       >
-        {/* Primary row: Back + Next/Submit */}
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          {step > 1 && (
-            <AnimatedPressable onPress={handleBack} style={{ flex: 1 }}>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: COLORS.surfaceSecondary,
-                  borderRadius: 14,
-                  borderCurve: 'continuous',
-                  paddingVertical: 15,
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  gap: 6,
-                }}
-              >
-                <ChevronLeft size={18} color={COLORS.textSecondary} />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>
-                  Back
-                </Text>
-              </View>
-            </AnimatedPressable>
-          )}
+        {/* Disclaimer banner pinned above buttons */}
+        <DisclaimerBanner />
 
-          {step < 3 ? (
-            <AnimatedPressable onPress={handleNext} style={{ flex: 1 }}>
+        {/* Navigation buttons */}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 16,
+            gap: 10,
+          }}
+        >
+          {/* Primary row: Back + Next/Submit */}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            {step > 1 && (
+              <AnimatedPressable onPress={handleBack} style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: COLORS.surfaceSecondary,
+                    borderRadius: 14,
+                    borderCurve: 'continuous',
+                    paddingVertical: 15,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <ChevronLeft size={18} color={COLORS.textSecondary} />
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textSecondary, fontFamily: 'DMSans_600SemiBold' }}>
+                    Back
+                  </Text>
+                </View>
+              </AnimatedPressable>
+            )}
+
+            {step < 3 ? (
+              <AnimatedPressable onPress={handleNext} style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: COLORS.primary,
+                    borderRadius: 14,
+                    borderCurve: 'continuous',
+                    paddingVertical: 15,
+                    paddingHorizontal: 24,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
+                    Next
+                  </Text>
+                  <ChevronRight size={18} color="#fff" />
+                </View>
+              </AnimatedPressable>
+            ) : (
+              <AnimatedPressable onPress={handleSubmit} disabled={submitting} style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: COLORS.primary,
+                    borderRadius: 14,
+                    borderCurve: 'continuous',
+                    paddingVertical: 15,
+                    alignItems: 'center',
+                    opacity: submitting ? 0.7 : 1,
+                  }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
+                      Submit application
+                    </Text>
+                  )}
+                </View>
+              </AnimatedPressable>
+            )}
+          </View>
+
+          {/* Save draft row — shown on steps 1 and 2 only */}
+          {step < 3 && (
+            <AnimatedPressable onPress={handleSaveDraft} scaleValue={0.97}>
               <View
                 style={{
-                  flex: 1,
-                  backgroundColor: COLORS.primary,
-                  borderRadius: 14,
-                  borderCurve: 'continuous',
-                  paddingVertical: 15,
-                  paddingHorizontal: 24,
-                  alignItems: 'center',
                   flexDirection: 'row',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
-                  Next
-                </Text>
-                <ChevronRight size={18} color="#fff" />
-              </View>
-            </AnimatedPressable>
-          ) : (
-            <AnimatedPressable onPress={handleSubmit} disabled={submitting} style={{ flex: 1 }}>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: COLORS.primary,
-                  borderRadius: 14,
+                  paddingVertical: 10,
+                  borderRadius: 12,
                   borderCurve: 'continuous',
-                  paddingVertical: 15,
-                  alignItems: 'center',
-                  opacity: submitting ? 0.7 : 1,
+                  backgroundColor: COLORS.primaryMuted,
+                  borderWidth: 1,
+                  borderColor: 'rgba(45, 122, 95, 0.12)',
                 }}
               >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>
-                    Submit application
-                  </Text>
-                )}
+                <Save size={15} color={COLORS.primary} />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
+                  Save progress
+                </Text>
               </View>
             </AnimatedPressable>
           )}
         </View>
-
-        {/* Save draft row — shown on steps 1 and 2 only */}
-        {step < 3 && (
-          <AnimatedPressable onPress={handleSaveDraft} scaleValue={0.97}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                paddingVertical: 10,
-                borderRadius: 12,
-                borderCurve: 'continuous',
-                backgroundColor: COLORS.primaryMuted,
-                borderWidth: 1,
-                borderColor: 'rgba(45, 122, 95, 0.12)',
-              }}
-            >
-              <Save size={15} color={COLORS.primary} />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
-                Save progress
-              </Text>
-            </View>
-          </AnimatedPressable>
-        )}
       </View>
 
       {/* Draft saved toast */}
@@ -1362,7 +1372,7 @@ export default function ApplyScreen() {
         <Animated.View
           style={{
             position: 'absolute',
-            bottom: insets.bottom + (step < 3 ? 148 : 100),
+            bottom: insets.bottom + (step < 3 ? 180 : 130),
             alignSelf: 'center',
             opacity: draftToastAnim,
             transform: [
@@ -1373,26 +1383,19 @@ export default function ApplyScreen() {
                 }),
               },
             ],
+            backgroundColor: COLORS.text,
+            borderRadius: 20,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
           }}
-          pointerEvents="none"
         >
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 7,
-              backgroundColor: COLORS.text,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-            }}
-          >
-            <CheckCircle size={15} color={COLORS.accent} />
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold' }}>
-              Draft saved
-            </Text>
-          </View>
+          <CheckCircle size={14} color="#fff" />
+          <Text style={{ fontSize: 13, color: '#fff', fontFamily: 'DMSans_600SemiBold', fontWeight: '600' }}>
+            Draft saved
+          </Text>
         </Animated.View>
       )}
     </KeyboardAvoidingView>
