@@ -207,7 +207,17 @@ async function cleanupApplicationStatuses() {
       .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
 
     if (invalidApps.length > 0) {
-      app.logger.info({ count: invalidApps.length }, 'Found invalid status values, migrating to pending');
+      // Group invalid statuses to show what values exist
+      const uniqueStatuses = new Set(invalidApps.map(app => app.status));
+      const statusCounts: Record<string, number> = {};
+      uniqueStatuses.forEach(status => {
+        statusCounts[status] = invalidApps.filter(app => app.status === status).length;
+      });
+
+      app.logger.info(
+        { count: invalidApps.length, invalidStatuses: statusCounts },
+        'Found invalid status values, migrating to pending'
+      );
 
       // Update all invalid status values to 'pending'
       await app.db
@@ -215,7 +225,10 @@ async function cleanupApplicationStatuses() {
         .set({ status: 'pending' })
         .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
 
-      app.logger.info({ count: invalidApps.length }, 'Invalid statuses migrated successfully');
+      app.logger.info(
+        { count: invalidApps.length, invalidStatuses: statusCounts },
+        'Invalid statuses migrated successfully'
+      );
     } else {
       app.logger.info('All therapist_applications have valid status values');
     }

@@ -147,7 +147,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -291,7 +291,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -371,7 +371,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -422,7 +422,8 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
 
-      return reply.status(201).send(response);
+      reply.status(201);
+      return response;
     }
   );
 
@@ -478,7 +479,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -572,7 +573,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -631,7 +632,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -686,10 +687,11 @@ export function register(app: App, fastify: FastifyInstance) {
         'Notification created'
       );
 
-      return reply.status(201).send({
+      reply.status(201);
+      return {
         notification: notification[0],
         recipient_count: recipientCount,
-      });
+      };
     }
   );
 
@@ -724,7 +726,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
@@ -789,7 +791,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
+        await reply.code(403).send({ error: 'Forbidden' });
         return;
       }
 
