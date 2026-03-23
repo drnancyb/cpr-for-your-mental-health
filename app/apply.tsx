@@ -28,7 +28,7 @@ interface DraftData {
   title: string;
   gender: string;
   yearsExperience: string;
-  location: string;
+  locations: string[];
   languages: string[];
   bio: string;
   sessionFee: string;
@@ -104,9 +104,30 @@ const COLORS = {
   divider: 'rgba(45, 122, 95, 0.05)',
 };
 
-const BC_CITIES = ['All of BC', 'Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond', 'Kelowna', 'Abbotsford', 'Kamloops', 'Nanaimo', 'Prince George'];
+const CANADIAN_LOCATIONS = [
+  'All of Canada',
+  // British Columbia
+  'All of BC', 'Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond', 'Kelowna', 'Abbotsford', 'Kamloops', 'Nanaimo', 'Prince George',
+  // Alberta
+  'All of Alberta', 'Calgary', 'Edmonton', 'Red Deer', 'Lethbridge', 'Medicine Hat',
+  // Ontario
+  'All of Ontario', 'Toronto', 'Ottawa', 'Mississauga', 'Brampton', 'Hamilton', 'London', 'Markham', 'Vaughan', 'Kitchener', 'Windsor',
+  // Quebec
+  'All of Quebec', 'Montreal', 'Quebec City', 'Laval', 'Gatineau', 'Longueuil',
+  // Other Provinces
+  'All of Saskatchewan', 'Saskatoon', 'Regina',
+  'All of Manitoba', 'Winnipeg',
+  'All of Nova Scotia', 'Halifax',
+  'All of New Brunswick', 'Moncton', 'Fredericton',
+  'All of Newfoundland', "St. John's",
+  'All of PEI', 'Charlottetown',
+  'Online / Virtual',
+];
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
-const LANGUAGES_OPTIONS = ['English', 'French', 'Mandarin', 'Cantonese', 'Punjabi', 'Spanish', 'Tagalog'];
+const LANGUAGES_OPTIONS = [
+  'English', 'French', 'Mandarin', 'Cantonese', 'Spanish', 'Punjabi', 'Tagalog',
+  'Arabic', 'Hindi', 'Urdu', 'Korean', 'Vietnamese', 'Portuguese', 'Italian', 'German', 'Japanese', 'Other',
+];
 const SPECIALTIES_OPTIONS = [
   'Addiction & Substance Use',
   'ADHD',
@@ -437,7 +458,7 @@ export default function ApplyScreen() {
   const [title, setTitle] = useState('');
   const [gender, setGender] = useState('');
   const [yearsExperience, setYearsExperience] = useState('');
-  const [location, setLocation] = useState('');
+  const [locations, setLocations] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
 
   // Step 2 fields
@@ -471,7 +492,7 @@ export default function ApplyScreen() {
   const saveDraft = useCallback(async (
     fields: {
       name: string; title: string; gender: string; yearsExperience: string;
-      location: string; languages: string[]; bio: string; sessionFee: string;
+      locations: string[]; languages: string[]; bio: string; sessionFee: string;
       phone: string; email: string; websiteUrl: string; specialties: string[];
       therapyTypes: string[]; insurances: string[]; acceptingNewClients: boolean;
     }
@@ -488,13 +509,13 @@ export default function ApplyScreen() {
   const handleSaveDraft = useCallback(() => {
     console.log('[Apply] Save draft button pressed on step', step);
     saveDraft({
-      name, title, gender, yearsExperience, location, languages,
+      name, title, gender, yearsExperience, locations, languages,
       bio, sessionFee, phone, email, websiteUrl, specialties,
       therapyTypes, insurances, acceptingNewClients,
     });
   }, [
     saveDraft, step,
-    name, title, gender, yearsExperience, location, languages,
+    name, title, gender, yearsExperience, locations, languages,
     bio, sessionFee, phone, email, websiteUrl, specialties,
     therapyTypes, insurances, acceptingNewClients,
   ]);
@@ -531,7 +552,7 @@ export default function ApplyScreen() {
                 if (draft.title) setTitle(draft.title);
                 if (draft.gender) setGender(draft.gender);
                 if (draft.yearsExperience) setYearsExperience(draft.yearsExperience);
-                if (draft.location) setLocation(draft.location);
+                if (draft.locations?.length) setLocations(draft.locations);
                 if (draft.languages?.length) setLanguages(draft.languages);
                 if (draft.bio) setBio(draft.bio);
                 if (draft.sessionFee) setSessionFee(draft.sessionFee);
@@ -563,7 +584,7 @@ export default function ApplyScreen() {
                 if (draft.title) setTitle(draft.title);
                 if (draft.gender) setGender(draft.gender);
                 if (draft.yearsExperience) setYearsExperience(draft.yearsExperience);
-                if (draft.location) setLocation(draft.location);
+                if (draft.locations?.length) setLocations(draft.locations);
                 if (draft.languages?.length) setLanguages(draft.languages);
                 if (draft.bio) setBio(draft.bio);
                 if (draft.sessionFee) setSessionFee(draft.sessionFee);
@@ -647,7 +668,7 @@ export default function ApplyScreen() {
     if (!gender) return 'Please select your gender.';
     if (!yearsExperience.trim()) return 'Years of experience is required.';
     if (isNaN(parseInt(yearsExperience, 10))) return 'Years of experience must be a number.';
-    if (!location) return 'Please select your location.';
+    if (locations.length === 0) return 'Please select at least one location.';
     if (languages.length === 0) return 'Please select at least one language.';
     return null;
   };
@@ -700,7 +721,7 @@ export default function ApplyScreen() {
       email: email.trim(),
       title: title.trim(),
       bio: bio.trim(),
-      location,
+      location: locations.join(', '),
       gender,
       phone: phone.trim(),
       session_fee: parseFloat(sessionFee),
@@ -1004,13 +1025,13 @@ export default function ApplyScreen() {
               autoCapitalize="none"
               required
             />
-            <SingleSelector
-              label="Location (BC city)"
-              options={BC_CITIES}
-              selected={location}
-              onSelect={(v) => {
-                console.log('[Apply] Location selected:', v);
-                setLocation(v);
+            <ChipSelector
+              label="Locations served"
+              options={CANADIAN_LOCATIONS}
+              selected={locations}
+              onToggle={(v) => {
+                console.log('[Apply] Location toggled:', v);
+                toggleMulti(locations, v, setLocations);
               }}
               required
             />
@@ -1211,7 +1232,7 @@ export default function ApplyScreen() {
                 <ReviewRow label="Title" value={title} />
                 <ReviewRow label="Gender" value={gender} />
                 <ReviewRow label="Experience" value={yearsExperience ? `${yearsExperience} years` : ''} />
-                <ReviewRow label="Location" value={location} />
+                <ReviewRow label="Locations" value={locations.join(', ')} />
                 <ReviewRow label="Languages" value={languages.join(', ')} />
               </View>
               <View style={{ height: 1, backgroundColor: COLORS.divider }} />
