@@ -10,15 +10,17 @@ import {
   Animated,
   Alert,
   Switch,
+  Image,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle, ChevronLeft, ChevronRight, Upload, X, FileText, Save } from 'lucide-react-native';
+import { CheckCircle, ChevronLeft, ChevronRight, Upload, X, FileText, User, Camera, Save } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DRAFT_KEY = 'apply_draft';
@@ -41,7 +43,50 @@ interface DraftData {
   acceptingNewClients: boolean;
 }
 
+async function uploadProfilePhoto(
+  fileUri: string,
+  fileName: string,
+  mimeType: string,
+  token: string | null,
+): Promise<string> {
+  console.log('[Apply] Uploading profile photo:', fileName, 'mimeType:', mimeType);
+  const formData = new FormData();
+  formData.append('photo', {
+    uri: fileUri,
+    name: fileName,
+    type: mimeType,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}/api/applications/upload-photo`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('[Apply] Photo upload failed, status:', res.status, text);
+    throw new Error(text || `Upload failed (${res.status})`);
+  }
+
+  const json = await res.json();
+  console.log('[Apply] Photo upload success, url:', json.url);
+  return json.url as string;
+}
+
 const BASE_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data: session } = await import('@/lib/auth').then((m) => m.authClient.getSession());
+    return session?.session?.token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 async function uploadLicenseDocument(
   fileUri: string,
@@ -445,7 +490,8 @@ export default function ApplyScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
-  const progressAnim = useRef(new Animated.Value(1 / 3)).current;
+  const TOTAL_STEPS = 4;
+  const progressAnim = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
   const scrollRef = useRef<ScrollView>(null);
 
   // Draft toast state
@@ -470,7 +516,13 @@ export default function ApplyScreen() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [therapyTypes, setTherapyTypes] = useState<string[]>([]);
 
-  // Step 3 fields
+  // Photo step (step 2)
+  const [photoLocalUri, setPhotoLocalUri] = useState<string | null>(null);
+  const [photoUploadedUrl, setPhotoUploadedUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Step 3 fields (was step 2)
+  // Step 4 fields (was step 3)
   const [insurances, setInsurances] = useState<string[]>([]);
   const [acceptingNewClients, setAcceptingNewClients] = useState(true);
   const [licenseDocuments, setLicenseDocuments] = useState<string[]>([]);
@@ -609,11 +661,57 @@ export default function ApplyScreen() {
 
   useEffect(() => {
     Animated.timing(progressAnim, {
-      toValue: step / 3,
+      toValue: step / TOTAL_STEPS,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [step, progressAnim]);
+  }, [step, progressAnim, TOTAL_STEPS]);
+
+  const handlePickPhoto = async () => {
+    console.log('[Apply] Upload Photo button pressed');
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[Apply] Photo library permission denied');
+        Alert.alert('Permission Required', 'Please allow access to your photo library to upload a profile photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled) {
+        console.log('[Apply] Photo picker cancelled');
+        return;
+      }
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      const fileName = `profile_photo_${Date.now()}.${ext}`;
+      console.log('[Apply] Photo picked, uri:', uri, 'fileName:', fileName);
+      setPhotoLocalUri(uri);
+      setPhotoUploadedUrl(null);
+      setUploadingPhoto(true);
+      try {
+        const token = await getAuthToken();
+        const url = await uploadProfilePhoto(uri, fileName, mimeType, token);
+        setPhotoUploadedUrl(url);
+        console.log('[Apply] Profile photo uploaded and stored, url:', url);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upload failed';
+        console.error('[Apply] Profile photo upload error:', msg);
+        Alert.alert('Upload Failed', msg);
+        setPhotoLocalUri(null);
+      } finally {
+        setUploadingPhoto(false);
+      }
+    } catch (e) {
+      console.error('[Apply] Photo picker error:', e);
+    }
+  };
 
   const handlePickDocument = async () => {
     console.log('[Apply] Upload Document button pressed');
@@ -633,8 +731,7 @@ export default function ApplyScreen() {
       console.log('[Apply] Document picked:', fileName);
       setUploadingDoc(true);
       try {
-        const { data: session } = await import('@/lib/auth').then((m) => m.authClient.getSession());
-        const token = session?.session?.token ?? null;
+        const token = await getAuthToken();
         const url = await uploadLicenseDocument(asset.uri, fileName, mimeType, token);
         setLicenseDocuments((prev) => [...prev, url]);
       } catch (e) {
@@ -684,7 +781,7 @@ export default function ApplyScreen() {
     return null;
   };
 
-  const validateStep3 = () => {
+  const validateStep4 = () => {
     if (insurances.length === 0) return 'Please select at least one insurance option.';
     return null;
   };
@@ -694,11 +791,13 @@ export default function ApplyScreen() {
     if (step === 1) {
       const err = validateStep1();
       if (err) { setError(err); return; }
-      console.log('[Apply] Next pressed — step 1 validated, advancing to step 2');
+      console.log('[Apply] Next pressed — step 1 validated, advancing to step 2 (photo)');
     } else if (step === 2) {
+      console.log('[Apply] Next pressed — step 2 (photo) skipped/completed, advancing to step 3');
+    } else if (step === 3) {
       const err = validateStep2();
       if (err) { setError(err); return; }
-      console.log('[Apply] Next pressed — step 2 validated, advancing to step 3');
+      console.log('[Apply] Next pressed — step 3 validated, advancing to step 4');
     }
     setStep((s) => s + 1);
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
@@ -713,10 +812,10 @@ export default function ApplyScreen() {
 
   const handleSubmit = async () => {
     setError(null);
-    const err = validateStep3();
+    const err = validateStep4();
     if (err) { setError(err); return; }
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: name.trim(),
       email: email.trim(),
       title: title.trim(),
@@ -734,6 +833,9 @@ export default function ApplyScreen() {
       accepting_new_clients: acceptingNewClients,
       license_documents: licenseDocuments,
     };
+    if (photoUploadedUrl) {
+      payload.profile_photo_url = photoUploadedUrl;
+    }
 
     console.log('[Apply] Submit application pressed:', JSON.stringify(payload));
     setSubmitting(true);
@@ -944,7 +1046,7 @@ export default function ApplyScreen() {
   }
 
   // ── Multi-step form ──
-  const stepTitles = ['Personal Info', 'Practice Details', 'Insurance & Review'];
+  const stepTitles = ['Personal Info', 'Profile Photo', 'Practice Details', 'Insurance & Review'];
   const stepTitle = stepTitles[step - 1];
 
   return (
@@ -962,7 +1064,7 @@ export default function ApplyScreen() {
             {stepTitle}
           </Text>
           <Text style={{ fontSize: 13, color: COLORS.textTertiary, fontFamily: 'DMSans_400Regular' }}>
-            Step {step} of 3
+            Step {step} of {TOTAL_STEPS}
           </Text>
         </View>
         <View style={{ height: 4, backgroundColor: COLORS.surfaceSecondary, borderRadius: 2 }}>
@@ -1048,8 +1150,110 @@ export default function ApplyScreen() {
           </SectionCard>
         )}
 
-        {/* ── Step 2: Practice Details ── */}
+        {/* ── Step 2: Profile Photo ── */}
         {step === 2 && (
+          <SectionCard title="Profile Photo">
+            <View style={{ alignItems: 'center', gap: 20, paddingVertical: 8 }}>
+              {/* Avatar circle */}
+              <View
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  backgroundColor: COLORS.surfaceSecondary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  borderWidth: 2,
+                  borderColor: photoLocalUri ? COLORS.primary : COLORS.border,
+                }}
+              >
+                {photoLocalUri ? (
+                  <Image
+                    source={{ uri: photoLocalUri }}
+                    style={{ width: 120, height: 120, borderRadius: 60 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <User size={48} color={COLORS.textTertiary} />
+                )}
+                {uploadingPhoto && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 60,
+                    }}
+                  >
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
+              </View>
+
+              {/* Upload / Change button */}
+              <AnimatedPressable onPress={handlePickPhoto} disabled={uploadingPhoto} scaleValue={0.96}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: photoLocalUri ? COLORS.surfaceSecondary : COLORS.primary,
+                    borderRadius: 12,
+                    borderCurve: 'continuous',
+                    paddingHorizontal: 24,
+                    paddingVertical: 13,
+                  }}
+                >
+                  <Camera size={16} color={photoLocalUri ? COLORS.textSecondary : '#fff'} />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: photoLocalUri ? COLORS.textSecondary : '#fff',
+                      fontFamily: 'DMSans_600SemiBold',
+                    }}
+                  >
+                    {uploadingPhoto ? 'Uploading…' : photoLocalUri ? 'Change Photo' : 'Upload Photo'}
+                  </Text>
+                </View>
+              </AnimatedPressable>
+
+              {/* Upload status */}
+              {photoUploadedUrl && !uploadingPhoto && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <CheckCircle size={14} color={COLORS.success} />
+                  <Text style={{ fontSize: 12, color: COLORS.success, fontFamily: 'DMSans_600SemiBold' }}>
+                    Photo uploaded successfully
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Optional note */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 10,
+                backgroundColor: COLORS.primaryMuted,
+                borderRadius: 12,
+                borderCurve: 'continuous',
+                padding: 14,
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>💡</Text>
+              <Text style={{ flex: 1, fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 19 }}>
+                Recommended: Add a photo to increase trust with clients. You can skip this step and add one later.
+              </Text>
+            </View>
+          </SectionCard>
+        )}
+
+        {/* ── Step 3: Practice Details ── */}
+        {step === 3 && (
           <SectionCard title="Practice Details">
             <Field
               label="Bio"
@@ -1117,8 +1321,8 @@ export default function ApplyScreen() {
           </SectionCard>
         )}
 
-        {/* ── Step 3: Insurance & Review ── */}
-        {step === 3 && (
+        {/* ── Step 4: Insurance & Review ── */}
+        {step === 4 && (
           <>
             <SectionCard title="Proof of Registration / Licensure">
               <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontFamily: 'DMSans_400Regular', lineHeight: 18 }}>
@@ -1314,7 +1518,7 @@ export default function ApplyScreen() {
               </AnimatedPressable>
             )}
 
-            {step < 3 ? (
+            {step < TOTAL_STEPS ? (
               <AnimatedPressable onPress={handleNext} style={{ flex: 1 }}>
                 <View
                   style={{
