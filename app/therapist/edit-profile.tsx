@@ -7,14 +7,13 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { api } from '@/utils/api';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { Plus, X, Save, CheckCircle } from 'lucide-react-native';
+import { Save, CheckCircle } from 'lucide-react-native';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -30,6 +29,219 @@ const COLORS = {
   success: '#34A853',
   danger: '#EF4444',
 };
+
+const CANADIAN_LOCATIONS = [
+  'All of BC',
+  '100 Mile House',
+  'Abbotsford',
+  'Armstrong',
+  'Ashcroft',
+  'Barriere',
+  'Blind Bay',
+  'Burns Lake',
+  'Cache Creek',
+  'Campbell River',
+  'Castlegar',
+  'Chase',
+  'Chemainus',
+  'Chetwynd',
+  'Chilliwack',
+  'Clearwater',
+  'Coldstream',
+  'Colwood',
+  'Comox',
+  'Coquitlam',
+  'Courtenay',
+  'Cranbrook',
+  'Creston',
+  'Dawson Creek',
+  'Delta',
+  'Duncan',
+  'Elkford',
+  'Enderby',
+  'Esquimalt',
+  'Fernie',
+  'Fort Nelson',
+  'Fort St. John',
+  'Golden',
+  'Grand Forks',
+  'Greenwood',
+  'Hazelton',
+  'Hedley',
+  'Hope',
+  'Houston',
+  'Invermere',
+  'Kaleden',
+  'Kamloops',
+  'Kelowna',
+  'Keremeos',
+  'Kimberley',
+  'Kitimat',
+  'Ladysmith',
+  'Lake Country',
+  'Langford',
+  'Langley',
+  'Lillooet',
+  'Logan Lake',
+  'Lumby',
+  'Lytton',
+  'Mackenzie',
+  'Maple Ridge',
+  'McBride',
+  'Merritt',
+  'Midway',
+  'Mission',
+  'Nanaimo',
+  'Nelson',
+  'New Westminster',
+  'Nicola Valley',
+  'North Vancouver',
+  'Oak Bay',
+  'Okanagan Falls',
+  'Oliver',
+  'Osoyoos',
+  'Parksville',
+  'Peachland',
+  'Penticton',
+  'Port Alberni',
+  'Port Coquitlam',
+  'Powell River',
+  'Prince George',
+  'Prince Rupert',
+  'Princeton',
+  'Qualicum Beach',
+  'Quesnel',
+  'Revelstoke',
+  'Richmond',
+  'Saanich',
+  'Salmon Arm',
+  'Sidney',
+  'Sicamous',
+  'Skaha Lake',
+  'Smithers',
+  'Sooke',
+  'Sorrento',
+  'Spallumcheen',
+  'Sparwood',
+  'Squamish',
+  'Sun Peaks',
+  'Summerland',
+  'Surrey',
+  'Tappen',
+  'Terrace',
+  'Trail',
+  'Tumbler Ridge',
+  'Valemount',
+  'Vancouver',
+  'Vanderhoof',
+  'Vernon',
+  'Victoria',
+  'View Royal',
+  'West Kelowna',
+  'West Vancouver',
+  'Westbank',
+  'White Rock',
+  'Williams Lake',
+  'Whistler',
+  'Online / Virtual',
+];
+
+const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+
+const LANGUAGES_OPTIONS = [
+  'English', 'French', 'Mandarin', 'Cantonese', 'Spanish', 'Punjabi', 'Tagalog',
+  'Arabic', 'Hindi', 'Urdu', 'Korean', 'Vietnamese', 'Portuguese', 'Italian', 'German', 'Japanese', 'Other',
+];
+
+const SPECIALTIES_OPTIONS = [
+  'Addiction & Substance Use',
+  'ADHD',
+  'Anger Management',
+  'Anxiety',
+  'Autism Spectrum',
+  'Bipolar Disorder',
+  'Borderline Personality Disorder',
+  'Burnout',
+  'Child Behavioural Issues',
+  'Chronic Fatigue',
+  'Chronic Illness & Pain',
+  'Cultural & Racial Identity',
+  'Depression',
+  'Dissociative Disorders',
+  'Divorce & Separation',
+  'Eating Disorders',
+  'Elder Care & Aging',
+  'Family Conflict',
+  'Gender Identity',
+  'Grief & Loss',
+  'Immigration & Acculturation',
+  'Infidelity & Betrayal',
+  'Insomnia & Sleep Issues',
+  'Learning Disabilities',
+  'LGBTQ+ Issues',
+  'Life Transitions',
+  "Men's Mental Health",
+  'OCD',
+  'Panic Disorder',
+  'Parenting Challenges',
+  'Personality Disorders',
+  'Phobias',
+  'Postpartum Depression',
+  'Pregnancy & Fertility',
+  'Relationship Issues',
+  'Schizophrenia & Psychosis',
+  'Self-Esteem',
+  'Sexual Issues',
+  'Social Anxiety',
+  'Spiritual & Existential Concerns',
+  'Stress Management',
+  'Teen & Adolescent Issues',
+  'Trauma & PTSD',
+  "Women's Mental Health",
+  'Work & Career Stress',
+];
+
+const THERAPY_TYPES_OPTIONS = [
+  'ACT (Acceptance & Commitment Therapy)',
+  'Art Therapy',
+  'Brainspotting',
+  'CBT (Cognitive Behavioural Therapy)',
+  'Compassion-Focused Therapy',
+  'Couples Therapy',
+  'DBT (Dialectical Behaviour Therapy)',
+  'EMDR',
+  'Emotionally Focused Therapy (EFT)',
+  'Existential Therapy',
+  'Family Therapy',
+  'Gestalt Therapy',
+  'Gottman Method',
+  'Group Therapy',
+  'Humanistic Therapy',
+  'Hypnotherapy',
+  'Integrative Therapy',
+  'Internal Family Systems (IFS)',
+  'Interpersonal Therapy (IPT)',
+  'Mindfulness-Based Therapy',
+  'Motivational Interviewing',
+  'Music Therapy',
+  'Narrative Therapy',
+  'Person-Centred Therapy',
+  'Play Therapy',
+  'Positive Psychology',
+  'Psychoanalytic Therapy',
+  'Psychodynamic Therapy',
+  'Rational Emotive Behaviour Therapy (REBT)',
+  'Sand Tray Therapy',
+  'Schema Therapy',
+  'Sensorimotor Psychotherapy',
+  'Solution-Focused Therapy',
+  'Somatic Therapy',
+  'Trauma-Focused CBT',
+];
+
+const INSURANCES_OPTIONS = [
+  'ICBC', 'WorkSafeBC', 'Blue Cross', 'Sun Life', 'Manulife', 'Great-West Life', 'Desjardins', 'Self-pay',
+];
 
 interface TherapistProfile {
   name: string;
@@ -152,103 +364,101 @@ function StyledInput({
   );
 }
 
-function TagList({
+function ChipSelector({
   label,
-  items,
-  onAdd,
-  onRemove,
-  placeholder,
+  options,
+  selected,
+  onToggle,
+  optional,
 }: {
   label: string;
-  items: string[];
-  onAdd: (item: string) => void;
-  onRemove: (index: number) => void;
-  placeholder?: string;
+  options: string[];
+  selected: string[];
+  onToggle: (val: string) => void;
+  optional?: boolean;
 }) {
-  const [inputValue, setInputValue] = useState('');
-
-  const handleAdd = useCallback(() => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) return;
-    console.log(`[EditProfile] Adding tag to ${label}:`, trimmed);
-    onAdd(trimmed);
-    setInputValue('');
-  }, [inputValue, label, onAdd]);
-
   return (
     <View style={{ marginBottom: 16 }}>
-      <FieldLabel label={label} />
-      {items.length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-          {items.map((item, index) => (
-            <View
-              key={item + index}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: COLORS.primaryMuted,
-                borderRadius: 20,
-                paddingLeft: 12,
-                paddingRight: 8,
-                paddingVertical: 6,
-                gap: 6,
-                borderWidth: 1,
-                borderColor: 'rgba(45, 122, 95, 0.15)',
-              }}
-            >
-              <Text style={{ fontSize: 13, color: COLORS.primary, fontFamily: 'DMSans_600SemiBold' }}>
-                {item}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  console.log(`[EditProfile] Removing tag from ${label} at index:`, index);
-                  onRemove(index);
+      <FieldLabel label={label} optional={optional} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const isSelected = selected.includes(opt);
+          return (
+            <AnimatedPressable key={opt} onPress={() => onToggle(opt)} scaleValue={0.95}>
+              <View
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: isSelected ? COLORS.primary : COLORS.surfaceSecondary,
+                  borderWidth: 1,
+                  borderColor: isSelected ? COLORS.primary : 'transparent',
                 }}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <X size={13} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <TextInput
-          value={inputValue}
-          onChangeText={setInputValue}
-          placeholder={placeholder ?? `Add ${label.toLowerCase()}…`}
-          placeholderTextColor={COLORS.textTertiary}
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-          blurOnSubmit={false}
-          style={{
-            flex: 1,
-            backgroundColor: COLORS.surface,
-            borderWidth: 1,
-            borderColor: COLORS.borderInput,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            height: 42,
-            fontSize: 14,
-            color: COLORS.text,
-            fontFamily: 'DMSans_400Regular',
-          }}
-        />
-        <TouchableOpacity
-          onPress={handleAdd}
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            backgroundColor: COLORS.primaryMuted,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(45, 122, 95, 0.2)',
-          }}
-        >
-          <Plus size={18} color={COLORS.primary} />
-        </TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isSelected ? '#FFFFFF' : COLORS.textSecondary,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  {opt}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SingleSelector({
+  label,
+  options,
+  selected,
+  onSelect,
+  optional,
+}: {
+  label: string;
+  options: string[];
+  selected: string;
+  onSelect: (val: string) => void;
+  optional?: boolean;
+}) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <FieldLabel label={label} optional={optional} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const isSelected = selected === opt;
+          return (
+            <AnimatedPressable key={opt} onPress={() => onSelect(opt)} scaleValue={0.95}>
+              <View
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: isSelected ? COLORS.primary : COLORS.surfaceSecondary,
+                  borderWidth: 1,
+                  borderColor: isSelected ? COLORS.primary : 'transparent',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isSelected ? '#FFFFFF' : COLORS.textSecondary,
+                    fontFamily: 'DMSans_600SemiBold',
+                  }}
+                >
+                  {opt}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -256,6 +466,7 @@ function TagList({
 
 export default function EditProfileScreen() {
   const [form, setForm] = useState<TherapistProfile>(EMPTY_PROFILE);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -266,12 +477,24 @@ export default function EditProfileScreen() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const addTag = useCallback((key: 'specialties' | 'therapyTypes' | 'insurances' | 'languages', item: string) => {
-    setForm((prev) => ({ ...prev, [key]: [...prev[key], item] }));
-  }, []);
+  const toggleArrayField = useCallback(
+    (key: 'specialties' | 'therapyTypes' | 'insurances' | 'languages', item: string) => {
+      setForm((prev) => {
+        const arr = prev[key] as string[];
+        const next = arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
+        console.log(`[EditProfile] Toggle ${key}:`, item, '→', next.includes(item) ? 'added' : 'removed');
+        return { ...prev, [key]: next };
+      });
+    },
+    [],
+  );
 
-  const removeTag = useCallback((key: 'specialties' | 'therapyTypes' | 'insurances' | 'languages', index: number) => {
-    setForm((prev) => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
+  const toggleLocation = useCallback((loc: string) => {
+    setSelectedLocations((prev) => {
+      const next = prev.includes(loc) ? prev.filter((x) => x !== loc) : [...prev, loc];
+      console.log('[EditProfile] Toggle location:', loc, '→', next.includes(loc) ? 'added' : 'removed');
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -279,12 +502,17 @@ export default function EditProfileScreen() {
     api.get<TherapistProfile>('/api/therapists/me')
       .then((data) => {
         console.log('[EditProfile] Profile loaded:', data?.name);
+        const locationStr = data.location ?? '';
+        const parsedLocations = locationStr
+          ? locationStr.split(', ').map((s: string) => s.trim()).filter(Boolean)
+          : [];
+        setSelectedLocations(parsedLocations);
         setForm({
           name: data.name ?? '',
           photoUrl: data.photoUrl ?? '',
           title: data.title ?? '',
           bio: data.bio ?? '',
-          location: data.location ?? '',
+          location: locationStr,
           gender: data.gender ?? '',
           phone: data.phone ?? '',
           email: data.email ?? '',
@@ -314,19 +542,49 @@ export default function EditProfileScreen() {
 
   const handleSave = useCallback(async () => {
     console.log('[EditProfile] Save button pressed');
+
+    // Required field validation
+    const missingFields: string[] = [];
+    if (!form.name.trim()) missingFields.push('Full Name');
+    if (!form.title.trim()) missingFields.push('Professional Title');
+    if (!form.email.trim()) missingFields.push('Email');
+    if (selectedLocations.length === 0) missingFields.push('Location');
+
+    if (missingFields.length > 0) {
+      console.log('[EditProfile] Validation failed — missing fields:', missingFields);
+      Alert.alert('Required Fields Missing', `Please fill in the following fields:\n\n• ${missingFields.join('\n• ')}`);
+      return;
+    }
+
+    // Numeric field validation
+    const invalidNumeric: string[] = [];
+    if (form.sessionFee !== '' && isNaN(Number(form.sessionFee))) {
+      invalidNumeric.push('Session Fee');
+    }
+    if (form.yearsExperience !== '' && isNaN(Number(form.yearsExperience))) {
+      invalidNumeric.push('Years of Experience');
+    }
+
+    if (invalidNumeric.length > 0) {
+      console.log('[EditProfile] Validation failed — non-numeric fields:', invalidNumeric);
+      Alert.alert('Invalid Number', `The following fields must be numbers:\n\n• ${invalidNumeric.join('\n• ')}`);
+      return;
+    }
+
     setSaving(true);
     setSaveSuccess(false);
 
     const sessionFeeNum = form.sessionFee !== '' ? Number(form.sessionFee) : null;
     const yearsExpNum = form.yearsExperience !== '' ? Number(form.yearsExperience) : null;
     const slidingScaleMinFeeNum = form.slidingScale && form.slidingScaleMinFee !== '' ? Number(form.slidingScaleMinFee) : null;
+    const locationStr = selectedLocations.join(', ');
 
     const payload = {
       name: form.name,
       photoUrl: form.photoUrl || null,
       title: form.title,
       bio: form.bio,
-      location: form.location,
+      location: locationStr,
       gender: form.gender,
       phone: form.phone,
       email: form.email,
@@ -348,7 +606,12 @@ export default function EditProfileScreen() {
       await api.put('/api/therapists/me', payload);
       console.log('[EditProfile] Profile saved successfully');
       setSaveSuccess(true);
-      successTimer.current = setTimeout(() => setSaveSuccess(false), 3000);
+      // Fix timer bug: clear any existing timer before setting a new one
+      if (successTimer.current) clearTimeout(successTimer.current);
+      successTimer.current = setTimeout(() => {
+        setSaveSuccess(false);
+        router.back();
+      }, 3000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to save profile';
       console.error('[EditProfile] Save error:', msg);
@@ -356,7 +619,7 @@ export default function EditProfileScreen() {
     } finally {
       setSaving(false);
     }
-  }, [form]);
+  }, [form, selectedLocations]);
 
   if (loading) {
     return (
@@ -391,6 +654,8 @@ export default function EditProfileScreen() {
 
   const sessionFeeStr = String(form.sessionFee);
   const yearsExpStr = String(form.yearsExperience);
+  const saveBtnLabel = saving ? 'Saving…' : saveSuccess ? 'Saved!' : 'Save Changes';
+  const saveBtnBg = saveSuccess ? COLORS.success : COLORS.primary;
 
   return (
     <KeyboardAvoidingView
@@ -430,31 +695,29 @@ export default function EditProfileScreen() {
             />
           </View>
 
-          <View style={{ marginBottom: 14 }}>
-            <FieldLabel label="Location" />
-            <StyledInput
-              value={form.location}
-              onChangeText={(v) => setField('location', v)}
-              placeholder="Toronto, ON"
-              autoCapitalize="words"
-            />
-          </View>
+          <ChipSelector
+            label="Location"
+            options={CANADIAN_LOCATIONS}
+            selected={selectedLocations}
+            onToggle={toggleLocation}
+          />
 
-          <View style={{ marginBottom: 0 }}>
-            <FieldLabel label="Gender" optional />
-            <StyledInput
-              value={form.gender}
-              onChangeText={(v) => setField('gender', v)}
-              placeholder="e.g. Female, Male, Non-binary"
-              autoCapitalize="words"
-            />
-          </View>
+          <SingleSelector
+            label="Gender"
+            options={GENDERS}
+            selected={form.gender}
+            onSelect={(v) => {
+              console.log('[EditProfile] Gender selected:', v);
+              setField('gender', v);
+            }}
+            optional
+          />
         </View>
 
         {/* Bio */}
         <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}>
           <SectionTitle title="About" />
-          <FieldLabel label="Bio" />
+          <FieldLabel label="Bio" optional />
           <StyledInput
             value={form.bio}
             onChangeText={(v) => setField('bio', v)}
@@ -629,38 +892,34 @@ export default function EditProfileScreen() {
         {/* Specialties & Therapy Types */}
         <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}>
           <SectionTitle title="Specialties & Approaches" />
-          <TagList
+          <ChipSelector
             label="Specialties"
-            items={form.specialties}
-            onAdd={(item) => addTag('specialties', item)}
-            onRemove={(i) => removeTag('specialties', i)}
-            placeholder="e.g. Anxiety, Depression…"
+            options={SPECIALTIES_OPTIONS}
+            selected={form.specialties}
+            onToggle={(v) => toggleArrayField('specialties', v)}
           />
-          <TagList
+          <ChipSelector
             label="Therapy Types"
-            items={form.therapyTypes}
-            onAdd={(item) => addTag('therapyTypes', item)}
-            onRemove={(i) => removeTag('therapyTypes', i)}
-            placeholder="e.g. CBT, DBT, EMDR…"
+            options={THERAPY_TYPES_OPTIONS}
+            selected={form.therapyTypes}
+            onToggle={(v) => toggleArrayField('therapyTypes', v)}
           />
         </View>
 
         {/* Insurances & Languages */}
         <View style={{ backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border }}>
           <SectionTitle title="Insurance & Languages" />
-          <TagList
+          <ChipSelector
             label="Insurances Accepted"
-            items={form.insurances}
-            onAdd={(item) => addTag('insurances', item)}
-            onRemove={(i) => removeTag('insurances', i)}
-            placeholder="e.g. Sun Life, Manulife…"
+            options={INSURANCES_OPTIONS}
+            selected={form.insurances}
+            onToggle={(v) => toggleArrayField('insurances', v)}
           />
-          <TagList
+          <ChipSelector
             label="Languages"
-            items={form.languages}
-            onAdd={(item) => addTag('languages', item)}
-            onRemove={(i) => removeTag('languages', i)}
-            placeholder="e.g. English, French…"
+            options={LANGUAGES_OPTIONS}
+            selected={form.languages}
+            onToggle={(v) => toggleArrayField('languages', v)}
           />
         </View>
 
@@ -672,7 +931,7 @@ export default function EditProfileScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              backgroundColor: saveSuccess ? COLORS.success : COLORS.primary,
+              backgroundColor: saveBtnBg,
               borderRadius: 14,
               paddingVertical: 15,
               opacity: saving ? 0.75 : 1,
@@ -686,7 +945,7 @@ export default function EditProfileScreen() {
               <Save size={18} color="#fff" />
             )}
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', fontFamily: 'DMSans_700Bold' }}>
-              {saving ? 'Saving…' : saveSuccess ? 'Saved!' : 'Save Changes'}
+              {saveBtnLabel}
             </Text>
           </View>
         </AnimatedPressable>
