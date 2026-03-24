@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { X, Check } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { FiltersContext, Filters } from '@/contexts/FiltersContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,42 +34,22 @@ interface FilterOptions {
   insurances: string[];
 }
 
-function SelectRow({
-  label,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <AnimatedPressable onPress={onSelect} scaleValue={0.98}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingVertical: 13,
-          paddingHorizontal: 16,
-          backgroundColor: selected ? COLORS.primaryMuted : 'transparent',
-          borderRadius: 10,
-          marginBottom: 2,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 15,
-            color: selected ? COLORS.primary : COLORS.text,
-            fontWeight: selected ? '600' : '400',
-            fontFamily: selected ? 'DMSans_600SemiBold' : 'DMSans_400Regular',
-          }}
-        >
-          {label}
-        </Text>
-        {selected ? (
-          <Check size={18} color={COLORS.primary} />
-        ) : null}
+    <AnimatedPressable onPress={onPress} scaleValue={0.95}>
+      <View style={{
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        backgroundColor: selected ? '#2D7A5F' : 'transparent',
+        borderWidth: 1.5,
+        borderColor: selected ? '#2D7A5F' : 'rgba(45,122,95,0.25)',
+      }}>
+        <Text style={{
+          fontSize: 14,
+          color: selected ? '#FFFFFF' : '#5C7A6A',
+          fontFamily: selected ? 'DMSans_600SemiBold' : 'DMSans_400Regular',
+        }}>{label}</Text>
       </View>
     </AnimatedPressable>
   );
@@ -96,7 +76,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export default function FilterSheet() {
-  const { filters, setFilters, clearFilters } = useContext(FiltersContext);
+  const { filters, setFilters } = useContext(FiltersContext);
   const insets = useSafeAreaInsets();
 
   const [localFilters, setLocalFilters] = useState<Filters>({ ...filters });
@@ -236,76 +216,76 @@ export default function FilterSheet() {
         >
           {/* Location */}
           <SectionHeader title="Location" />
-          <View style={{ paddingHorizontal: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
             {(options?.locations ?? []).map((loc) => (
-              <SelectRow
+              <Chip
                 key={loc}
                 label={loc}
                 selected={localFilters.location.includes(loc)}
-                onSelect={() => toggleLocation(loc)}
+                onPress={() => toggleLocation(loc)}
               />
             ))}
           </View>
 
           {/* Gender */}
           <SectionHeader title="Gender" />
-          <View style={{ paddingHorizontal: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
             {genderOptions.map((g) => (
-              <SelectRow
+              <Chip
                 key={g}
                 label={g}
                 selected={localFilters.gender === g}
-                onSelect={() => toggle('gender', g)}
+                onPress={() => toggle('gender', g)}
               />
             ))}
           </View>
 
           {/* Specialty */}
           <SectionHeader title="Specialty" />
-          <View style={{ paddingHorizontal: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
             {(options?.specialties ?? []).map((s) => (
-              <SelectRow
+              <Chip
                 key={s}
                 label={s}
                 selected={localFilters.specialty === s}
-                onSelect={() => toggle('specialty', s)}
+                onPress={() => toggle('specialty', s)}
               />
             ))}
           </View>
 
           {/* Therapy Type */}
           <SectionHeader title="Therapy Type" />
-          <View style={{ paddingHorizontal: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
             {(options?.therapy_types ?? []).map((t) => (
-              <SelectRow
+              <Chip
                 key={t}
                 label={t}
                 selected={localFilters.therapy_type === t}
-                onSelect={() => toggle('therapy_type', t)}
+                onPress={() => toggle('therapy_type', t)}
               />
             ))}
           </View>
 
           {/* Insurance */}
           <SectionHeader title="Insurance" />
-          <View style={{ paddingHorizontal: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
             {(options?.insurances ?? []).map((ins) => (
-              <SelectRow
+              <Chip
                 key={ins}
                 label={ins}
                 selected={localFilters.insurance === ins}
-                onSelect={() => toggle('insurance', ins)}
+                onPress={() => toggle('insurance', ins)}
               />
             ))}
           </View>
 
           {/* Sliding Scale */}
           <SectionHeader title="Fees" />
-          <View style={{ paddingHorizontal: 8 }}>
-            <SelectRow
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+            <Chip
               label="Sliding Scale Available"
               selected={localFilters.slidingScale}
-              onSelect={() => {
+              onPress={() => {
                 console.log('[FilterSheet] Toggle slidingScale:', !localFilters.slidingScale);
                 setLocalFilters(prev => ({ ...prev, slidingScale: !prev.slidingScale }));
               }}
