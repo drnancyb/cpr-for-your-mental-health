@@ -850,7 +850,8 @@ export default function AdminDashboard() {
           }
           renderItem={({ item }) => {
             const sc = getStatusColor(item.status);
-            const submittedDate = new Date(item.created_at).toLocaleDateString('en-CA');
+            const _sd = item.created_at ? new Date(item.created_at) : null;
+            const submittedDate = (_sd && !isNaN(_sd.getTime())) ? _sd.toLocaleDateString('en-CA') : '—';
             return (
               <AnimatedPressable
                 onPress={() => {
@@ -1018,7 +1019,8 @@ export default function AdminDashboard() {
           }
           renderItem={({ item }) => {
             const isExpanded = expandedSupportId === item.id;
-            const submittedDate = new Date(item.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+            const _ssd = item.created_at ? new Date(item.created_at) : null;
+            const submittedDate = (_ssd && !isNaN(_ssd.getTime())) ? _ssd.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
             const roleBg = item.role === 'therapist' ? COLORS.primaryMuted : item.role === 'client' ? '#EDE9FE' : COLORS.surfaceSecondary;
             const roleColor = item.role === 'therapist' ? COLORS.primary : item.role === 'client' ? '#7C3AED' : COLORS.textSecondary;
             const statusColor = item.status === 'resolved' ? COLORS.success : item.status === 'in_progress' ? '#3B82F6' : COLORS.warning;
@@ -1171,7 +1173,7 @@ export default function AdminDashboard() {
             const confirmLoading = actionLoading === item.id + '_confirm';
             const declineLoading = actionLoading === item.id + '_decline';
             const dateDisplay = item.preferred_date
-              ? new Date(item.preferred_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              ? (() => { const _pd = new Date(item.preferred_date + 'T00:00:00'); return !isNaN(_pd.getTime()) ? _pd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; })()
               : null;
             const statusConfig = {
               pending: { color: COLORS.warning, bg: '#FEF3C7', label: 'Pending' },
@@ -1806,7 +1808,8 @@ function SubscriptionsTab({ subscriptions, loading, error, onAdd, onEdit }: {
             const statusColor = getStatusColor(item.status);
             const statusBg = item.status === 'active' ? '#D1FAE5' : item.status === 'expired' ? '#FEE2E2' : COLORS.surfaceSecondary;
             const amountDisplay = '$' + Number(item.amount_paid).toFixed(2);
-            const expiryDisplay = item.expires_at ? new Date(item.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+            const _ed = item.expires_at ? new Date(item.expires_at) : null;
+            const expiryDisplay = (_ed && !isNaN(_ed.getTime())) ? _ed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
             return (
               <AnimatedPressable onPress={() => { console.log('[Admin] Edit subscription tapped:', item.id); onEdit(item); }} scaleValue={0.98}>
                 <View style={{ backgroundColor: COLORS.surface, marginHorizontal: 16, marginBottom: 10, borderRadius: 16, borderCurve: 'continuous', padding: 14, borderWidth: 1, borderColor: COLORS.border }}>
@@ -1880,7 +1883,8 @@ function NotificationsTab({ notifications, loading, error, onSend }: {
           }
           renderItem={({ item }) => {
             const tc = targetConfig[item.target] ?? targetConfig.all;
-            const sentDate = new Date(item.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const _sentD = item.sent_at ? new Date(item.sent_at) : null;
+            const sentDate = (_sentD && !isNaN(_sentD.getTime())) ? _sentD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
             return (
               <View style={{ backgroundColor: COLORS.surface, marginHorizontal: 16, marginBottom: 10, borderRadius: 16, borderCurve: 'continuous', padding: 14, borderWidth: 1, borderColor: COLORS.border }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>

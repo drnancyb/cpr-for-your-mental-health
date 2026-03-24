@@ -397,11 +397,10 @@ export default function ApplicationDetailScreen() {
     application.years_experience != null
       ? `${application.years_experience} year${application.years_experience !== 1 ? 's' : ''}`
       : 'Not specified';
-  const submittedDate = new Date(application.created_at).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const _sd = application.created_at ? new Date(application.created_at) : null;
+  const submittedDate = (_sd && !isNaN(_sd.getTime()))
+    ? _sd.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '—';
   const location = application.city ?? application.location ?? '';
   const isPending = application.status === 'pending';
   const statusLabel =
@@ -728,13 +727,10 @@ export default function ApplicationDetailScreen() {
             ) : (
               <View style={{ padding: 12, gap: 10 }}>
                 {messages.map((msg) => {
-                  const msgDate = new Date(msg.created_at).toLocaleDateString('en-CA', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+                  const _md = msg.created_at ? new Date(msg.created_at) : null;
+                  const msgDate = (_md && !isNaN(_md.getTime()))
+                    ? _md.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '—';
                   return (
                     <View
                       key={msg.id}

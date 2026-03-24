@@ -54,16 +54,15 @@ function MessageCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const dateStr = new Date(item.created_at).toLocaleDateString('en-CA', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  const timeStr = new Date(item.created_at).toLocaleTimeString('en-CA', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const dateTimeStr = dateStr + ' · ' + timeStr;
+  const _d = item.created_at ? new Date(item.created_at) : null;
+  const _dValid = _d && !isNaN(_d.getTime());
+  const dateStr = _dValid
+    ? _d!.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—';
+  const timeStr = _dValid
+    ? _d!.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const dateTimeStr = timeStr ? dateStr + ' · ' + timeStr : dateStr;
 
   const cardBg = item.read ? COLORS.surface : COLORS.surfaceUnread;
   const leftBorderColor = item.read ? 'transparent' : COLORS.borderUnread;

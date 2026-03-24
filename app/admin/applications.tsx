@@ -390,11 +390,10 @@ export default function ApplicationsListScreen() {
           }
           renderItem={({ item, index }) => {
             const location = item.city ?? item.location ?? '';
-            const submittedDate = new Date(item.created_at).toLocaleDateString('en-CA', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            });
+            const _sd = item.created_at ? new Date(item.created_at) : null;
+            const submittedDate = (_sd && !isNaN(_sd.getTime()))
+              ? _sd.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+              : '—';
             const initial = item.name ? item.name.charAt(0).toUpperCase() : '?';
             return (
               <AnimatedListItem index={index}>

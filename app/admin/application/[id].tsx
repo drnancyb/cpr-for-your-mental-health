@@ -152,9 +152,10 @@ export default function ApplicationDetailScreen() {
   const sc = getStatusColor(application.status);
   const sessionFeeDisplay = `$${Number(application.session_fee).toFixed(0)} / session`;
   const experienceDisplay = `${application.years_experience} year${application.years_experience !== 1 ? 's' : ''}`;
-  const submittedDate = new Date(application.created_at).toLocaleDateString('en-CA', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
+  const _sd = application.created_at ? new Date(application.created_at) : null;
+  const submittedDate = (_sd && !isNaN(_sd.getTime()))
+    ? _sd.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '—';
 
   return (
     <>
