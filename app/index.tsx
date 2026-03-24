@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   ScrollView,
-  Animated,
   RefreshControl,
   TouchableOpacity,
   ActionSheetIOS,
@@ -63,7 +62,7 @@ export default function IndexScreen() {
   const [total, setTotal] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSearchRef = useRef('');
+  const lastSearchRef = useRef<string>('');
 
   const fetchTherapists = useCallback(async (searchOverride?: string) => {
     const searchValue = searchOverride !== undefined ? searchOverride : filters.search;

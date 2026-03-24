@@ -85,8 +85,8 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
   }, [index, opacity, translateY]);
 
   const displayedSpecialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 3) : [];
-  const feeDisplay = `$${Number(therapist.sessionFee).toFixed(0)} / session`;
-  const expDisplay = `${therapist.yearsExperience} yrs`;
+  const feeDisplay = therapist.sessionFee != null ? `$${Number(therapist.sessionFee).toFixed(0)} / session` : 'N/A';
+  const expDisplay = therapist.yearsExperience != null ? `${therapist.yearsExperience} yrs` : 'N/A';
   const initials = getInitials(therapist.name);
   const isPinned = therapist.is_pinned === true;
   const hasSlidingScale = therapist.slidingScale === true;

@@ -210,9 +210,14 @@ export default function ContactMessagesScreen() {
     setError(null);
     console.log('[ContactMessages] GET /api/admin/contact-messages');
     try {
-      const data = await api.get<{ messages: ContactMessage[] }>('/api/admin/contact-messages');
-      console.log('[ContactMessages] Fetched', data.messages.length, 'messages');
-      setMessages(data.messages);
+      const data = await api.get<{ messages: ContactMessage[] } | ContactMessage[]>('/api/admin/contact-messages');
+      const messagesList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { messages: ContactMessage[] }).messages)
+          ? (data as { messages: ContactMessage[] }).messages
+          : [];
+      console.log('[ContactMessages] Fetched', messagesList.length, 'messages');
+      setMessages(messagesList);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to load messages.';
       console.error('[ContactMessages] Fetch error:', msg);

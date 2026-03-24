@@ -23,5 +23,5 @@ export function useSubscriptionGuard() {
     if (!isSubscribed) {
       router.replace("/paywall");
     }
-  }, [isSubscribed, loading, onboardingDone, user, router]);
+  }, [isSubscribed, loading, onboardingDone, user, router, pathname]);
 }

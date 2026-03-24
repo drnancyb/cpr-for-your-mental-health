@@ -101,9 +101,14 @@ export default function MyBookingsScreen() {
   const fetchBookings = useCallback(async () => {
     console.log('[MyBookings] GET /api/bookings');
     try {
-      const data = await api.get<{ bookings: Booking[] }>('/api/bookings');
-      console.log('[MyBookings] Fetched', data.bookings.length, 'bookings');
-      setBookings(data.bookings);
+      const data = await api.get<{ bookings: Booking[] } | Booking[]>('/api/bookings');
+      const bookingsList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { bookings: Booking[] }).bookings)
+          ? (data as { bookings: Booking[] }).bookings
+          : [];
+      console.log('[MyBookings] Fetched', bookingsList.length, 'bookings');
+      setBookings(bookingsList);
     } catch (e) {
       console.error('[MyBookings] Fetch error:', e instanceof Error ? e.message : e);
     }

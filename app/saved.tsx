@@ -68,8 +68,9 @@ export default function SavedScreen() {
     console.log('[Saved] GET /api/saved');
     try {
       const data = await api.get<{ saved: SavedTherapist[] }>('/api/saved');
-      console.log('[Saved] Fetched', data.saved.length, 'saved therapists');
-      setSaved(data.saved);
+      const savedList = Array.isArray(data?.saved) ? data.saved : [];
+      console.log('[Saved] Fetched', savedList.length, 'saved therapists');
+      setSaved(savedList);
     } catch (e) {
       console.error('[Saved] Fetch error:', e instanceof Error ? e.message : e);
     }
@@ -92,7 +93,7 @@ export default function SavedScreen() {
     console.log('[Saved] Remove pressed for therapist:', item.therapist_id, item.therapist.name);
     setRemovingId(item.id);
     try {
-      await api.delete(`/api/saved/${item.therapist_id}`);
+      await api.delete(`/api/saved/${item.id}`);
       console.log('[Saved] Removed saved therapist:', item.therapist_id);
       setSaved((prev) => prev.filter((s) => s.id !== item.id));
       if (Platform.OS === 'ios') {

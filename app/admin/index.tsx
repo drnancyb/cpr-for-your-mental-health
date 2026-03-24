@@ -261,9 +261,14 @@ export default function AdminDashboard() {
     setSupportError(null);
     console.log('[Admin] Fetching support requests GET /api/admin/support');
     try {
-      const data = await api.get<AdminSupportRequest[]>('/api/admin/support');
-      console.log('[Admin] Fetched', data.length, 'support requests');
-      setSupportRequests(data);
+      const data = await api.get<AdminSupportRequest[] | { requests: AdminSupportRequest[] }>('/api/admin/support');
+      const requestsList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { requests: AdminSupportRequest[] }).requests)
+          ? (data as { requests: AdminSupportRequest[] }).requests
+          : [];
+      console.log('[Admin] Fetched', requestsList.length, 'support requests');
+      setSupportRequests(requestsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load support requests.';
       console.error('[Admin] Fetch support error:', msg);
@@ -328,9 +333,14 @@ export default function AdminDashboard() {
     setSubsError(null);
     console.log('[Admin] Fetching subscriptions GET /api/admin/subscriptions');
     try {
-      const data = await api.get<AdminSubscription[]>('/api/admin/subscriptions');
-      console.log('[Admin] Fetched', data.length, 'subscriptions');
-      setSubscriptions(data);
+      const data = await api.get<AdminSubscription[] | { subscriptions: AdminSubscription[] }>('/api/admin/subscriptions');
+      const subsList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { subscriptions: AdminSubscription[] }).subscriptions)
+          ? (data as { subscriptions: AdminSubscription[] }).subscriptions
+          : [];
+      console.log('[Admin] Fetched', subsList.length, 'subscriptions');
+      setSubscriptions(subsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load subscriptions.';
       console.error('[Admin] Fetch subscriptions error:', msg);
@@ -423,9 +433,14 @@ export default function AdminDashboard() {
     setNotifsError(null);
     console.log('[Admin] Fetching notifications GET /api/admin/notifications');
     try {
-      const data = await api.get<AdminNotification[]>('/api/admin/notifications');
-      console.log('[Admin] Fetched', data.length, 'notifications');
-      setNotifications(data);
+      const data = await api.get<AdminNotification[] | { notifications: AdminNotification[] }>('/api/admin/notifications');
+      const notifsList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { notifications: AdminNotification[] }).notifications)
+          ? (data as { notifications: AdminNotification[] }).notifications
+          : [];
+      console.log('[Admin] Fetched', notifsList.length, 'notifications');
+      setNotifications(notifsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load notifications.';
       console.error('[Admin] Fetch notifications error:', msg);
@@ -470,9 +485,14 @@ export default function AdminDashboard() {
       : '/api/admin/applications';
     console.log('[Admin] Fetching applications, path:', path);
     try {
-      const data = await api.get<Application[]>(path);
-      console.log('[Admin] Fetched', data.length, 'applications');
-      setApplications(data);
+      const data = await api.get<Application[] | { applications: Application[] }>(path);
+      const appsList = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { applications: Application[] }).applications)
+          ? (data as { applications: Application[] }).applications
+          : [];
+      console.log('[Admin] Fetched', appsList.length, 'applications');
+      setApplications(appsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load applications.';
       console.error('[Admin] Fetch applications error:', msg);
@@ -501,8 +521,9 @@ export default function AdminDashboard() {
     console.log('[Admin] Fetching therapists GET /api/therapists');
     try {
       const data = await api.get<{ therapists: Therapist[]; total: number }>('/api/therapists');
-      console.log('[Admin] Fetched', data.therapists.length, 'therapists');
-      setTherapists(data.therapists);
+      const therapistsList = Array.isArray(data?.therapists) ? data.therapists : [];
+      console.log('[Admin] Fetched', therapistsList.length, 'therapists');
+      setTherapists(therapistsList);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load therapists.';
       console.error('[Admin] Fetch therapists error:', msg);
