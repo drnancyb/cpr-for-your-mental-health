@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { Image } from 'expo-image';
-import { MapPin, ChevronRight, DollarSign, Clock } from 'lucide-react-native';
+import { MapPin, ChevronRight, DollarSign, Clock, UserPlus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { AnimatedPressable } from './AnimatedPressable';
 import type { ImageSourcePropType } from 'react-native';
@@ -181,16 +181,20 @@ export function TherapistCard({ therapist, index }: TherapistCardProps) {
                 <View
                   style={{
                     position: 'absolute',
-                    bottom: 1,
-                    right: 1,
-                    width: 14,
-                    height: 14,
-                    borderRadius: 7,
-                    backgroundColor: COLORS.success,
-                    borderWidth: 2,
-                    borderColor: COLORS.surface,
+                    bottom: -2,
+                    right: -2,
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(255, 107, 53, 0.12)',
+                    borderWidth: 1.5,
+                    borderColor: '#FF6B35',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  <UserPlus size={11} color="#FF6B35" />
+                </View>
               ) : null}
             </View>
 

@@ -18,7 +18,7 @@ import {
   DollarSign,
   Languages,
   Clock,
-  CheckCircle,
+  UserPlus,
   Bookmark,
   BookmarkCheck,
   CalendarPlus,
@@ -430,18 +430,18 @@ export default function TherapistDetailScreen() {
                 paddingHorizontal: 14,
                 paddingVertical: 7,
                 borderRadius: 20,
-                backgroundColor: therapist.acceptingNewClients ? '#E8F5E9' : COLORS.surfaceSecondary,
+                backgroundColor: therapist.acceptingNewClients ? 'rgba(255, 107, 53, 0.12)' : COLORS.surfaceSecondary,
               }}
             >
-              <CheckCircle
+              <UserPlus
                 size={14}
-                color={therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary}
+                color={therapist.acceptingNewClients ? '#FF6B35' : COLORS.textTertiary}
               />
               <Text
                 style={{
                   fontSize: 13,
                   fontWeight: '600',
-                  color: therapist.acceptingNewClients ? COLORS.success : COLORS.textTertiary,
+                  color: therapist.acceptingNewClients ? '#FF6B35' : COLORS.textTertiary,
                   fontFamily: 'DMSans_600SemiBold',
                 }}
               >
