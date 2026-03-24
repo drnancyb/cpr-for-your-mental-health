@@ -112,31 +112,23 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        return reply.status(403).send({ error: 'Forbidden' });
+        reply.status(403).send({ error: 'Forbidden' });
+        return;
       }
 
       const { status } = request.query as { status?: string };
       const validStatuses = ['pending', 'approved', 'rejected'];
-      const hasStatusFilter = status && validStatuses.includes(status);
+      const filterStatus = status && validStatuses.includes(status) ? status : 'pending';
 
-      if (hasStatusFilter) {
-        app.logger.info({ status }, 'Fetching therapist applications with status filter');
-      } else {
-        app.logger.info({}, 'Fetching all therapist applications');
-      }
+      app.logger.info({ status: filterStatus }, 'Fetching therapist applications');
 
-      const applications = await (hasStatusFilter
-        ? app.db
-            .select()
-            .from(appSchema.therapistApplications)
-            .where(eq(appSchema.therapistApplications.status, status!))
-            .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`)
-        : app.db
-            .select()
-            .from(appSchema.therapistApplications)
-            .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`));
+      const applications = await app.db
+        .select()
+        .from(appSchema.therapistApplications)
+        .where(eq(appSchema.therapistApplications.status, filterStatus))
+        .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`);
 
-      app.logger.info({ count: applications.length, filtered: hasStatusFilter }, 'Applications retrieved');
+      app.logger.info({ count: applications.length }, 'Applications retrieved');
 
       return applications.map(formatApplication);
     }
@@ -176,7 +168,8 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        return reply.status(403).send({ error: 'Forbidden' });
+        reply.status(403).send({ error: 'Forbidden' });
+        return;
       }
 
       const { id } = request.params;
@@ -245,7 +238,8 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        return reply.status(403).send({ error: 'Forbidden' });
+        reply.status(403).send({ error: 'Forbidden' });
+        return;
       }
 
       const { id } = request.params;

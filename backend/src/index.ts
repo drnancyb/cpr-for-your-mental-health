@@ -203,18 +203,18 @@ async function seedAppContent() {
 async function cleanupApplicationStatuses() {
   app.logger.info('Checking therapist_applications for invalid status values');
   try {
-    // Find all rows with invalid status values (not 'pending', 'approved', or 'rejected')
+    // Find all rows with invalid status values (NULL, empty string, or not in valid enum)
     const invalidApps = await app.db
       .select()
       .from(appSchema.therapistApplications)
-      .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
+      .where(sql`${appSchema.therapistApplications.status} IS NULL OR ${appSchema.therapistApplications.status} = '' OR ${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
 
     if (invalidApps.length > 0) {
       // Group invalid statuses to show what values exist
       const uniqueStatuses = new Set(invalidApps.map(app => app.status));
       const statusCounts: Record<string, number> = {};
       uniqueStatuses.forEach(status => {
-        statusCounts[status] = invalidApps.filter(app => app.status === status).length;
+        statusCounts[status === null || status === '' ? 'NULL/empty' : status] = invalidApps.filter(app => app.status === status).length;
       });
 
       app.logger.info(
@@ -226,7 +226,7 @@ async function cleanupApplicationStatuses() {
       await app.db
         .update(appSchema.therapistApplications)
         .set({ status: 'pending' })
-        .where(sql`${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
+        .where(sql`${appSchema.therapistApplications.status} IS NULL OR ${appSchema.therapistApplications.status} = '' OR ${appSchema.therapistApplications.status} NOT IN ('pending', 'approved', 'rejected')`);
 
       app.logger.info(
         { count: invalidApps.length, invalidStatuses: statusCounts },
