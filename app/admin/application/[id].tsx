@@ -69,6 +69,12 @@ export default function ApplicationDetailScreen() {
   const [rejectError, setRejectError] = useState<string | null>(null);
 
   const fetchApplication = useCallback(async () => {
+    if (!id || id === 'undefined') {
+      console.warn('[AppDetail] Invalid application id:', id);
+      setError('Invalid application ID.');
+      setLoading(false);
+      return;
+    }
     console.log('[AppDetail] Fetching application:', id);
     try {
       const data = await api.get<Application>(`/api/admin/applications/${id}`);

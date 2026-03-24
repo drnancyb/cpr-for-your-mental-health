@@ -856,6 +856,7 @@ export default function AdminDashboard() {
               <AnimatedPressable
                 onPress={() => {
                   console.log('[Admin] Application tapped:', item.id, item.name);
+                  if (!item.id) { console.warn('[Admin] Application id is missing, skipping navigation'); return; }
                   router.push(`/admin/application/${item.id}`);
                 }}
                 scaleValue={0.98}

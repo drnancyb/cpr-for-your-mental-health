@@ -195,6 +195,7 @@ export default function ApplicationsListScreen() {
 
   const handleCardPress = (item: Application) => {
     console.log('[Applications] Card tapped:', item.id, item.name);
+    if (!item.id) { console.warn('[Applications] Application id is missing, skipping navigation'); return; }
     router.push(`/admin/applications/${item.id}`);
   };
 

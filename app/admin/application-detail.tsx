@@ -236,6 +236,12 @@ export default function ApplicationDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const fetchApplication = useCallback(async () => {
+    if (!id || id === 'undefined') {
+      console.warn('[AppDetail] Invalid application id:', id);
+      setError('Invalid application ID.');
+      setLoading(false);
+      return;
+    }
     console.log('[AppDetail] Fetching GET /api/admin/applications/' + id);
     try {
       const data = await api.get<Application>(`/api/admin/applications/${id}`);
@@ -252,6 +258,10 @@ export default function ApplicationDetailScreen() {
   }, [id]);
 
   const fetchMessages = useCallback(async () => {
+    if (!id || id === 'undefined') {
+      console.warn('[AppDetail] Invalid application id for messages:', id);
+      return;
+    }
     console.log('[AppDetail] Fetching messages GET /api/admin/applications/' + id + '/messages');
     try {
       const data = await api.get<ApplicationMessage[]>(`/api/admin/applications/${id}/messages`);
