@@ -106,31 +106,36 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest<{ Querystring: { status?: string } }>, reply: FastifyReply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        const { status } = request.query as { status?: string };
+        const validStatuses = ['pending', 'approved', 'rejected'];
+        const filterStatus = status && validStatuses.includes(status) ? status : 'pending';
+
+        app.logger.info({ status: filterStatus }, 'Fetching therapist applications');
+
+        const applications = await app.db
+          .select()
+          .from(appSchema.therapistApplications)
+          .where(eq(appSchema.therapistApplications.status, filterStatus))
+          .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`);
+
+        app.logger.info({ count: applications.length }, 'Applications retrieved');
+
+        return applications.map(formatApplication);
+      } catch (error) {
+        app.logger.error({ err: error, query: request.query }, 'Failed to fetch applications');
+        await reply.status(500).send({ error: 'Failed to fetch applications' });
       }
-
-      const { status } = request.query as { status?: string };
-      const validStatuses = ['pending', 'approved', 'rejected'];
-      const filterStatus = status && validStatuses.includes(status) ? status : 'pending';
-
-      app.logger.info({ status: filterStatus }, 'Fetching therapist applications');
-
-      const applications = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.status, filterStatus))
-        .orderBy(sql`${appSchema.therapistApplications.createdAt} DESC`);
-
-      app.logger.info({ count: applications.length }, 'Applications retrieved');
-
-      return applications.map(formatApplication);
     }
   );
 
@@ -162,32 +167,38 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        const { id } = request.params;
+        app.logger.info({ applicationId: id }, 'Fetching application');
+
+        const application = await app.db
+          .select()
+          .from(appSchema.therapistApplications)
+          .where(eq(appSchema.therapistApplications.id, id))
+          .limit(1);
+
+        if (application.length === 0) {
+          app.logger.info({ applicationId: id }, 'Application not found');
+          await reply.status(404).send({ error: 'Application not found' });
+          return;
+        }
+
+        app.logger.info({ applicationId: id }, 'Application retrieved');
+        return formatApplication(application[0]);
+      } catch (error) {
+        app.logger.error({ err: error, applicationId: request.params.id }, 'Failed to fetch application');
+        await reply.status(500).send({ error: 'Failed to fetch application' });
       }
-
-      const { id } = request.params;
-      app.logger.info({ applicationId: id }, 'Fetching application');
-
-      const application = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.id, id))
-        .limit(1);
-
-      if (application.length === 0) {
-        app.logger.info({ applicationId: id }, 'Application not found');
-        return reply.status(404).send({ error: 'Application not found' });
-      }
-
-      app.logger.info({ applicationId: id }, 'Application retrieved');
-      return formatApplication(application[0]);
     }
   );
 
@@ -232,106 +243,113 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
-      }
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
 
-      const { id } = request.params;
-      const { status, rejection_reason } = request.body;
+        const { id } = request.params;
+        const { status, rejection_reason } = request.body;
 
-      // Validate status
-      if (!['approved', 'rejected'].includes(status)) {
-        app.logger.warn({ status }, 'Invalid status provided');
-        return reply.status(400).send({ error: 'Invalid status. Must be "approved" or "rejected"' });
-      }
+        // Validate status
+        if (!['approved', 'rejected'].includes(status)) {
+          app.logger.warn({ status }, 'Invalid status provided');
+          await reply.status(400).send({ error: 'Invalid status. Must be "approved" or "rejected"' });
+          return;
+        }
 
-      app.logger.info({ applicationId: id, status }, 'Updating application status');
+        app.logger.info({ applicationId: id, status }, 'Updating application status');
 
-      // Get the application
-      const application = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.id, id))
-        .limit(1);
-
-      if (application.length === 0) {
-        app.logger.info({ applicationId: id }, 'Application not found');
-        return reply.status(404).send({ error: 'Application not found' });
-      }
-
-      const app_record = application[0];
-
-      // If approved, create therapist if not already exists
-      if (status === 'approved') {
-        const existingTherapist = await app.db
+        // Get the application
+        const application = await app.db
           .select()
-          .from(appSchema.therapists)
-          .where(eq(appSchema.therapists.userId, app_record.userId))
+          .from(appSchema.therapistApplications)
+          .where(eq(appSchema.therapistApplications.id, id))
           .limit(1);
 
-        if (existingTherapist.length === 0) {
-          app.logger.info(
-            { applicationId: id, userId: app_record.userId },
-            'Creating therapist from approved application'
-          );
-
-          await app.db.insert(appSchema.therapists).values({
-            name: app_record.name,
-            photoUrl: app_record.photoUrl || 'https://picsum.photos/seed/therapist/200/200',
-            title: app_record.title,
-            bio: app_record.bio,
-            location: app_record.location,
-            gender: app_record.gender,
-            specialties: app_record.specialties,
-            therapyTypes: app_record.therapyTypes,
-            insurances: app_record.insurances,
-            acceptingNewClients: true,
-            sessionFee: app_record.sessionFee,
-            languages: app_record.languages,
-            yearsExperience: app_record.yearsExperience,
-            phone: app_record.phone,
-            email: app_record.email,
-            websiteUrl: app_record.websiteUrl,
-            userId: app_record.userId,
-            isPinned: false,
-            licenseDocuments: app_record.licenseDocuments || [],
-          });
-
-          app.logger.info({ applicationId: id }, 'Therapist created from application');
-        } else {
-          // Update existing therapist with license documents from application
-          await app.db
-            .update(appSchema.therapists)
-            .set({ licenseDocuments: app_record.licenseDocuments || [] })
-            .where(eq(appSchema.therapists.userId, app_record.userId));
-
-          app.logger.info(
-            { applicationId: id, userId: app_record.userId },
-            'Therapist already exists for this user, updated license documents'
-          );
+        if (application.length === 0) {
+          app.logger.info({ applicationId: id }, 'Application not found');
+          await reply.status(404).send({ error: 'Application not found' });
+          return;
         }
+
+        const app_record = application[0];
+
+        // If approved, create therapist if not already exists
+        if (status === 'approved') {
+          const existingTherapist = await app.db
+            .select()
+            .from(appSchema.therapists)
+            .where(eq(appSchema.therapists.userId, app_record.userId))
+            .limit(1);
+
+          if (existingTherapist.length === 0) {
+            app.logger.info(
+              { applicationId: id, userId: app_record.userId },
+              'Creating therapist from approved application'
+            );
+
+            await app.db.insert(appSchema.therapists).values({
+              name: app_record.name,
+              photoUrl: app_record.photoUrl || 'https://picsum.photos/seed/therapist/200/200',
+              title: app_record.title,
+              bio: app_record.bio,
+              location: app_record.location,
+              gender: app_record.gender,
+              specialties: app_record.specialties,
+              therapyTypes: app_record.therapyTypes,
+              insurances: app_record.insurances,
+              acceptingNewClients: true,
+              sessionFee: app_record.sessionFee,
+              languages: app_record.languages,
+              yearsExperience: app_record.yearsExperience,
+              phone: app_record.phone,
+              email: app_record.email,
+              websiteUrl: app_record.websiteUrl,
+              userId: app_record.userId,
+              isPinned: false,
+              licenseDocuments: app_record.licenseDocuments || [],
+            });
+
+            app.logger.info({ applicationId: id }, 'Therapist created from application');
+          } else {
+            // Update existing therapist with license documents from application
+            await app.db
+              .update(appSchema.therapists)
+              .set({ licenseDocuments: app_record.licenseDocuments || [] })
+              .where(eq(appSchema.therapists.userId, app_record.userId));
+
+            app.logger.info(
+              { applicationId: id, userId: app_record.userId },
+              'Therapist already exists for this user, updated license documents'
+            );
+          }
+        }
+
+        // Update application
+        const updated = await app.db
+          .update(appSchema.therapistApplications)
+          .set({
+            status,
+            rejectionReason: rejection_reason || null,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(appSchema.therapistApplications.id, id))
+          .returning();
+
+        app.logger.info({ applicationId: id, status }, 'Application updated');
+
+        return formatApplication(updated[0]);
+      } catch (error) {
+        app.logger.error({ err: error, applicationId: request.params.id, body: request.body }, 'Failed to update application');
+        await reply.status(500).send({ error: 'Failed to update application' });
       }
-
-      // Update application
-      const updated = await app.db
-        .update(appSchema.therapistApplications)
-        .set({
-          status,
-          rejectionReason: rejection_reason || null,
-          updatedAt: sql`now()`,
-        })
-        .where(eq(appSchema.therapistApplications.id, id))
-        .returning();
-
-      app.logger.info({ applicationId: id, status }, 'Application updated');
-
-      return formatApplication(updated[0]);
     }
   );
 }

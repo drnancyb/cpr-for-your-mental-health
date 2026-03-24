@@ -81,32 +81,37 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      try {
+        const session = await requireAuth(request, reply);
+        if (!session) return;
 
-      app.logger.info({ userId: session.user.id }, 'Fetching saved therapists');
+        app.logger.info({ userId: session.user.id }, 'Fetching saved therapists');
 
-      const saved = await app.db
-        .select({
-          id: appSchema.savedTherapists.id,
-          therapistId: appSchema.savedTherapists.therapistId,
-          createdAt: appSchema.savedTherapists.createdAt,
-          therapist: {
-            id: appSchema.therapists.id,
-            name: appSchema.therapists.name,
-            title: appSchema.therapists.title,
-            photoUrl: appSchema.therapists.photoUrl,
-            location: appSchema.therapists.location,
-            acceptingNewClients: appSchema.therapists.acceptingNewClients,
-          },
-        })
-        .from(appSchema.savedTherapists)
-        .innerJoin(appSchema.therapists, eq(appSchema.savedTherapists.therapistId, appSchema.therapists.id))
-        .where(eq(appSchema.savedTherapists.userId, session.user.id));
+        const saved = await app.db
+          .select({
+            id: appSchema.savedTherapists.id,
+            therapistId: appSchema.savedTherapists.therapistId,
+            createdAt: appSchema.savedTherapists.createdAt,
+            therapist: {
+              id: appSchema.therapists.id,
+              name: appSchema.therapists.name,
+              title: appSchema.therapists.title,
+              photoUrl: appSchema.therapists.photoUrl,
+              location: appSchema.therapists.location,
+              acceptingNewClients: appSchema.therapists.acceptingNewClients,
+            },
+          })
+          .from(appSchema.savedTherapists)
+          .innerJoin(appSchema.therapists, eq(appSchema.savedTherapists.therapistId, appSchema.therapists.id))
+          .where(eq(appSchema.savedTherapists.userId, session.user.id));
 
-      app.logger.info({ userId: session.user.id, count: saved.length }, 'Saved therapists retrieved');
+        app.logger.info({ userId: session.user.id, count: saved.length }, 'Saved therapists retrieved');
 
-      return { saved };
+        return { saved };
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to fetch saved therapists');
+        await reply.status(500).send({ error: 'Failed to fetch saved therapists' });
+      }
     }
   );
 
@@ -160,15 +165,16 @@ export function register(app: App, fastify: FastifyInstance) {
         )
         .limit(1);
 
-      if (existing.length > 0) {
-        app.logger.info(
-          { userId: session.user.id, therapistId: request.body.therapist_id },
-          'Therapist already saved'
-        );
-        return reply.status(409).send({ error: 'Already saved' });
-      }
-
       try {
+        if (existing.length > 0) {
+          app.logger.info(
+            { userId: session.user.id, therapistId: request.body.therapist_id },
+            'Therapist already saved'
+          );
+          await reply.status(409).send({ error: 'Already saved' });
+          return;
+        }
+
         const saved = await app.db
           .insert(appSchema.savedTherapists)
           .values({
@@ -206,13 +212,13 @@ export function register(app: App, fastify: FastifyInstance) {
           'Therapist saved successfully'
         );
 
-        return reply.status(201).send(response);
+        await reply.status(201).send(response);
       } catch (error: any) {
         app.logger.error(
           { err: error, userId: session.user.id, therapistId: request.body.therapist_id },
           'Failed to save therapist'
         );
-        throw error;
+        await reply.status(500).send({ error: 'Failed to save therapist' });
       }
     }
   );
@@ -250,49 +256,55 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      try {
+        const session = await requireAuth(request, reply);
+        if (!session) return;
 
-      app.logger.info(
-        { userId: session.user.id, therapistId: request.params.therapistId },
-        'Removing saved therapist'
-      );
-
-      // Check if saved therapist exists
-      const existingSaved = await app.db
-        .select()
-        .from(appSchema.savedTherapists)
-        .where(
-          and(
-            eq(appSchema.savedTherapists.userId, session.user.id),
-            eq(appSchema.savedTherapists.therapistId, request.params.therapistId)
-          )
-        )
-        .limit(1);
-
-      if (existingSaved.length === 0) {
         app.logger.info(
           { userId: session.user.id, therapistId: request.params.therapistId },
-          'Saved therapist not found'
+          'Removing saved therapist'
         );
-        return reply.status(404).send({ error: 'Saved therapist not found' });
-      }
 
-      await app.db
-        .delete(appSchema.savedTherapists)
-        .where(
-          and(
-            eq(appSchema.savedTherapists.userId, session.user.id),
-            eq(appSchema.savedTherapists.therapistId, request.params.therapistId)
+        // Check if saved therapist exists
+        const existingSaved = await app.db
+          .select()
+          .from(appSchema.savedTherapists)
+          .where(
+            and(
+              eq(appSchema.savedTherapists.userId, session.user.id),
+              eq(appSchema.savedTherapists.therapistId, request.params.therapistId)
+            )
           )
+          .limit(1);
+
+        if (existingSaved.length === 0) {
+          app.logger.info(
+            { userId: session.user.id, therapistId: request.params.therapistId },
+            'Saved therapist not found'
+          );
+          await reply.status(404).send({ error: 'Saved therapist not found' });
+          return;
+        }
+
+        await app.db
+          .delete(appSchema.savedTherapists)
+          .where(
+            and(
+              eq(appSchema.savedTherapists.userId, session.user.id),
+              eq(appSchema.savedTherapists.therapistId, request.params.therapistId)
+            )
+          );
+
+        app.logger.info(
+          { userId: session.user.id, therapistId: request.params.therapistId },
+          'Saved therapist removed'
         );
 
-      app.logger.info(
-        { userId: session.user.id, therapistId: request.params.therapistId },
-        'Saved therapist removed'
-      );
-
-      return { success: true };
+        return { success: true };
+      } catch (error) {
+        app.logger.error({ err: error, therapistId: request.params.therapistId }, 'Failed to remove saved therapist');
+        await reply.status(500).send({ error: 'Failed to remove saved therapist' });
+      }
     }
   );
 
@@ -323,39 +335,44 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      try {
+        const session = await requireAuth(request, reply);
+        if (!session) return;
 
-      app.logger.info({ userId: session.user.id }, 'Fetching booking requests');
+        app.logger.info({ userId: session.user.id }, 'Fetching booking requests');
 
-      const bookings = await app.db
-        .select({
-          id: appSchema.bookingRequests.id,
-          therapistId: appSchema.bookingRequests.therapistId,
-          userId: appSchema.bookingRequests.userId,
-          preferredDate: appSchema.bookingRequests.preferredDate,
-          message: appSchema.bookingRequests.message,
-          contactMethod: appSchema.bookingRequests.contactMethod,
-          status: appSchema.bookingRequests.status,
-          adminNotes: appSchema.bookingRequests.adminNotes,
-          createdAt: appSchema.bookingRequests.createdAt,
-          therapist: {
-            id: appSchema.therapists.id,
-            name: appSchema.therapists.name,
-            title: appSchema.therapists.title,
-            photoUrl: appSchema.therapists.photoUrl,
-          },
-        })
-        .from(appSchema.bookingRequests)
-        .innerJoin(appSchema.therapists, eq(appSchema.bookingRequests.therapistId, appSchema.therapists.id))
-        .where(eq(appSchema.bookingRequests.userId, session.user.id));
+        const bookings = await app.db
+          .select({
+            id: appSchema.bookingRequests.id,
+            therapistId: appSchema.bookingRequests.therapistId,
+            userId: appSchema.bookingRequests.userId,
+            preferredDate: appSchema.bookingRequests.preferredDate,
+            message: appSchema.bookingRequests.message,
+            contactMethod: appSchema.bookingRequests.contactMethod,
+            status: appSchema.bookingRequests.status,
+            adminNotes: appSchema.bookingRequests.adminNotes,
+            createdAt: appSchema.bookingRequests.createdAt,
+            therapist: {
+              id: appSchema.therapists.id,
+              name: appSchema.therapists.name,
+              title: appSchema.therapists.title,
+              photoUrl: appSchema.therapists.photoUrl,
+            },
+          })
+          .from(appSchema.bookingRequests)
+          .innerJoin(appSchema.therapists, eq(appSchema.bookingRequests.therapistId, appSchema.therapists.id))
+          .where(eq(appSchema.bookingRequests.userId, session.user.id));
 
-      app.logger.info(
-        { userId: session.user.id, count: bookings.length },
-        'Booking requests retrieved'
-      );
+        app.logger.info(
+          { userId: session.user.id, count: bookings.length },
+          'Booking requests retrieved'
+        );
 
-      return { bookings };
+        return { bookings };
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to fetch booking requests');
+        await reply.status(500).send({ error: 'Failed to fetch booking requests' });
+      }
     }
   );
 
@@ -396,59 +413,64 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const session = await requireAuth(request, reply);
-      if (!session) return;
+      try {
+        const session = await requireAuth(request, reply);
+        if (!session) return;
 
-      app.logger.info(
-        { userId: session.user.id, therapistId: request.body.therapist_id },
-        'Creating booking request'
-      );
+        app.logger.info(
+          { userId: session.user.id, therapistId: request.body.therapist_id },
+          'Creating booking request'
+        );
 
-      const booking = await app.db
-        .insert(appSchema.bookingRequests)
-        .values({
-          userId: session.user.id,
-          therapistId: request.body.therapist_id,
-          preferredDate: request.body.preferred_date ? new Date(request.body.preferred_date).toISOString().split('T')[0] : null,
-          message: request.body.message,
-          contactMethod: request.body.contact_method,
-        })
-        .returning();
+        const booking = await app.db
+          .insert(appSchema.bookingRequests)
+          .values({
+            userId: session.user.id,
+            therapistId: request.body.therapist_id,
+            preferredDate: request.body.preferred_date ? new Date(request.body.preferred_date).toISOString().split('T')[0] : null,
+            message: request.body.message,
+            contactMethod: request.body.contact_method,
+          })
+          .returning();
 
-      // Fetch therapist details
-      const therapist = await app.db
-        .select()
-        .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, request.body.therapist_id))
-        .limit(1);
+        // Fetch therapist details
+        const therapist = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, request.body.therapist_id))
+          .limit(1);
 
-      const response = {
-        id: booking[0].id,
-        therapistId: booking[0].therapistId,
-        userId: booking[0].userId,
-        preferredDate: booking[0].preferredDate,
-        message: booking[0].message,
-        contactMethod: booking[0].contactMethod,
-        status: booking[0].status,
-        adminNotes: booking[0].adminNotes,
-        createdAt: booking[0].createdAt,
-        therapist:
-          therapist.length > 0
-            ? {
-                id: therapist[0].id,
-                name: therapist[0].name,
-                title: therapist[0].title,
-                photoUrl: therapist[0].photoUrl,
-              }
-            : null,
-      };
+        const response = {
+          id: booking[0].id,
+          therapistId: booking[0].therapistId,
+          userId: booking[0].userId,
+          preferredDate: booking[0].preferredDate,
+          message: booking[0].message,
+          contactMethod: booking[0].contactMethod,
+          status: booking[0].status,
+          adminNotes: booking[0].adminNotes,
+          createdAt: booking[0].createdAt,
+          therapist:
+            therapist.length > 0
+              ? {
+                  id: therapist[0].id,
+                  name: therapist[0].name,
+                  title: therapist[0].title,
+                  photoUrl: therapist[0].photoUrl,
+                }
+              : null,
+        };
 
-      app.logger.info(
-        { userId: session.user.id, bookingId: booking[0].id },
-        'Booking request created'
-      );
+        app.logger.info(
+          { userId: session.user.id, bookingId: booking[0].id },
+          'Booking request created'
+        );
 
-      return reply.status(201).send(response);
+        await reply.status(201).send(response);
+      } catch (error) {
+        app.logger.error({ err: error, body: request.body }, 'Failed to create booking request');
+        await reply.status(500).send({ error: 'Failed to create booking request' });
+      }
     }
   );
 
@@ -480,42 +502,47 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        app.logger.info({ adminId: auth.user.id }, 'Fetching all booking requests');
+
+        const bookings = await app.db
+          .select({
+            id: appSchema.bookingRequests.id,
+            therapistId: appSchema.bookingRequests.therapistId,
+            userId: appSchema.bookingRequests.userId,
+            preferredDate: appSchema.bookingRequests.preferredDate,
+            message: appSchema.bookingRequests.message,
+            contactMethod: appSchema.bookingRequests.contactMethod,
+            status: appSchema.bookingRequests.status,
+            adminNotes: appSchema.bookingRequests.adminNotes,
+            createdAt: appSchema.bookingRequests.createdAt,
+            therapist: {
+              id: appSchema.therapists.id,
+              name: appSchema.therapists.name,
+              title: appSchema.therapists.title,
+              photoUrl: appSchema.therapists.photoUrl,
+            },
+          })
+          .from(appSchema.bookingRequests)
+          .innerJoin(appSchema.therapists, eq(appSchema.bookingRequests.therapistId, appSchema.therapists.id));
+
+        app.logger.info({ count: bookings.length }, 'All booking requests retrieved');
+
+        return { bookings };
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to fetch all booking requests');
+        await reply.status(500).send({ error: 'Failed to fetch booking requests' });
       }
-
-      app.logger.info({ adminId: auth.user.id }, 'Fetching all booking requests');
-
-      const bookings = await app.db
-        .select({
-          id: appSchema.bookingRequests.id,
-          therapistId: appSchema.bookingRequests.therapistId,
-          userId: appSchema.bookingRequests.userId,
-          preferredDate: appSchema.bookingRequests.preferredDate,
-          message: appSchema.bookingRequests.message,
-          contactMethod: appSchema.bookingRequests.contactMethod,
-          status: appSchema.bookingRequests.status,
-          adminNotes: appSchema.bookingRequests.adminNotes,
-          createdAt: appSchema.bookingRequests.createdAt,
-          therapist: {
-            id: appSchema.therapists.id,
-            name: appSchema.therapists.name,
-            title: appSchema.therapists.title,
-            photoUrl: appSchema.therapists.photoUrl,
-          },
-        })
-        .from(appSchema.bookingRequests)
-        .innerJoin(appSchema.therapists, eq(appSchema.bookingRequests.therapistId, appSchema.therapists.id));
-
-      app.logger.info({ count: bookings.length }, 'All booking requests retrieved');
-
-      return { bookings };
     }
   );
 
@@ -562,76 +589,82 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        app.logger.info(
+          { bookingId: request.params.id, status: request.body.status },
+          'Updating booking status'
+        );
+
+        // Check if booking exists
+        const existing = await app.db
+          .select()
+          .from(appSchema.bookingRequests)
+          .where(eq(appSchema.bookingRequests.id, request.params.id))
+          .limit(1);
+
+        if (existing.length === 0) {
+          app.logger.info({ bookingId: request.params.id }, 'Booking not found');
+          await reply.status(404).send({ error: 'Booking not found' });
+          return;
+        }
+
+        const updated = await app.db
+          .update(appSchema.bookingRequests)
+          .set({
+            status: request.body.status,
+            adminNotes: request.body.admin_notes || null,
+          })
+          .where(eq(appSchema.bookingRequests.id, request.params.id))
+          .returning();
+
+        // Fetch therapist details
+        const therapist = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, updated[0].therapistId))
+          .limit(1);
+
+        const response = {
+          id: updated[0].id,
+          therapistId: updated[0].therapistId,
+          userId: updated[0].userId,
+          preferredDate: updated[0].preferredDate,
+          message: updated[0].message,
+          contactMethod: updated[0].contactMethod,
+          status: updated[0].status,
+          adminNotes: updated[0].adminNotes,
+          createdAt: updated[0].createdAt,
+          therapist:
+            therapist.length > 0
+              ? {
+                  id: therapist[0].id,
+                  name: therapist[0].name,
+                  title: therapist[0].title,
+                  photoUrl: therapist[0].photoUrl,
+                }
+              : null,
+        };
+
+        app.logger.info(
+          { bookingId: request.params.id, status: request.body.status },
+          'Booking status updated'
+        );
+
+        return response;
+      } catch (error) {
+        app.logger.error({ err: error, bookingId: request.params.id, body: request.body }, 'Failed to update booking');
+        await reply.status(500).send({ error: 'Failed to update booking' });
       }
-
-      app.logger.info(
-        { bookingId: request.params.id, status: request.body.status },
-        'Updating booking status'
-      );
-
-      // Check if booking exists
-      const existing = await app.db
-        .select()
-        .from(appSchema.bookingRequests)
-        .where(eq(appSchema.bookingRequests.id, request.params.id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        app.logger.info({ bookingId: request.params.id }, 'Booking not found');
-        return reply.status(404).send({ error: 'Booking not found' });
-      }
-
-      const updated = await app.db
-        .update(appSchema.bookingRequests)
-        .set({
-          status: request.body.status,
-          adminNotes: request.body.admin_notes || null,
-        })
-        .where(eq(appSchema.bookingRequests.id, request.params.id))
-        .returning();
-
-      // Fetch therapist details
-      const therapist = await app.db
-        .select()
-        .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, updated[0].therapistId))
-        .limit(1);
-
-      const response = {
-        id: updated[0].id,
-        therapistId: updated[0].therapistId,
-        userId: updated[0].userId,
-        preferredDate: updated[0].preferredDate,
-        message: updated[0].message,
-        contactMethod: updated[0].contactMethod,
-        status: updated[0].status,
-        adminNotes: updated[0].adminNotes,
-        createdAt: updated[0].createdAt,
-        therapist:
-          therapist.length > 0
-            ? {
-                id: therapist[0].id,
-                name: therapist[0].name,
-                title: therapist[0].title,
-                photoUrl: therapist[0].photoUrl,
-              }
-            : null,
-      };
-
-      app.logger.info(
-        { bookingId: request.params.id, status: request.body.status },
-        'Booking status updated'
-      );
-
-      return response;
     }
   );
 }

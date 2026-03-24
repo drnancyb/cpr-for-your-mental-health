@@ -422,7 +422,8 @@ export function register(app: App, fastify: FastifyInstance) {
 
       app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
 
-      reply.status(201).send(response);
+      reply.status(201);
+      return response;
     }
   );
 
@@ -686,7 +687,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Notification created'
       );
 
-      reply.status(201).send({
+      await reply.status(201).send({
         notification: notification[0],
         recipient_count: recipientCount,
       });

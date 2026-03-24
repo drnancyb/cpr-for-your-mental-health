@@ -35,6 +35,10 @@ export const therapists = pgTable(
       name: 'therapists_user_id_fk',
     }).onDelete('set null'),
     unique('therapists_user_id_unique').on(table.userId),
+    {
+      name: 'therapists_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );
 
@@ -62,7 +66,16 @@ export const therapistApplications = pgTable('therapist_applications', {
   licenseDocuments: text('license_documents').array().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  {
+    name: 'therapist_applications_user_id_idx',
+    expression: table.userId,
+  },
+  {
+    name: 'therapist_applications_status_idx',
+    expression: table.status,
+  },
+]);
 
 export const savedTherapists = pgTable(
   'saved_therapists',
@@ -84,6 +97,14 @@ export const savedTherapists = pgTable(
       name: 'saved_therapists_therapist_id_fk',
     }).onDelete('cascade'),
     unique('saved_therapists_user_therapist_unique').on(table.userId, table.therapistId),
+    {
+      name: 'saved_therapists_user_id_idx',
+      expression: table.userId,
+    },
+    {
+      name: 'saved_therapists_therapist_id_idx',
+      expression: table.therapistId,
+    },
   ]
 );
 
@@ -111,6 +132,14 @@ export const bookingRequests = pgTable(
       foreignColumns: [therapists.id],
       name: 'booking_requests_therapist_id_fk',
     }).onDelete('cascade'),
+    {
+      name: 'booking_requests_user_id_idx',
+      expression: table.userId,
+    },
+    {
+      name: 'booking_requests_therapist_id_idx',
+      expression: table.therapistId,
+    },
   ]
 );
 
@@ -130,6 +159,14 @@ export const appAnalyticsEvents = pgTable(
       foreignColumns: [user.id],
       name: 'app_analytics_events_user_id_fk',
     }).onDelete('no action'),
+    {
+      name: 'app_analytics_events_user_id_idx',
+      expression: table.userId,
+    },
+    {
+      name: 'app_analytics_events_event_type_idx',
+      expression: table.eventType,
+    },
   ]
 );
 
@@ -158,6 +195,14 @@ export const therapistSubscriptions = pgTable(
       foreignColumns: [user.id],
       name: 'therapist_subscriptions_user_id_fk',
     }).onDelete('no action'),
+    {
+      name: 'therapist_subscriptions_therapist_id_idx',
+      expression: table.therapistId,
+    },
+    {
+      name: 'therapist_subscriptions_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );
 
@@ -178,6 +223,10 @@ export const broadcastNotifications = pgTable(
       foreignColumns: [user.id],
       name: 'broadcast_notifications_sent_by_fk',
     }).onDelete('restrict'),
+    {
+      name: 'broadcast_notifications_sent_by_idx',
+      expression: table.sentBy,
+    },
   ]
 );
 
@@ -196,6 +245,10 @@ export const appContent = pgTable(
       foreignColumns: [user.id],
       name: 'app_content_updated_by_fk',
     }).onDelete('no action'),
+    {
+      name: 'app_content_updated_by_idx',
+      expression: table.updatedBy,
+    },
   ]
 );
 
@@ -217,6 +270,10 @@ export const clientPreferences = pgTable(
       foreignColumns: [user.id],
       name: 'client_preferences_user_id_fk',
     }).onDelete('cascade'),
+    {
+      name: 'client_preferences_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );
 
@@ -239,6 +296,10 @@ export const supportRequests = pgTable(
       foreignColumns: [user.id],
       name: 'support_requests_user_id_fk',
     }).onDelete('no action'),
+    {
+      name: 'support_requests_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );
 
@@ -259,6 +320,10 @@ export const notificationPreferences = pgTable(
       foreignColumns: [user.id],
       name: 'notification_preferences_user_id_fk',
     }).onDelete('cascade'),
+    {
+      name: 'notification_preferences_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );
 
@@ -282,6 +347,14 @@ export const applicationMessages = pgTable(
       foreignColumns: [user.id],
       name: 'application_messages_admin_id_fk',
     }).onDelete('no action'),
+    {
+      name: 'application_messages_application_id_idx',
+      expression: table.applicationId,
+    },
+    {
+      name: 'application_messages_admin_id_idx',
+      expression: table.adminId,
+    },
   ]
 );
 
@@ -312,5 +385,9 @@ export const uploadedDocuments = pgTable(
       foreignColumns: [user.id],
       name: 'uploaded_documents_user_id_fk',
     }).onDelete('cascade'),
+    {
+      name: 'uploaded_documents_user_id_idx',
+      expression: table.userId,
+    },
   ]
 );

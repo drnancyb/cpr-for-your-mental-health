@@ -128,49 +128,55 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        app.logger.info(
+          { name: request.body.name, adminId: auth.user.id },
+          'Creating therapist'
+        );
+
+        const therapist = await app.db
+          .insert(appSchema.therapists)
+          .values({
+            name: request.body.name,
+            photoUrl: request.body.photo_url || '',
+            title: request.body.title,
+            bio: request.body.bio,
+            location: request.body.location,
+            gender: request.body.gender,
+            specialties: request.body.specialties,
+            therapyTypes: request.body.therapy_types,
+            insurances: request.body.insurances,
+            acceptingNewClients: true,
+            sessionFee: request.body.session_fee.toString(),
+            languages: request.body.languages,
+            yearsExperience: request.body.years_experience,
+            phone: request.body.phone,
+            email: request.body.email,
+            websiteUrl: request.body.website_url || null,
+          })
+          .returning();
+
+        app.logger.info(
+          { therapistId: therapist[0].id, name: request.body.name },
+          'Therapist created successfully'
+        );
+
+        reply.status(201);
+        return therapist[0];
+      } catch (error) {
+        app.logger.error({ err: error, body: request.body }, 'Failed to create therapist');
+        await reply.status(500).send({ error: 'Failed to create therapist' });
       }
-
-      app.logger.info(
-        { name: request.body.name, adminId: auth.user.id },
-        'Creating therapist'
-      );
-
-      const therapist = await app.db
-        .insert(appSchema.therapists)
-        .values({
-          name: request.body.name,
-          photoUrl: request.body.photo_url || '',
-          title: request.body.title,
-          bio: request.body.bio,
-          location: request.body.location,
-          gender: request.body.gender,
-          specialties: request.body.specialties,
-          therapyTypes: request.body.therapy_types,
-          insurances: request.body.insurances,
-          acceptingNewClients: true,
-          sessionFee: request.body.session_fee.toString(),
-          languages: request.body.languages,
-          yearsExperience: request.body.years_experience,
-          phone: request.body.phone,
-          email: request.body.email,
-          websiteUrl: request.body.website_url || null,
-        })
-        .returning();
-
-      app.logger.info(
-        { therapistId: therapist[0].id, name: request.body.name },
-        'Therapist created successfully'
-      );
-
-      reply.status(201).send(therapist[0]);
     }
   );
 
@@ -244,66 +250,72 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        const { id } = request.params;
+        app.logger.info({ therapistId: id, adminId: auth.user.id }, 'Updating therapist');
+
+        // Check if therapist exists
+        const existing = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, id))
+          .limit(1);
+
+        if (existing.length === 0) {
+          app.logger.info({ therapistId: id }, 'Therapist not found');
+          await reply.status(404).send({ error: 'Therapist not found' });
+          return;
+        }
+
+        // Build update object from provided fields
+        const updateData: Record<string, any> = {};
+
+        if (request.body.name !== undefined) updateData.name = request.body.name;
+        if (request.body.photo_url !== undefined) updateData.photoUrl = request.body.photo_url;
+        if (request.body.title !== undefined) updateData.title = request.body.title;
+        if (request.body.bio !== undefined) updateData.bio = request.body.bio;
+        if (request.body.location !== undefined) updateData.location = request.body.location;
+        if (request.body.gender !== undefined) updateData.gender = request.body.gender;
+        if (request.body.specialties !== undefined) updateData.specialties = request.body.specialties;
+        if (request.body.therapy_types !== undefined) updateData.therapyTypes = request.body.therapy_types;
+        if (request.body.insurances !== undefined) updateData.insurances = request.body.insurances;
+        if (request.body.session_fee !== undefined)
+          updateData.sessionFee = request.body.session_fee.toString();
+        if (request.body.languages !== undefined) updateData.languages = request.body.languages;
+        if (request.body.years_experience !== undefined)
+          updateData.yearsExperience = request.body.years_experience;
+        if (request.body.phone !== undefined) updateData.phone = request.body.phone;
+        if (request.body.email !== undefined) updateData.email = request.body.email;
+        if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
+        if (request.body.accepting_new_clients !== undefined)
+          updateData.acceptingNewClients = request.body.accepting_new_clients;
+
+        const updated = await app.db
+          .update(appSchema.therapists)
+          .set(updateData)
+          .where(eq(appSchema.therapists.id, id))
+          .returning();
+
+        app.logger.info(
+          { therapistId: id, updatedFields: Object.keys(updateData).length },
+          'Therapist updated successfully'
+        );
+
+        return updated[0];
+      } catch (error) {
+        app.logger.error({ err: error, therapistId: request.params.id, body: request.body }, 'Failed to update therapist');
+        await reply.status(500).send({ error: 'Failed to update therapist' });
       }
-
-      const { id } = request.params;
-      app.logger.info({ therapistId: id, adminId: auth.user.id }, 'Updating therapist');
-
-      // Check if therapist exists
-      const existing = await app.db
-        .select()
-        .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        app.logger.info({ therapistId: id }, 'Therapist not found');
-        return reply.status(404).send({ error: 'Therapist not found' });
-      }
-
-      // Build update object from provided fields
-      const updateData: Record<string, any> = {};
-
-      if (request.body.name !== undefined) updateData.name = request.body.name;
-      if (request.body.photo_url !== undefined) updateData.photoUrl = request.body.photo_url;
-      if (request.body.title !== undefined) updateData.title = request.body.title;
-      if (request.body.bio !== undefined) updateData.bio = request.body.bio;
-      if (request.body.location !== undefined) updateData.location = request.body.location;
-      if (request.body.gender !== undefined) updateData.gender = request.body.gender;
-      if (request.body.specialties !== undefined) updateData.specialties = request.body.specialties;
-      if (request.body.therapy_types !== undefined) updateData.therapyTypes = request.body.therapy_types;
-      if (request.body.insurances !== undefined) updateData.insurances = request.body.insurances;
-      if (request.body.session_fee !== undefined)
-        updateData.sessionFee = request.body.session_fee.toString();
-      if (request.body.languages !== undefined) updateData.languages = request.body.languages;
-      if (request.body.years_experience !== undefined)
-        updateData.yearsExperience = request.body.years_experience;
-      if (request.body.phone !== undefined) updateData.phone = request.body.phone;
-      if (request.body.email !== undefined) updateData.email = request.body.email;
-      if (request.body.website_url !== undefined) updateData.websiteUrl = request.body.website_url;
-      if (request.body.accepting_new_clients !== undefined)
-        updateData.acceptingNewClients = request.body.accepting_new_clients;
-
-      const updated = await app.db
-        .update(appSchema.therapists)
-        .set(updateData)
-        .where(eq(appSchema.therapists.id, id))
-        .returning();
-
-      app.logger.info(
-        { therapistId: id, updatedFields: Object.keys(updateData).length },
-        'Therapist updated successfully'
-      );
-
-      return updated[0];
     }
   );
 
@@ -341,42 +353,48 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        const { id } = request.params;
+        app.logger.info({ therapistId: id, adminId: auth.user.id }, 'Deleting therapist');
+
+        // Check if therapist exists
+        const existing = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, id))
+          .limit(1);
+
+        if (existing.length === 0) {
+          app.logger.info({ therapistId: id }, 'Therapist not found');
+          await reply.status(404).send({ error: 'Therapist not found' });
+          return;
+        }
+
+        // Delete the therapist
+        await app.db
+          .delete(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, id));
+
+        app.logger.info(
+          { therapistId: id, name: existing[0].name },
+          'Therapist deleted successfully'
+        );
+
+        return { success: true };
+      } catch (error) {
+        app.logger.error({ err: error, therapistId: request.params.id }, 'Failed to delete therapist');
+        await reply.status(500).send({ error: 'Failed to delete therapist' });
       }
-
-      const { id } = request.params;
-      app.logger.info({ therapistId: id, adminId: auth.user.id }, 'Deleting therapist');
-
-      // Check if therapist exists
-      const existing = await app.db
-        .select()
-        .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        app.logger.info({ therapistId: id }, 'Therapist not found');
-        return reply.status(404).send({ error: 'Therapist not found' });
-      }
-
-      // Delete the therapist
-      await app.db
-        .delete(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, id));
-
-      app.logger.info(
-        { therapistId: id, name: existing[0].name },
-        'Therapist deleted successfully'
-      );
-
-      return { success: true };
     }
   );
 }

@@ -119,7 +119,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Support request created'
       );
 
-      return reply.status(201).send({
+      await reply.status(201).send({
         success: true,
         id: supportRequest[0].id,
       });

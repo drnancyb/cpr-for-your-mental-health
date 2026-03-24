@@ -149,70 +149,75 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      // Optionally authenticate user, but application can be submitted without authentication
-      const auth = await optionalAuth(request);
-      const userId = auth?.user?.id || null;
+      try {
+        // Optionally authenticate user, but application can be submitted without authentication
+        const auth = await optionalAuth(request);
+        const userId = auth?.user?.id || null;
 
-      app.logger.info(
-        { userId, name: request.body.name },
-        'Creating therapist application'
-      );
+        app.logger.info(
+          { userId, name: request.body.name },
+          'Creating therapist application'
+        );
 
-      // Check if authenticated user already has an active application (pending or approved)
-      // Users with rejected or withdrawn applications can resubmit
-      if (userId) {
-        const existingActiveApp = await app.db
-          .select()
-          .from(appSchema.therapistApplications)
-          .where(
-            and(
-              eq(appSchema.therapistApplications.userId, userId),
-              inArray(appSchema.therapistApplications.status, ['pending', 'approved'])
+        // Check if authenticated user already has an active application (pending or approved)
+        // Users with rejected or withdrawn applications can resubmit
+        if (userId) {
+          const existingActiveApp = await app.db
+            .select()
+            .from(appSchema.therapistApplications)
+            .where(
+              and(
+                eq(appSchema.therapistApplications.userId, userId),
+                inArray(appSchema.therapistApplications.status, ['pending', 'approved'])
+              )
             )
-          )
-          .limit(1);
+            .limit(1);
 
-        if (existingActiveApp.length > 0) {
-          app.logger.warn(
-            { userId },
-            'User already has an active application'
-          );
-          reply.status(409);
-          return { error: 'User already has an active application' };
+          if (existingActiveApp.length > 0) {
+            app.logger.warn(
+              { userId },
+              'User already has an active application'
+            );
+            await reply.status(409).send({ error: 'User already has an active application' });
+            return;
+          }
         }
+
+        const application = await app.db
+          .insert(appSchema.therapistApplications)
+          .values({
+            userId,
+            status: 'pending',
+            name: request.body.name,
+            title: request.body.title,
+            bio: request.body.bio,
+            location: request.body.location,
+            gender: request.body.gender,
+            specialties: request.body.specialties,
+            therapyTypes: request.body.therapy_types,
+            insurances: request.body.insurances,
+            sessionFee: request.body.session_fee.toString(),
+            languages: request.body.languages,
+            yearsExperience: request.body.years_experience,
+            phone: request.body.phone,
+            email: request.body.email,
+            photoUrl: request.body.profile_photo_url || request.body.photo_url || null,
+            websiteUrl: request.body.website_url || null,
+            licenseDocuments: request.body.license_documents || [],
+          })
+          .returning();
+
+        app.logger.info(
+          { applicationId: application[0].id, userId },
+          'Therapist application created'
+        );
+
+        reply.status(201);
+        return application[0];
+      } catch (error) {
+        app.logger.error({ err: error, body: request.body }, 'Failed to create application');
+        await reply.status(500).send({ error: 'Failed to create application' });
       }
-
-      const application = await app.db
-        .insert(appSchema.therapistApplications)
-        .values({
-          userId,
-          status: 'pending',
-          name: request.body.name,
-          title: request.body.title,
-          bio: request.body.bio,
-          location: request.body.location,
-          gender: request.body.gender,
-          specialties: request.body.specialties,
-          therapyTypes: request.body.therapy_types,
-          insurances: request.body.insurances,
-          sessionFee: request.body.session_fee.toString(),
-          languages: request.body.languages,
-          yearsExperience: request.body.years_experience,
-          phone: request.body.phone,
-          email: request.body.email,
-          photoUrl: request.body.profile_photo_url || request.body.photo_url || null,
-          websiteUrl: request.body.website_url || null,
-          licenseDocuments: request.body.license_documents || [],
-        })
-        .returning();
-
-      app.logger.info(
-        { applicationId: application[0].id, userId },
-        'Therapist application created'
-      );
-
-      reply.status(201);
-      return application[0];
     }
   );
 
@@ -234,24 +239,29 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      app.logger.info({ userId: auth.user.id }, 'Fetching user application');
+        app.logger.info({ userId: auth.user.id }, 'Fetching user application');
 
-      const application = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .where(eq(appSchema.therapistApplications.userId, auth.user.id))
-        .limit(1);
+        const application = await app.db
+          .select()
+          .from(appSchema.therapistApplications)
+          .where(eq(appSchema.therapistApplications.userId, auth.user.id))
+          .limit(1);
 
-      if (application.length === 0) {
-        app.logger.info({ userId: auth.user.id }, 'No application found');
-        return reply.status(404).send({ error: 'Application not found' });
+        if (application.length === 0) {
+          app.logger.info({ userId: auth.user.id }, 'No application found');
+          return reply.status(404).send({ error: 'Application not found' });
+        }
+
+        app.logger.info({ applicationId: application[0].id }, 'Application retrieved');
+        return application[0];
+      } catch (error) {
+        app.logger.error({ err: error, userId: request.headers.authorization }, 'Failed to fetch application');
+        await reply.status(500).send({ error: 'Failed to fetch application' });
       }
-
-      app.logger.info({ applicationId: application[0].id }, 'Application retrieved');
-      return application[0];
     }
   );
 
@@ -277,79 +287,89 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
-
-      app.logger.info({ userId: auth.user.id }, 'Uploading application photo');
-
-      // Get the file upload
-      const data = await request.file({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
-      if (!data) {
-        app.logger.warn({ userId: auth.user.id }, 'No file provided for photo upload');
-        return reply.status(400).send({ error: 'No file provided' });
-      }
-
-      // Validate MIME type or file extension
-      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-      const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-      const fileExtension = data.filename.split('.').pop()?.toLowerCase() || '';
-
-      const isValidMimeType = allowedMimes.includes(data.mimetype);
-      const isValidExtension = allowedExtensions.includes(fileExtension);
-
-      if (!isValidMimeType && !isValidExtension) {
-        app.logger.warn({ userId: auth.user.id, mimeType: data.mimetype, extension: fileExtension }, 'Invalid file type for photo upload');
-        return reply.status(400).send({ error: 'Only JPEG, PNG, and WebP images are allowed' });
-      }
-
-      let buffer: Buffer;
       try {
-        buffer = await data.toBuffer();
-      } catch (err) {
-        app.logger.error({ userId: auth.user.id, err }, 'Failed to read file buffer');
-        return reply.status(413).send({ error: 'File too large' });
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
+
+        app.logger.info({ userId: auth.user.id }, 'Uploading application photo');
+
+        // Get the file upload
+        const data = await request.file({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+        if (!data) {
+          app.logger.warn({ userId: auth.user.id }, 'No file provided for photo upload');
+          await reply.status(400).send({ error: 'No file provided' });
+          return;
+        }
+
+        // Validate MIME type or file extension
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        const fileExtension = data.filename.split('.').pop()?.toLowerCase() || '';
+
+        const isValidMimeType = allowedMimes.includes(data.mimetype);
+        const isValidExtension = allowedExtensions.includes(fileExtension);
+
+        if (!isValidMimeType && !isValidExtension) {
+          app.logger.warn({ userId: auth.user.id, mimeType: data.mimetype, extension: fileExtension }, 'Invalid file type for photo upload');
+          await reply.status(400).send({ error: 'Only JPEG, PNG, and WebP images are allowed' });
+          return;
+        }
+
+        let buffer: Buffer;
+        try {
+          buffer = await data.toBuffer();
+        } catch (err) {
+          app.logger.error({ userId: auth.user.id, err }, 'Failed to read file buffer');
+          await reply.status(413).send({ error: 'File too large' });
+          return;
+        }
+
+        // Generate storage key
+        const storageKey = `applications/photos/${Date.now()}-${data.filename}`;
+
+        // Upload to storage
+        let uploadedKey: string;
+        try {
+          uploadedKey = await app.storage.upload(storageKey, buffer);
+          app.logger.info({ userId: auth.user.id, storageKey: uploadedKey }, 'Photo uploaded to storage');
+        } catch (err) {
+          app.logger.error({ userId: auth.user.id, err }, 'Failed to upload photo to storage');
+          await reply.status(500).send({ error: 'Failed to upload photo' });
+          return;
+        }
+
+        // Record metadata in database
+        let document;
+        try {
+          const inserted = await app.db
+            .insert(appSchema.uploadedDocuments)
+            .values({
+              userId: auth.user.id,
+              filename: data.filename,
+              mimeType: data.mimetype,
+              fileData: '', // Keep empty since we're using S3
+              storageKey: uploadedKey,
+            })
+            .returning();
+          document = inserted[0];
+          app.logger.info({ userId: auth.user.id, documentId: document.id }, 'Photo metadata recorded in database');
+        } catch (err) {
+          app.logger.error({ userId: auth.user.id, err }, 'Failed to record photo metadata');
+          await reply.status(500).send({ error: 'Failed to save photo metadata' });
+          return;
+        }
+
+        // Generate public URL
+        const host = request.headers['x-forwarded-host'] || request.headers.host || 'localhost';
+        const protocol = request.headers['x-forwarded-proto'] || 'http';
+        const url = `${protocol}://${host}/api/applications/photo/${document.id}`;
+
+        app.logger.info({ userId: auth.user.id, url }, 'Photo upload completed');
+        await reply.status(201).send({ url });
+      } catch (error) {
+        app.logger.error({ err: error, userId: request.headers.authorization }, 'Failed to upload photo');
+        await reply.status(500).send({ error: 'Failed to upload photo' });
       }
-
-      // Generate storage key
-      const storageKey = `applications/photos/${Date.now()}-${data.filename}`;
-
-      // Upload to storage
-      let uploadedKey: string;
-      try {
-        uploadedKey = await app.storage.upload(storageKey, buffer);
-        app.logger.info({ userId: auth.user.id, storageKey: uploadedKey }, 'Photo uploaded to storage');
-      } catch (err) {
-        app.logger.error({ userId: auth.user.id, err }, 'Failed to upload photo to storage');
-        return reply.status(500).send({ error: 'Failed to upload photo' });
-      }
-
-      // Record metadata in database
-      let document;
-      try {
-        const inserted = await app.db
-          .insert(appSchema.uploadedDocuments)
-          .values({
-            userId: auth.user.id,
-            filename: data.filename,
-            mimeType: data.mimetype,
-            fileData: '', // Keep empty since we're using S3
-            storageKey: uploadedKey,
-          })
-          .returning();
-        document = inserted[0];
-        app.logger.info({ userId: auth.user.id, documentId: document.id }, 'Photo metadata recorded in database');
-      } catch (err) {
-        app.logger.error({ userId: auth.user.id, err }, 'Failed to record photo metadata');
-        return reply.status(500).send({ error: 'Failed to save photo metadata' });
-      }
-
-      // Generate public URL
-      const host = request.headers['x-forwarded-host'] || request.headers.host || 'localhost';
-      const protocol = request.headers['x-forwarded-proto'] || 'http';
-      const url = `${protocol}://${host}/api/applications/photo/${document.id}`;
-
-      app.logger.info({ userId: auth.user.id, url }, 'Photo upload completed');
-      return reply.status(201).send({ url });
     }
   );
 
@@ -378,40 +398,48 @@ export function register(app: App, fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      const { id } = request.params;
-      app.logger.info({ photoId: id }, 'Fetching application photo');
-
-      // Look up document by ID
-      const document = await app.db
-        .select()
-        .from(appSchema.uploadedDocuments)
-        .where(eq(appSchema.uploadedDocuments.id, id))
-        .limit(1);
-
-      if (document.length === 0) {
-        app.logger.info({ photoId: id }, 'Photo not found');
-        return reply.status(404).send({ error: 'Photo not found' });
-      }
-
-      const doc = document[0];
-      if (!doc.storageKey) {
-        app.logger.warn({ photoId: id }, 'Photo has no storage key');
-        return reply.status(404).send({ error: 'Photo not found' });
-      }
-
-      // Download from storage
-      let buffer: Buffer;
       try {
-        buffer = await app.storage.download(doc.storageKey);
-        app.logger.info({ photoId: id, storageKey: doc.storageKey }, 'Photo downloaded from storage');
-      } catch (err) {
-        app.logger.error({ photoId: id, err }, 'Failed to download photo from storage');
-        return reply.status(404).send({ error: 'Photo not found' });
-      }
+        const { id } = request.params;
+        app.logger.info({ photoId: id }, 'Fetching application photo');
 
-      // Set content type and return image
-      reply.header('Content-Type', doc.mimeType);
-      return reply.send(buffer);
+        // Look up document by ID
+        const document = await app.db
+          .select()
+          .from(appSchema.uploadedDocuments)
+          .where(eq(appSchema.uploadedDocuments.id, id))
+          .limit(1);
+
+        if (document.length === 0) {
+          app.logger.info({ photoId: id }, 'Photo not found');
+          await reply.status(404).send({ error: 'Photo not found' });
+          return;
+        }
+
+        const doc = document[0];
+        if (!doc.storageKey) {
+          app.logger.warn({ photoId: id }, 'Photo has no storage key');
+          await reply.status(404).send({ error: 'Photo not found' });
+          return;
+        }
+
+        // Download from storage
+        let buffer: Buffer;
+        try {
+          buffer = await app.storage.download(doc.storageKey);
+          app.logger.info({ photoId: id, storageKey: doc.storageKey }, 'Photo downloaded from storage');
+        } catch (err) {
+          app.logger.error({ photoId: id, err }, 'Failed to download photo from storage');
+          await reply.status(404).send({ error: 'Photo not found' });
+          return;
+        }
+
+        // Set content type and return image
+        reply.header('Content-Type', doc.mimeType);
+        return reply.send(buffer);
+      } catch (error) {
+        app.logger.error({ err: error, photoId: request.params.id }, 'Failed to fetch photo');
+        await reply.status(500).send({ error: 'Failed to fetch photo' });
+      }
     }
   );
 

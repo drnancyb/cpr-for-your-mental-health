@@ -243,6 +243,7 @@ describe("API Integration Tests", () => {
   let authToken: string;
   let authUserId: string;
   let authEmail: string;
+  let nonAdminToken: string;
   let applicationId: string;
   let uploadedPhotoId: string;
   let therapistId: string;
@@ -253,6 +254,11 @@ describe("API Integration Tests", () => {
     authToken = token;
     authUserId = user.id;
     authEmail = user.email;
+  });
+
+  test("Setup: sign up non-admin test user for role check tests", async () => {
+    const { token } = await signUpTestUser();
+    nonAdminToken = token;
   });
 
   test("Setup: get a therapist ID for saved/booking tests", async () => {
@@ -601,7 +607,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/applications returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/applications", authToken);
+    const res = await authenticatedApi("/api/admin/applications", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -649,7 +655,7 @@ describe("API Integration Tests", () => {
   test("GET /api/admin/applications/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000",
-      authToken
+      nonAdminToken
     );
     await expectStatus(res, 403);
   });
@@ -692,7 +698,7 @@ describe("API Integration Tests", () => {
   test("GET /api/admin/applications/{id}/documents returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000/documents",
-      authToken
+      nonAdminToken
     );
     await expectStatus(res, 403);
   });
@@ -739,7 +745,7 @@ describe("API Integration Tests", () => {
   test("PATCH /api/admin/applications/{id}/status returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/applications/00000000-0000-0000-0000-000000000000/status",
-      authToken,
+      nonAdminToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -876,7 +882,7 @@ describe("API Integration Tests", () => {
   });
 
   test("POST /api/admin/therapists returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/therapists", authToken, {
+    const res = await authenticatedApi("/api/admin/therapists", nonAdminToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -953,7 +959,7 @@ describe("API Integration Tests", () => {
   test("PATCH /api/admin/therapists/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
-      authToken,
+      nonAdminToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1008,7 +1014,7 @@ describe("API Integration Tests", () => {
   test("DELETE /api/admin/therapists/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000",
-      authToken,
+      nonAdminToken,
       {
         method: "DELETE",
       }
@@ -1052,7 +1058,7 @@ describe("API Integration Tests", () => {
   test("PATCH /api/admin/therapists/{id}/pin returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/therapists/00000000-0000-0000-0000-000000000000/pin",
-      authToken,
+      nonAdminToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1292,7 +1298,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/bookings returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/bookings", authToken);
+    const res = await authenticatedApi("/api/admin/bookings", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1316,7 +1322,7 @@ describe("API Integration Tests", () => {
 
   test("PATCH /api/admin/bookings/{id} returns 403 for non-admin user", async () => {
     if (bookingId) {
-      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, authToken, {
+      const res = await authenticatedApi(`/api/admin/bookings/${bookingId}`, nonAdminToken, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "confirmed" }),
@@ -1361,7 +1367,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/subscriptions returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/subscriptions", authToken);
+    const res = await authenticatedApi("/api/admin/subscriptions", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1388,7 +1394,7 @@ describe("API Integration Tests", () => {
   });
 
   test("POST /api/admin/subscriptions returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/subscriptions", authToken, {
+    const res = await authenticatedApi("/api/admin/subscriptions", nonAdminToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1444,7 +1450,7 @@ describe("API Integration Tests", () => {
   test("PATCH /api/admin/subscriptions/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/subscriptions/00000000-0000-0000-0000-000000000000",
-      authToken,
+      nonAdminToken,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1494,7 +1500,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/notifications returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/notifications", authToken);
+    const res = await authenticatedApi("/api/admin/notifications", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1521,7 +1527,7 @@ describe("API Integration Tests", () => {
   });
 
   test("POST /api/admin/notifications returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/notifications", authToken, {
+    const res = await authenticatedApi("/api/admin/notifications", nonAdminToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1569,7 +1575,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/content returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/content", authToken);
+    const res = await authenticatedApi("/api/admin/content", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1594,7 +1600,7 @@ describe("API Integration Tests", () => {
   });
 
   test("PATCH /api/admin/content/{key} returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/content/welcome-message", authToken, {
+    const res = await authenticatedApi("/api/admin/content/welcome-message", nonAdminToken, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1627,7 +1633,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/analytics returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/analytics", authToken);
+    const res = await authenticatedApi("/api/admin/analytics", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1652,7 +1658,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/support returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/support", authToken);
+    const res = await authenticatedApi("/api/admin/support", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1675,7 +1681,7 @@ describe("API Integration Tests", () => {
   });
 
   test("PATCH /api/admin/support/{id} returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", authToken, {
+    const res = await authenticatedApi("/api/admin/support/00000000-0000-0000-0000-000000000000", nonAdminToken, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "in_progress" }),
@@ -1733,7 +1739,7 @@ describe("API Integration Tests", () => {
   });
 
   test("GET /api/admin/contact-messages returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/contact-messages", authToken);
+    const res = await authenticatedApi("/api/admin/contact-messages", nonAdminToken);
     await expectStatus(res, 403);
   });
 
@@ -1756,7 +1762,7 @@ describe("API Integration Tests", () => {
   test("PATCH /api/admin/contact-messages/{id}/read returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000/read",
-      authToken,
+      nonAdminToken,
       {
         method: "PATCH",
       }
@@ -1814,7 +1820,7 @@ describe("API Integration Tests", () => {
   test("DELETE /api/admin/contact-messages/{id} returns 403 for non-admin user", async () => {
     const res = await authenticatedApi(
       "/api/admin/contact-messages/00000000-0000-0000-0000-000000000000",
-      authToken,
+      nonAdminToken,
       {
         method: "DELETE",
       }
