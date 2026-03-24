@@ -240,6 +240,25 @@ async function cleanupApplicationStatuses() {
   }
 }
 
+// Log diagnostic status counts for therapist_applications
+async function logApplicationStatusCounts() {
+  app.logger.info('Generating diagnostic report of therapist_applications statuses');
+  try {
+    const rows = await app.db.select({ status: appSchema.therapistApplications.status }).from(appSchema.therapistApplications);
+
+    const counts: Record<string, number> = {};
+    rows.forEach(row => {
+      const status = row.status || 'NULL';
+      counts[status] = (counts[status] || 0) + 1;
+    });
+
+    console.log('[startup] therapist_applications status counts:', counts);
+    app.logger.info({ counts }, 'Therapist applications status distribution');
+  } catch (err) {
+    app.logger.warn({ err }, 'Failed to generate application status diagnostics');
+  }
+}
+
 // Register routes
 therapistsRoutes.register(app, app.fastify);
 applicationsRoutes.register(app, app.fastify);
@@ -293,6 +312,10 @@ seedAppContent().catch((err) => {
 
 cleanupApplicationStatuses().catch((err) => {
   app.logger.error({ err }, 'Failed to cleanup application statuses');
+});
+
+logApplicationStatusCounts().catch((err) => {
+  app.logger.error({ err }, 'Failed to log application status counts');
 });
 
 app.logger.info('Application running');
