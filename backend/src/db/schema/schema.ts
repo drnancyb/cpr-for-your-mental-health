@@ -40,7 +40,7 @@ export const therapists = pgTable(
 
 export const therapistApplications = pgTable('therapist_applications', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull(),
+  userId: text('user_id'),
   status: text('status').notNull().default('pending'),
   name: text('name').notNull(),
   photoUrl: text('photo_url'),

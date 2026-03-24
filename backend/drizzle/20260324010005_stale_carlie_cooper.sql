@@ -1,0 +1,1 @@
+ALTER TABLE "therapist_applications" ALTER COLUMN "user_id" DROP NOT NULL;

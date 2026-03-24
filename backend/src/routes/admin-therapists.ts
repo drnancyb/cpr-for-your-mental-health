@@ -134,8 +134,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        reply.status(403);
-        return { error: 'Forbidden' };
+        return reply.status(403).send({ error: 'Forbidden' });
       }
 
       app.logger.info(
@@ -170,8 +169,7 @@ export function register(app: App, fastify: FastifyInstance) {
         'Therapist created successfully'
       );
 
-      reply.status(201);
-      return therapist[0];
+      return reply.status(201).send(therapist[0]);
     }
   );
 
@@ -251,8 +249,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        reply.status(403);
-        return { error: 'Forbidden' };
+        return reply.status(403).send({ error: 'Forbidden' });
       }
 
       const { id } = request.params;
@@ -348,8 +345,7 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        reply.status(403);
-        return { error: 'Forbidden' };
+        return reply.status(403).send({ error: 'Forbidden' });
       }
 
       const { id } = request.params;

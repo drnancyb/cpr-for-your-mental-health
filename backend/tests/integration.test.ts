@@ -378,7 +378,7 @@ describe("API Integration Tests", () => {
   // Authenticated Endpoints: Applications (User)
   // ============================================
 
-  test("POST /api/applications returns 401 without auth", async () => {
+  test("POST /api/applications allows unauthenticated submission", async () => {
     const res = await api("/api/applications", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -398,7 +398,7 @@ describe("API Integration Tests", () => {
         email: "test@example.com",
       }),
     });
-    await expectStatus(res, 401);
+    await expectStatus(res, 201);
   });
 
   test("POST /api/applications creates therapist application", async () => {

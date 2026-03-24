@@ -39,6 +39,32 @@ export function register(app: App, fastify: FastifyInstance) {
     return { user: users[0], session: sessionRecord };
   }
 
+  // Helper for optional authentication (doesn't fail if not authenticated)
+  async function optionalAuth(request: FastifyRequest) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+
+    const token = authHeader.substring(7);
+    const sessions = await app.db.select().from(authSchema.session).where(eq(authSchema.session.token, token)).limit(1);
+    if (sessions.length === 0) {
+      return null;
+    }
+
+    const sessionRecord = sessions[0];
+    if (new Date() > sessionRecord.expiresAt) {
+      return null;
+    }
+
+    const users = await app.db.select({ id: authSchema.user.id, role: authSchema.user.role }).from(authSchema.user).where(eq(authSchema.user.id, sessionRecord.userId)).limit(1);
+    if (users.length === 0) {
+      return null;
+    }
+
+    return { user: users[0], session: sessionRecord };
+  }
+
   // POST /api/applications - Create new therapist application
   fastify.post(
     '/api/applications',
@@ -89,13 +115,12 @@ export function register(app: App, fastify: FastifyInstance) {
             type: 'object',
             properties: {
               id: { type: 'string', format: 'uuid' },
-              userId: { type: 'string' },
+              userId: { type: ['string', 'null'] },
               status: { type: 'string' },
               name: { type: 'string' },
               createdAt: { type: 'string', format: 'date-time' },
             },
           },
-          401: { type: 'object', properties: { error: { type: 'string' } } },
           409: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
@@ -124,39 +149,43 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      // Optionally authenticate user, but application can be submitted without authentication
+      const auth = await optionalAuth(request);
+      const userId = auth?.user?.id || null;
 
       app.logger.info(
-        { userId: auth.user.id, name: request.body.name },
+        { userId, name: request.body.name },
         'Creating therapist application'
       );
 
-      // Check if user already has an active application (pending or approved)
+      // Check if authenticated user already has an active application (pending or approved)
       // Users with rejected or withdrawn applications can resubmit
-      const existingActiveApp = await app.db
-        .select()
-        .from(appSchema.therapistApplications)
-        .where(
-          and(
-            eq(appSchema.therapistApplications.userId, auth.user.id),
-            inArray(appSchema.therapistApplications.status, ['pending', 'approved'])
+      if (userId) {
+        const existingActiveApp = await app.db
+          .select()
+          .from(appSchema.therapistApplications)
+          .where(
+            and(
+              eq(appSchema.therapistApplications.userId, userId),
+              inArray(appSchema.therapistApplications.status, ['pending', 'approved'])
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (existingActiveApp.length > 0) {
-        app.logger.warn(
-          { userId: auth.user.id },
-          'User already has an active application'
-        );
-        return reply.status(409).send({ error: 'User already has an active application' });
+        if (existingActiveApp.length > 0) {
+          app.logger.warn(
+            { userId },
+            'User already has an active application'
+          );
+          reply.status(409);
+          return { error: 'User already has an active application' };
+        }
       }
 
       const application = await app.db
         .insert(appSchema.therapistApplications)
         .values({
-          userId: auth.user.id,
+          userId,
           status: 'pending',
           name: request.body.name,
           title: request.body.title,
@@ -178,11 +207,12 @@ export function register(app: App, fastify: FastifyInstance) {
         .returning();
 
       app.logger.info(
-        { applicationId: application[0].id, userId: auth.user.id },
+        { applicationId: application[0].id, userId },
         'Therapist application created'
       );
 
-      return reply.status(201).send(application[0]);
+      reply.status(201);
+      return application[0];
     }
   );
 
