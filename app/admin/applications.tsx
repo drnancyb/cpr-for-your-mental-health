@@ -162,7 +162,7 @@ export default function ApplicationsListScreen() {
       setApplications(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load applications.';
-      console.error('[Applications] Fetch error:', msg);
+      console.warn('[Applications] Fetch error:', msg);
       setError(msg);
     }
   }, []);
@@ -394,7 +394,7 @@ export default function ApplicationsListScreen() {
             const submittedDate = (_sd && !isNaN(_sd.getTime()))
               ? _sd.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
               : '—';
-            const initial = item.name ? item.name.charAt(0).toUpperCase() : '?';
+            const initial = item.name ? item.name.charAt(0).toUpperCase() : 'T';
             return (
               <AnimatedListItem index={index}>
                 <AnimatedPressable

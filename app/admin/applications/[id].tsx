@@ -230,7 +230,7 @@ export default function ApplicationDetailScreen() {
       setApplication(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load application.';
-      console.error('[AppDetail] Fetch error:', msg);
+      console.warn('[AppDetail] Fetch error:', msg);
       setError(msg);
     }
   }, [id]);
@@ -257,7 +257,7 @@ export default function ApplicationDetailScreen() {
               router.back();
             } catch (e: unknown) {
               const msg = e instanceof Error ? e.message : 'Failed to approve.';
-              console.error('[AppDetail] Approve error:', msg);
+              console.warn('[AppDetail] Approve error:', msg);
               Alert.alert('Error', msg);
             } finally {
               setActionLoading(false);
@@ -283,7 +283,7 @@ export default function ApplicationDetailScreen() {
       router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to reject.';
-      console.error('[AppDetail] Reject error:', msg);
+      console.warn('[AppDetail] Reject error:', msg);
       setRejectError(msg);
     } finally {
       setActionLoading(false);

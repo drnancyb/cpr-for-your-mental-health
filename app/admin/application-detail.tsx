@@ -246,7 +246,7 @@ export default function ApplicationDetailScreen() {
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load application.';
-      console.error('[AppDetail] Fetch error:', msg);
+      console.warn('[AppDetail] Fetch error:', msg);
       setError(msg);
     }
   }, [id]);
@@ -258,7 +258,7 @@ export default function ApplicationDetailScreen() {
       console.log('[AppDetail] Fetched', data.length, 'messages');
       setMessages(data);
     } catch (e: unknown) {
-      console.error('[AppDetail] Fetch messages error:', e instanceof Error ? e.message : e);
+      console.warn('[AppDetail] Fetch messages error:', e instanceof Error ? e.message : e);
     }
   }, [id]);
 
@@ -283,7 +283,7 @@ export default function ApplicationDetailScreen() {
       ]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to approve.';
-      console.error('[AppDetail] Approve error:', msg);
+      console.warn('[AppDetail] Approve error:', msg);
       Alert.alert('Error', msg);
     } finally {
       setActionLoading(false);
@@ -312,7 +312,7 @@ export default function ApplicationDetailScreen() {
       ]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to reject.';
-      console.error('[AppDetail] Reject error:', msg);
+      console.warn('[AppDetail] Reject error:', msg);
       setRejectError(msg);
     } finally {
       setActionLoading(false);
@@ -335,7 +335,7 @@ export default function ApplicationDetailScreen() {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to send message.';
-      console.error('[AppDetail] Send message error:', msg);
+      console.warn('[AppDetail] Send message error:', msg);
       Alert.alert('Error', msg);
     } finally {
       setSendingMessage(false);
