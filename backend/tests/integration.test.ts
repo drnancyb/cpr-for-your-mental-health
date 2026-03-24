@@ -2169,7 +2169,7 @@ describe("API Integration Tests", () => {
   });
 
   test("DELETE /api/admin/cleanup/therapists returns 403 for non-admin user", async () => {
-    const res = await authenticatedApi("/api/admin/cleanup/therapists", authToken, {
+    const res = await authenticatedApi("/api/admin/cleanup/therapists", nonAdminToken, {
       method: "DELETE",
     });
     await expectStatus(res, 403);

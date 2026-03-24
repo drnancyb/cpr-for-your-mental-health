@@ -76,7 +76,8 @@ export function register(app: App, fastify: FastifyInstance) {
       const userRole = (auth.user?.role as string) || 'user';
       if (userRole !== 'admin') {
         app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        return reply.status(403).send({ error: 'Forbidden' });
+        await reply.status(403).send({ error: 'Forbidden' });
+        return;
       }
 
       app.logger.info(

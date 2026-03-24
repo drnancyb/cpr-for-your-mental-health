@@ -365,65 +365,69 @@ export function register(app: App, fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      try {
+        const auth = await requireAuth(request, reply);
+        if (!auth) return;
 
-      const userRole = (auth.user?.role as string) || 'user';
-      if (userRole !== 'admin') {
-        app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
-        await reply.status(403).send({ error: 'Forbidden' });
-        return;
+        const userRole = (auth.user?.role as string) || 'user';
+        if (userRole !== 'admin') {
+          app.logger.warn({ userId: auth.user.id, userRole }, 'Non-admin user attempted admin access');
+          await reply.status(403).send({ error: 'Forbidden' });
+          return;
+        }
+
+        app.logger.info(
+          { therapistId: request.body.therapist_id, plan: request.body.plan },
+          'Creating subscription'
+        );
+
+        const subscription = await app.db
+          .insert(appSchema.therapistSubscriptions)
+          .values({
+            therapistId: request.body.therapist_id,
+            userId: auth.user.id,
+            status: request.body.status,
+            plan: request.body.plan,
+            amountPaid: request.body.amount_paid?.toString() || null,
+            expiresAt: request.body.expires_at ? new Date(request.body.expires_at) : null,
+            notes: request.body.notes || null,
+          })
+          .returning();
+
+        const therapist = await app.db
+          .select()
+          .from(appSchema.therapists)
+          .where(eq(appSchema.therapists.id, request.body.therapist_id))
+          .limit(1);
+
+        const response = {
+          id: subscription[0].id,
+          therapistId: subscription[0].therapistId,
+          status: subscription[0].status,
+          plan: subscription[0].plan,
+          amountPaid: subscription[0].amountPaid,
+          startedAt: subscription[0].startedAt,
+          expiresAt: subscription[0].expiresAt,
+          notes: subscription[0].notes,
+          createdAt: subscription[0].createdAt,
+          therapist:
+            therapist.length > 0
+              ? {
+                  id: therapist[0].id,
+                  name: therapist[0].name,
+                  email: therapist[0].email,
+                  title: therapist[0].title,
+                }
+              : null,
+        };
+
+        app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
+
+        return reply.status(201).send(response);
+      } catch (error) {
+        app.logger.error({ err: error, body: request.body }, 'Failed to create subscription');
+        return reply.status(500).send({ error: 'Failed to create subscription' });
       }
-
-      app.logger.info(
-        { therapistId: request.body.therapist_id, plan: request.body.plan },
-        'Creating subscription'
-      );
-
-      const subscription = await app.db
-        .insert(appSchema.therapistSubscriptions)
-        .values({
-          therapistId: request.body.therapist_id,
-          userId: auth.user.id,
-          status: request.body.status,
-          plan: request.body.plan,
-          amountPaid: request.body.amount_paid?.toString() || null,
-          expiresAt: request.body.expires_at ? new Date(request.body.expires_at) : null,
-          notes: request.body.notes || null,
-        })
-        .returning();
-
-      const therapist = await app.db
-        .select()
-        .from(appSchema.therapists)
-        .where(eq(appSchema.therapists.id, request.body.therapist_id))
-        .limit(1);
-
-      const response = {
-        id: subscription[0].id,
-        therapistId: subscription[0].therapistId,
-        status: subscription[0].status,
-        plan: subscription[0].plan,
-        amountPaid: subscription[0].amountPaid,
-        startedAt: subscription[0].startedAt,
-        expiresAt: subscription[0].expiresAt,
-        notes: subscription[0].notes,
-        createdAt: subscription[0].createdAt,
-        therapist:
-          therapist.length > 0
-            ? {
-                id: therapist[0].id,
-                name: therapist[0].name,
-                email: therapist[0].email,
-                title: therapist[0].title,
-              }
-            : null,
-      };
-
-      app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
-
-      reply.status(201);
-      return response;
     }
   );
 
