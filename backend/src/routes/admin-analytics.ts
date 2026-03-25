@@ -423,10 +423,11 @@ export function register(app: App, fastify: FastifyInstance) {
 
         app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
 
-        return reply.status(201).send(response);
+        reply.status(201);
+        return response;
       } catch (error) {
         app.logger.error({ err: error, body: request.body }, 'Failed to create subscription');
-        return reply.status(500).send({ error: 'Failed to create subscription' });
+        await reply.status(500).send({ error: 'Failed to create subscription' });
       }
     }
   );

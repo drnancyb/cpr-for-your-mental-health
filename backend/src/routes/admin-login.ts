@@ -119,7 +119,7 @@ export function register(app: App, fastify: FastifyInstance) {
         // Create session with token
         const sessionId = randomUUID();
         const sessionToken = randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
         await app.db.insert(authSchema.session).values({
           id: sessionId,
@@ -130,7 +130,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
         app.logger.info({ userId: user.id, email }, 'Admin login successful');
 
-        return {
+        return reply.status(200).send({
           success: true,
           user: {
             id: user.id,
@@ -139,10 +139,10 @@ export function register(app: App, fastify: FastifyInstance) {
             name: user.name,
           },
           token: sessionToken,
-        };
+        });
       } catch (err) {
         app.logger.error({ err, email }, 'Admin login error');
-        return reply.status(401).send({ success: false, error: 'Invalid credentials' });
+        return reply.status(500).send({ success: false, error: 'Internal server error' });
       }
     }
   );

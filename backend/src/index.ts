@@ -32,97 +32,101 @@ app.withAuth();
 // Enable storage for file uploads
 app.withStorage();
 
-// Seed admin user on startup with proper password hashing
+// Seed admin users on startup with proper password hashing
 async function seedAdminUser() {
-  app.logger.info('Seeding admin user');
-  try {
-    const adminEmail = 'admin@example.com';
-    const adminPassword = 'Admin@Secure123!';
-    const adminId = 'admin-seed-001';
-    const now = new Date();
+  app.logger.info('Seeding admin users');
+  const adminAccounts = [
+    { email: 'admin@example.com', password: 'Admin@Secure123!', name: 'Admin' },
+    { email: 'admin@cpr.ca', password: 'Admin1234!', name: 'CPR Admin' },
+  ];
 
-    // Hash password with bcrypt (cost factor 12)
-    const hashedPassword = await hash(adminPassword, 12);
-
-    // Upsert admin user
-    await app.db
-      .insert(authSchema.user)
-      .values({
-        id: adminId,
-        name: 'Admin',
-        email: adminEmail,
-        emailVerified: true,
-        role: 'admin',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: authSchema.user.email,
-        set: {
-          role: 'admin',
-          name: 'Admin',
-          emailVerified: true,
-          updatedAt: now,
-        },
-      });
-
-    // Get the actual user ID for this email (may differ if email already existed)
-    const adminUsers = await app.db
-      .select({ id: authSchema.user.id })
-      .from(authSchema.user)
-      .where(eq(authSchema.user.email, adminEmail))
-      .limit(1);
-
-    if (adminUsers.length === 0) {
-      app.logger.error({ email: adminEmail }, 'Failed to find admin user after upsert');
-      return;
-    }
-
-    const actualAdminId = adminUsers[0].id;
-
-    // Try to upsert credential account with conflict on (user_id, provider_id)
-    // If this fails due to missing unique constraint, fall back to delete and insert
+  for (const adminAccount of adminAccounts) {
     try {
+      const now = new Date();
+
+      // Hash password with bcrypt (cost factor 10 per spec)
+      const hashedPassword = await hash(adminAccount.password, 10);
+
+      // Upsert admin user
       await app.db
-        .insert(authSchema.account)
+        .insert(authSchema.user)
         .values({
-          id: 'admin-account-seed-001',
+          id: `${adminAccount.email.split('@')[0]}-seed`,
+          name: adminAccount.name,
+          email: adminAccount.email,
+          emailVerified: true,
+          role: 'admin',
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: authSchema.user.email,
+          set: {
+            role: 'admin',
+            name: adminAccount.name,
+            emailVerified: true,
+            updatedAt: now,
+          },
+        });
+
+      // Get the actual user ID for this email (may differ if email already existed)
+      const adminUsers = await app.db
+        .select({ id: authSchema.user.id })
+        .from(authSchema.user)
+        .where(eq(authSchema.user.email, adminAccount.email))
+        .limit(1);
+
+      if (adminUsers.length === 0) {
+        app.logger.error({ email: adminAccount.email }, 'Failed to find admin user after upsert');
+        continue;
+      }
+
+      const actualAdminId = adminUsers[0].id;
+
+      // Try to upsert credential account with conflict on (user_id, provider_id)
+      // If this fails due to missing unique constraint, fall back to delete and insert
+      try {
+        await app.db
+          .insert(authSchema.account)
+          .values({
+            id: `${adminAccount.email.split('@')[0]}-account-seed`,
+            accountId: actualAdminId,
+            providerId: 'credential',
+            userId: actualAdminId,
+            password: hashedPassword,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .onConflictDoUpdate({
+            target: [authSchema.account.userId, authSchema.account.providerId],
+            set: {
+              password: hashedPassword,
+              updatedAt: now,
+            },
+          });
+      } catch {
+        // Fallback: delete existing credential account and insert fresh
+        await app.db
+          .delete(authSchema.account)
+          .where(
+            eq(authSchema.account.userId, actualAdminId)
+          );
+
+        await app.db.insert(authSchema.account).values({
+          id: `${adminAccount.email.split('@')[0]}-account-seed`,
           accountId: actualAdminId,
           providerId: 'credential',
           userId: actualAdminId,
           password: hashedPassword,
           createdAt: now,
           updatedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: [authSchema.account.userId, authSchema.account.providerId],
-          set: {
-            password: hashedPassword,
-            updatedAt: now,
-          },
         });
-    } catch {
-      // Fallback: delete existing credential account and insert fresh
-      await app.db
-        .delete(authSchema.account)
-        .where(
-          eq(authSchema.account.userId, actualAdminId)
-        );
+      }
 
-      await app.db.insert(authSchema.account).values({
-        id: 'admin-account-seed-001',
-        accountId: actualAdminId,
-        providerId: 'credential',
-        userId: actualAdminId,
-        password: hashedPassword,
-        createdAt: now,
-        updatedAt: now,
-      });
+      app.logger.info({ email: adminAccount.email }, `[seed] Admin user seeded: ${adminAccount.email} / ${adminAccount.password}`);
+    } catch (err) {
+      app.logger.error({ err, email: adminAccount.email }, 'Failed to seed admin user');
     }
-
-    app.logger.info({}, '[seed] Admin user seeded: admin@example.com / Admin@Secure123!');
-  } catch (err) {
-    app.logger.error({ err }, 'Failed to seed admin user');
   }
 }
 

@@ -171,10 +171,11 @@ export function register(app: App, fastify: FastifyInstance) {
           'Therapist created successfully'
         );
 
-        return reply.status(201).send(therapist[0]);
+        reply.status(201);
+        return therapist[0];
       } catch (error) {
         app.logger.error({ err: error, body: request.body }, 'Failed to create therapist');
-        return reply.status(500).send({ error: 'Failed to create therapist' });
+        await reply.status(500).send({ error: 'Failed to create therapist' });
       }
     }
   );
