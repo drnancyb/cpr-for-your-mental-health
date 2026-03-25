@@ -11,8 +11,8 @@ export const authClient = createAuthClient({
   baseURL: backendUrl,
   plugins: [
     expoClient({
-      scheme: 'buildasimplemobil',
-      storagePrefix: 'buildasimplemobil',
+      scheme: 'canadianpsychologicalresources',
+      storagePrefix: 'canadianpsychologicalresources',
       storage: SecureStore,
     }),
   ],
