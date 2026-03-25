@@ -8,7 +8,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
-  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,15 +37,17 @@ export default function AdminLoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
     console.log('[AdminLogin] handleSignIn fired, email:', email);
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing Fields', 'Please enter your email and password.');
+      setErrorMessage('Please enter your email and password.');
       return;
     }
+    setErrorMessage(null);
     setLoading(true);
     try {
       const url = `${BACKEND_URL}/api/admin/login`;
@@ -60,12 +61,19 @@ export default function AdminLoginScreen() {
       if (!response.ok) {
         const text = await response.text();
         console.log('[AdminLogin] Error response body:', text);
-        let message = 'Login failed.';
-        try {
-          const parsed = JSON.parse(text);
-          message = parsed?.message || parsed?.error || message;
-        } catch {
-          message = text || message;
+        let message = `Login failed (${response.status}).`;
+        // Only try to parse JSON — ignore HTML error pages
+        if (text && !text.trimStart().startsWith('<')) {
+          try {
+            const parsed = JSON.parse(text);
+            message = parsed?.message || parsed?.error || message;
+          } catch {
+            message = text || message;
+          }
+        } else if (response.status === 401) {
+          message = 'Invalid email or password.';
+        } else if (response.status === 500) {
+          message = 'Server error — please try again later.';
         }
         throw new Error(message);
       }
@@ -81,7 +89,7 @@ export default function AdminLoginScreen() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
       console.log('[AdminLogin] Login error:', msg);
-      Alert.alert('Login Failed', msg);
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
@@ -262,6 +270,31 @@ export default function AdminLoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Inline error message */}
+          {errorMessage && (
+            <View
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: 'rgba(239, 68, 68, 0.35)',
+                paddingHorizontal: 14,
+                paddingVertical: 11,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: COLORS.danger,
+                  fontFamily: 'DMSans_400Regular',
+                  lineHeight: 18,
+                }}
+              >
+                {errorMessage}
+              </Text>
+            </View>
+          )}
 
           {/* Sign In button */}
           <TouchableOpacity
