@@ -55,7 +55,8 @@ export default function AuthScreen() {
   }
 
   if (user) {
-    return <Redirect href="/" />;
+    const dest = user.role === 'admin' ? '/admin' : '/';
+    return <Redirect href={dest as any} />;
   }
 
   const handleSubmit = async () => {
@@ -71,15 +72,17 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
+      let signedInUser;
       if (mode === 'signin') {
         console.log('[AuthScreen] Signing in with email:', email);
-        await signInWithEmail(email.trim(), password);
+        signedInUser = await signInWithEmail(email.trim(), password);
       } else {
         console.log('[AuthScreen] Signing up with email:', email, 'name:', name);
-        await signUpWithEmail(email.trim(), password, name.trim());
+        signedInUser = await signUpWithEmail(email.trim(), password, name.trim());
       }
-      console.log('[AuthScreen] Auth success, navigating to home');
-      router.replace('/');
+      const destination = signedInUser?.role === 'admin' ? '/admin' : '/';
+      console.log('[AuthScreen] Auth success, role:', signedInUser?.role, '— navigating to:', destination);
+      router.replace(destination as any);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
       console.log('[AuthScreen] Auth error:', msg);

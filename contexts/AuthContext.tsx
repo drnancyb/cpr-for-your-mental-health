@@ -23,8 +23,8 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<AuthUser>;
+  signUpWithEmail: (email: string, password: string, name: string) => Promise<AuthUser>;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchUser]);
 
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
+  const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthUser> => {
     console.log('[AuthContext] signInWithEmail called for:', email);
     let result;
     try {
@@ -120,15 +120,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // If the response already contains the user, set it immediately so navigation
     // triggers without waiting for a second round-trip.
     if ((result as any)?.data?.user) {
-      console.log('[AuthContext] Sign in: setting user from response directly:', (result as any).data.user?.email);
-      setSessionUser((result as any).data.user as AuthUser);
+      const u = (result as any).data.user as AuthUser;
+      console.log('[AuthContext] Sign in: setting user from response directly:', u.email, 'role:', u.role);
+      setSessionUser(u);
+      return u;
     } else {
       console.log('[AuthContext] Sign in succeeded, fetching fresh user session');
       await fetchUser(true);
+      // fetchUser sets sessionUser; return whatever was resolved
+      const session = await authClient.getSession();
+      const u = (session as any)?.data?.user as AuthUser | undefined;
+      if (!u) throw new Error('Sign in succeeded but could not retrieve user session.');
+      return u;
     }
   }, [fetchUser]);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string, name: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string, name: string): Promise<AuthUser> => {
     console.log('[AuthContext] signUpWithEmail called for:', email);
     let result;
     try {
@@ -143,11 +150,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     // If the response already contains the user, set it immediately.
     if ((result as any)?.data?.user) {
-      console.log('[AuthContext] Sign up: setting user from response directly:', (result as any).data.user?.email);
-      setSessionUser((result as any).data.user as AuthUser);
+      const u = (result as any).data.user as AuthUser;
+      console.log('[AuthContext] Sign up: setting user from response directly:', u.email, 'role:', u.role);
+      setSessionUser(u);
+      return u;
     } else {
       console.log('[AuthContext] Sign up succeeded, fetching user session');
       await fetchUser(true);
+      const session = await authClient.getSession();
+      const u = (session as any)?.data?.user as AuthUser | undefined;
+      if (!u) throw new Error('Sign up succeeded but could not retrieve user session.');
+      return u;
     }
   }, [fetchUser]);
 
