@@ -16,6 +16,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { DisclaimerBanner } from '@/components/disclaimer-banner';
+import Constants from 'expo-constants';
+
+const API_BASE_URL =
+  (Constants.expoConfig?.extra?.backendUrl as string) ||
+  'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
 const COLORS = {
   background: '#F4F7F5',
@@ -32,7 +37,7 @@ const COLORS = {
 };
 
 export default function AuthScreen() {
-  const { user, loading: authLoading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, loading: authLoading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, setAdminUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -72,18 +77,48 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
-      let signedInUser;
-      if (mode === 'signin') {
-        console.log('[AuthScreen] Signing in with email:', email);
-        signedInUser = await signInWithEmail(email.trim(), password);
-      } else {
+      if (mode === 'signup') {
         console.log('[AuthScreen] Signing up with email:', email, 'name:', name);
-        signedInUser = await signUpWithEmail(email.trim(), password, name.trim());
+        const signedInUser = await signUpWithEmail(email.trim(), password, name.trim());
+        console.log('[AuthScreen] Sign up success, role:', signedInUser?.role ?? '(none)', '— letting Redirect guard handle navigation');
+        return;
       }
-      // Navigation is handled by the `if (user)` Redirect guard above.
-      // Do NOT call router.replace() here — it races with the Redirect and
-      // would navigate before the role is set, always sending admins to '/'.
-      console.log('[AuthScreen] Auth success, role:', signedInUser?.role ?? '(none)', '— letting Redirect guard handle navigation');
+
+      // Sign-in: try Better Auth first, fall back to admin login if it fails
+      console.log('[AuthScreen] Signing in with email:', email);
+      let betterAuthError: string | null = null;
+      try {
+        const signedInUser = await signInWithEmail(email.trim(), password);
+        console.log('[AuthScreen] Better Auth sign-in success, role:', signedInUser?.role ?? '(none)', '— letting Redirect guard handle navigation');
+        return;
+      } catch (e: unknown) {
+        betterAuthError = e instanceof Error ? e.message : 'Sign in failed.';
+        console.log('[AuthScreen] Better Auth sign-in failed:', betterAuthError, '— trying admin fallback');
+      }
+
+      // Fallback: attempt direct admin login
+      console.log('[AuthScreen] POST', `${API_BASE_URL}/api/admin/login`, 'for:', email.trim());
+      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      console.log('[AuthScreen] Admin fallback response status:', response.status);
+      if (!response.ok) {
+        const text = await response.text();
+        console.log('[AuthScreen] Admin fallback error body:', text);
+        // Surface the original Better Auth error — admin 401 just means not an admin
+        throw new Error(betterAuthError ?? `Login failed (${response.status}).`);
+      }
+      const result = await response.json();
+      console.log('[AuthScreen] Admin fallback success:', JSON.stringify(result));
+      if (!result?.user) {
+        throw new Error('Invalid response from server — no user returned.');
+      }
+      console.log('[AuthScreen] Setting admin user:', result.user.email, 'role:', result.user.role, 'hasToken:', !!result.token);
+      setAdminUser(result.user, result.token ?? undefined);
+      console.log('[AuthScreen] Navigating to /admin');
+      router.replace('/admin');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
       console.log('[AuthScreen] Auth error:', msg);
