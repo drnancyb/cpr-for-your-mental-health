@@ -80,9 +80,10 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Signing up with email:', email, 'name:', name);
         signedInUser = await signUpWithEmail(email.trim(), password, name.trim());
       }
-      const destination = signedInUser?.role === 'admin' ? '/admin' : '/';
-      console.log('[AuthScreen] Auth success, role:', signedInUser?.role, '— navigating to:', destination);
-      router.replace(destination as any);
+      // Navigation is handled by the `if (user)` Redirect guard above.
+      // Do NOT call router.replace() here — it races with the Redirect and
+      // would navigate before the role is set, always sending admins to '/'.
+      console.log('[AuthScreen] Auth success, role:', signedInUser?.role ?? '(none)', '— letting Redirect guard handle navigation');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
       console.log('[AuthScreen] Auth error:', msg);

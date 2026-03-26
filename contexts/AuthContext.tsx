@@ -3,12 +3,54 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { authClient } from '@/lib/auth';
+import Constants from 'expo-constants';
 
 // Module-level storage for the admin token so api.ts can read it synchronously
 // without needing React context. Set when admin logs in, cleared on sign-out.
 let _adminToken: string | null = null;
 export function getAdminToken(): string | null { return _adminToken; }
 export function setAdminToken(token: string | null): void { _adminToken = token; }
+
+const BACKEND_URL =
+  (Constants.expoConfig?.extra?.backendUrl as string) ||
+  'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+
+/**
+ * After a successful Better Auth sign-in, check if the user is an admin by
+ * calling /api/admin/login with the same credentials. The Better Auth session
+ * does NOT include custom fields like `role`, so this is the only reliable way
+ * to determine admin status from the main login screen.
+ *
+ * Returns 'admin' if the backend confirms admin role, null otherwise.
+ * Never throws — a non-admin user will simply get a 401 which we ignore.
+ * Also stores the admin token in module-level storage so api.ts can use it.
+ */
+async function checkAdminRole(email: string, password: string): Promise<string | null> {
+  try {
+    console.log('[AuthContext] checkAdminRole: POST /api/admin/login for:', email);
+    const res = await fetch(`${BACKEND_URL}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    console.log('[AuthContext] checkAdminRole: status', res.status);
+    if (res.ok) {
+      const data = await res.json();
+      const role = data?.user?.role ?? null;
+      console.log('[AuthContext] checkAdminRole: confirmed role:', role);
+      if (data?.token) {
+        setAdminToken(data.token);
+        console.log('[AuthContext] checkAdminRole: admin token stored');
+      }
+      return role;
+    }
+    // 401/403 = not admin — expected for regular users, not an error
+    return null;
+  } catch (e) {
+    console.log('[AuthContext] checkAdminRole error (non-fatal):', e);
+    return null;
+  }
+}
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -36,8 +78,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
-  signInWithEmail: async () => {},
-  signUpWithEmail: async () => {},
+  signInWithEmail: async () => { return {} as AuthUser; },
+  signUpWithEmail: async () => { return {} as AuthUser; },
   signInWithGoogle: async () => {},
   signInWithApple: async () => {},
   signOut: async () => {},
@@ -70,8 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ).then(s => s).catch(() => null);
       const session = await Promise.race([sessionPromise, timeoutPromise]);
       if (session && (session as any)?.data?.user) {
-        console.log('[AuthContext] fetchUser got user:', (session as any).data.user?.email, 'role:', (session as any).data.user?.role);
-        setSessionUser((session as any).data.user as AuthUser);
+        const rawUser = (session as any).data.user as AuthUser;
+        console.log('[AuthContext] fetchUser got user:', rawUser.email, 'role from session:', rawUser.role ?? '(none)');
+        setSessionUser(rawUser);
       } else {
         setSessionUser(null);
       }
@@ -117,23 +160,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result?.error) {
       throw new Error(result.error.message || String(result.error.statusText) || 'Sign in failed');
     }
-    // If the response already contains the user, set it immediately so navigation
-    // triggers without waiting for a second round-trip.
+
+    // Get the raw user from the Better Auth response
+    let rawUser: AuthUser | undefined;
     if ((result as any)?.data?.user) {
-      const u = (result as any).data.user as AuthUser;
-      console.log('[AuthContext] Sign in: setting user from response directly:', u.email, 'role:', u.role);
-      setSessionUser(u);
-      return u;
+      rawUser = (result as any).data.user as AuthUser;
     } else {
       console.log('[AuthContext] Sign in succeeded, fetching fresh user session');
-      await fetchUser(true);
-      // fetchUser sets sessionUser; return whatever was resolved
-      const session = await authClient.getSession();
-      const u = (session as any)?.data?.user as AuthUser | undefined;
-      if (!u) throw new Error('Sign in succeeded but could not retrieve user session.');
-      return u;
+      const session = await authClient.getSession({ fetchOptions: { cache: 'no-store' } });
+      rawUser = (session as any)?.data?.user as AuthUser | undefined;
+      if (!rawUser) throw new Error('Sign in succeeded but could not retrieve user session.');
     }
-  }, [fetchUser]);
+
+    // Better Auth does NOT include custom fields like `role` in the session
+    // response. Check admin status via /api/admin/login with the same creds.
+    // For non-admin users this returns null quickly (401), so it's low overhead.
+    console.log('[AuthContext] Sign in: checking admin role for:', rawUser.email);
+    const role = await checkAdminRole(email, password);
+    const enrichedUser: AuthUser = { ...rawUser, ...(role ? { role } : {}) };
+    console.log('[AuthContext] Sign in complete:', enrichedUser.email, 'role:', enrichedUser.role ?? '(none — regular user)');
+    setSessionUser(enrichedUser);
+    return enrichedUser;
+  }, []);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, name: string): Promise<AuthUser> => {
     console.log('[AuthContext] signUpWithEmail called for:', email);
@@ -148,10 +196,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result?.error) {
       throw new Error(result.error.message || 'Sign up failed');
     }
-    // If the response already contains the user, set it immediately.
     if ((result as any)?.data?.user) {
       const u = (result as any).data.user as AuthUser;
-      console.log('[AuthContext] Sign up: setting user from response directly:', u.email, 'role:', u.role);
+      console.log('[AuthContext] Sign up: setting user from response:', u.email, 'role:', u.role ?? '(none)');
       setSessionUser(u);
       return u;
     } else {
