@@ -117,7 +117,7 @@ describe("API Integration Tests", () => {
   // Public Endpoints: Content
   // ============================================
 
-  test("GET /api/content/{key} with valid key returns 200", async () => {
+  test("GET /api/content/{key} with valid key returns 200 or 404", async () => {
     const res = await api("/api/content/welcome-message");
     await expectStatus(res, 200, 404);
   });
@@ -234,6 +234,18 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 400);
+  });
+
+  // ============================================
+  // Public Endpoints: Admin Lookup
+  // ============================================
+
+  test("GET /admin/lookup/nancy-brooks returns lookup results", async () => {
+    const res = await api("/admin/lookup/nancy-brooks");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.user_results)).toBe(true);
+    expect(Array.isArray(data.therapist_results)).toBe(true);
   });
 
   // ============================================
@@ -369,18 +381,6 @@ describe("API Integration Tests", () => {
   });
 
   // ============================================
-  // Public Endpoint: Admin Lookup
-  // ============================================
-
-  test("GET /admin/lookup/nancy-brooks returns lookup results", async () => {
-    const res = await api("/admin/lookup/nancy-brooks");
-    await expectStatus(res, 200);
-    const data = await res.json();
-    expect(Array.isArray(data.user_results)).toBe(true);
-    expect(Array.isArray(data.therapist_results)).toBe(true);
-  });
-
-  // ============================================
   // Authenticated Endpoints: Applications (User)
   // ============================================
 
@@ -510,16 +510,24 @@ describe("API Integration Tests", () => {
     uploadedPhotoId = data.url;
   });
 
-  test("POST /api/applications/upload-photo with large file returns 413", async () => {
+  test("POST /api/applications/upload-photo with large file returns 413 or fails", async () => {
     const form = new FormData();
-    // Create a large file (simulating file size validation)
-    const largeContent = "x".repeat(100 * 1024 * 1024); // 100MB
+    const largeContent = "x".repeat(100 * 1024 * 1024);
     form.append("file", createTestFile("huge.jpg", largeContent));
     const res = await authenticatedApi("/api/applications/upload-photo", authToken, {
       method: "POST",
       body: form,
     });
-    await expectStatus(res, 413, 400, 201); // May succeed or fail depending on implementation
+    await expectStatus(res, 413, 400, 201);
+  });
+
+  test("POST /api/applications/upload-photo without file returns 400", async () => {
+    const form = new FormData();
+    const res = await authenticatedApi("/api/applications/upload-photo", authToken, {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 400);
   });
 
   test("GET /api/applications/photo/{id} with non-existent ID returns 404", async () => {
@@ -591,6 +599,8 @@ describe("API Integration Tests", () => {
         phone: "555-9876",
         email: "therapist@example.com",
         website_url: "https://therapist-example.com",
+        sliding_scale: true,
+        sliding_scale_min_fee: 50,
         license_documents: ["https://example.com/license.pdf"],
       }),
     });
@@ -2040,6 +2050,15 @@ describe("API Integration Tests", () => {
     uploadedDocumentId = data.url;
   });
 
+  test("POST /api/upload/license-document without file returns 400", async () => {
+    const form = new FormData();
+    const res = await authenticatedApi("/api/upload/license-document", authToken, {
+      method: "POST",
+      body: form,
+    });
+    await expectStatus(res, 400);
+  });
+
   test("GET /api/upload/license-document/file/{id} returns 401 without auth", async () => {
     const res = await api("/api/upload/license-document/file/00000000-0000-0000-0000-000000000000");
     await expectStatus(res, 401);
@@ -2145,7 +2164,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 401);
   });
 
-  test("POST /api/admin/login with non-admin user returns 403", async () => {
+  test("POST /api/admin/login with non-admin user returns 401 or 403", async () => {
     const res = await api("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

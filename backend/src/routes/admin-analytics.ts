@@ -346,6 +346,27 @@ export function register(app: App, fastify: FastifyInstance) {
           201: {
             description: 'Subscription created',
             type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              therapistId: { type: 'string', format: 'uuid' },
+              userId: { type: 'string' },
+              status: { type: 'string' },
+              plan: { type: 'string' },
+              amountPaid: { type: ['string', 'null'] },
+              startedAt: { type: ['string', 'null'], format: 'date-time' },
+              expiresAt: { type: ['string', 'null'], format: 'date-time' },
+              notes: { type: ['string', 'null'] },
+              createdAt: { type: 'string', format: 'date-time' },
+              therapist: {
+                type: ['object', 'null'],
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  name: { type: 'string' },
+                  email: { type: 'string' },
+                  title: { type: 'string' },
+                },
+              },
+            },
           },
           401: { type: 'object', properties: { error: { type: 'string' } } },
           403: { type: 'object', properties: { error: { type: 'string' } } },
@@ -423,11 +444,10 @@ export function register(app: App, fastify: FastifyInstance) {
 
         app.logger.info({ subscriptionId: subscription[0].id }, 'Subscription created');
 
-        reply.status(201);
-        return response;
+        return reply.status(201).send(response);
       } catch (error) {
         app.logger.error({ err: error, body: request.body }, 'Failed to create subscription');
-        await reply.status(500).send({ error: 'Failed to create subscription' });
+        return reply.status(500).send({ error: 'Failed to create subscription' });
       }
     }
   );

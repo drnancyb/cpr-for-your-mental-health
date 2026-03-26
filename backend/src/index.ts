@@ -1,5 +1,5 @@
 import { createApplication } from "@specific-dev/framework";
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import * as appSchema from './db/schema/schema.js';
 import * as authSchema from './db/schema/auth-schema.js';
 import { hash } from 'bcryptjs';
@@ -127,6 +127,81 @@ async function seedAdminUser() {
     } catch (err) {
       app.logger.error({ err, email: adminAccount.email }, 'Failed to seed admin user');
     }
+  }
+}
+
+// Seed admin@cpr.ca specifically with correct password
+async function seedAdminCPR() {
+  const email = 'admin@cpr.ca';
+  const password = 'Admin1234!';
+  const name = 'Admin';
+
+  app.logger.info({ email }, 'Seeding admin@cpr.ca user');
+
+  try {
+    const now = new Date();
+    const hashedPassword = await hash(password, 10);
+
+    // Upsert user
+    await app.db
+      .insert(authSchema.user)
+      .values({
+        id: 'cpr-admin-seed',
+        name,
+        email,
+        emailVerified: true,
+        role: 'admin',
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: authSchema.user.email,
+        set: {
+          name,
+          role: 'admin',
+          emailVerified: true,
+          updatedAt: now,
+        },
+      });
+
+    // Get the actual user ID
+    const users = await app.db
+      .select({ id: authSchema.user.id })
+      .from(authSchema.user)
+      .where(eq(authSchema.user.email, email))
+      .limit(1);
+
+    if (users.length === 0) {
+      app.logger.error({ email }, 'Failed to find admin@cpr.ca after upsert');
+      return;
+    }
+
+    const userId = users[0].id;
+
+    // Delete any existing credential accounts for this user
+    await app.db
+      .delete(authSchema.account)
+      .where(
+        and(
+          eq(authSchema.account.userId, userId),
+          eq(authSchema.account.providerId, 'credential')
+        )
+      );
+
+    // Insert fresh credential account
+    await app.db.insert(authSchema.account).values({
+      id: 'cpr-admin-account-seed',
+      accountId: userId,
+      providerId: 'credential',
+      userId: userId,
+      password: hashedPassword,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    app.logger.info({ email }, `[seed] admin@cpr.ca user seeded with password: ${password}`);
+  } catch (err) {
+    app.logger.error({ err, email }, 'Failed to seed admin@cpr.ca user');
   }
 }
 
@@ -308,6 +383,10 @@ seedTestUser().catch((err) => {
 
 seedAdminUser().catch((err) => {
   app.logger.error({ err }, 'Failed to seed admin user');
+});
+
+seedAdminCPR().catch((err) => {
+  app.logger.error({ err }, 'Failed to seed admin@cpr.ca user');
 });
 
 seedAppContent().catch((err) => {

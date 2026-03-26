@@ -100,6 +100,31 @@ export function register(app: App, fastify: FastifyInstance) {
           201: {
             description: 'Therapist created',
             type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+              photoUrl: { type: 'string' },
+              title: { type: 'string' },
+              bio: { type: 'string' },
+              location: { type: 'string' },
+              gender: { type: 'string' },
+              specialties: { type: 'array', items: { type: 'string' } },
+              therapyTypes: { type: 'array', items: { type: 'string' } },
+              insurances: { type: 'array', items: { type: 'string' } },
+              acceptingNewClients: { type: 'boolean' },
+              sessionFee: { type: 'string' },
+              languages: { type: 'array', items: { type: 'string' } },
+              yearsExperience: { type: 'integer' },
+              phone: { type: 'string' },
+              email: { type: 'string' },
+              websiteUrl: { type: ['string', 'null'] },
+              slidingScale: { type: 'boolean' },
+              slidingScaleMinFee: { type: ['string', 'null'] },
+              isPinned: { type: 'boolean' },
+              licenseDocuments: { type: 'array', items: { type: 'string' } },
+              createdAt: { type: 'string', format: 'date-time' },
+              userId: { type: ['string', 'null'] },
+            },
           },
           401: { type: 'object', properties: { error: { type: 'string' } } },
           403: { type: 'object', properties: { error: { type: 'string' } } },
@@ -171,11 +196,10 @@ export function register(app: App, fastify: FastifyInstance) {
           'Therapist created successfully'
         );
 
-        reply.status(201);
-        return therapist[0];
+        return reply.status(201).send(therapist[0]);
       } catch (error) {
         app.logger.error({ err: error, body: request.body }, 'Failed to create therapist');
-        await reply.status(500).send({ error: 'Failed to create therapist' });
+        return reply.status(500).send({ error: 'Failed to create therapist' });
       }
     }
   );
