@@ -15,27 +15,17 @@ const COLORS = {
 export default function AdminLayout() {
   const { user, loading } = useAuth();
 
-  // Still loading AND no user yet — show spinner
-  if (loading && !user) {
-    console.log('[AdminLayout] Auth loading, no user yet — showing spinner');
-    return (
-      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={COLORS.primary} />
-      </View>
-    );
+  // 1. We have a user and they are admin — render immediately (covers both
+  //    adminOverride set synchronously and fully-loaded session)
+  if (user?.role === 'admin') {
+    console.log('[AdminLayout] Admin user confirmed:', user.email);
+    return <Slot />;
   }
 
-  // Done loading, no user at all — redirect to login
-  if (!loading && !user) {
-    console.log('[AdminLayout] No user — redirecting to /admin-login');
-    return <Redirect href="/admin-login" />;
-  }
-
-  // User is present but not admin — only show access denied when we are
-  // certain loading is complete (avoids flash while adminOverride is being set
-  // but the background fetchUser hasn't resolved yet)
-  if (user && user.role !== 'admin' && !loading) {
-    console.log('[AdminLayout] User is not admin (role:', user?.role, ') — showing access denied');
+  // 2. We have a user but they are NOT admin — show Access Denied regardless
+  //    of loading state (we already know who they are)
+  if (user && user.role !== 'admin') {
+    console.log('[AdminLayout] User is not admin (role:', user.role ?? 'none', ') — showing access denied');
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
@@ -51,14 +41,23 @@ export default function AdminLayout() {
     );
   }
 
-  // User is set and is admin (role check passes), or still loading but user is
-  // already present (admin override was set synchronously before fetchUser finished)
-  if (user?.role === 'admin') {
-    console.log('[AdminLayout] Admin user confirmed:', user.email);
-    return <Slot />;
+  // 3. Still loading and no user yet — show spinner
+  if (loading && !user) {
+    console.log('[AdminLayout] Auth loading, no user yet — showing spinner');
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={COLORS.primary} />
+      </View>
+    );
   }
 
-  // Fallback: still loading with a non-admin user present — keep spinner
+  // 4. Done loading, no user — redirect to login
+  if (!loading && !user) {
+    console.log('[AdminLayout] No user — redirecting to /admin-login');
+    return <Redirect href="/admin-login" />;
+  }
+
+  // 5. Fallback spinner (loading=true, user=null edge case)
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator color={COLORS.primary} />

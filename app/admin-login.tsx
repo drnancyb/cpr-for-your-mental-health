@@ -13,8 +13,11 @@ import { Stack, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Settings } from 'lucide-react-native';
+import Constants from 'expo-constants';
 
-const BACKEND_URL = 'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
+const BACKEND_URL =
+  (Constants.expoConfig?.extra?.backendUrl as string) ||
+  'https://77zgefkppvrujkkwanvht7mztqqrxrhy.app.specular.dev';
 
 const COLORS = {
   background: '#0F1E2B',

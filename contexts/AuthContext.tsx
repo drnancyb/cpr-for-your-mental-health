@@ -21,11 +21,11 @@ const BACKEND_URL =
  * does NOT include custom fields like `role`, so this is the only reliable way
  * to determine admin status from the main login screen.
  *
- * Returns 'admin' if the backend confirms admin role, null otherwise.
+ * Returns an AdminCheckResult if the backend confirms admin role, null otherwise.
  * Never throws — a non-admin user will simply get a 401 which we ignore.
  * Also stores the admin token in module-level storage so api.ts can use it.
  */
-async function checkAdminRole(email: string, password: string): Promise<string | null> {
+async function checkAdminRole(email: string, password: string): Promise<AdminCheckResult | null> {
   try {
     console.log('[AuthContext] checkAdminRole: POST /api/admin/login for:', email);
     const res = await fetch(`${BACKEND_URL}/api/admin/login`, {
@@ -36,13 +36,17 @@ async function checkAdminRole(email: string, password: string): Promise<string |
     console.log('[AuthContext] checkAdminRole: status', res.status);
     if (res.ok) {
       const data = await res.json();
-      const role = data?.user?.role ?? null;
-      console.log('[AuthContext] checkAdminRole: confirmed role:', role);
-      if (data?.token) {
-        setAdminToken(data.token);
-        console.log('[AuthContext] checkAdminRole: admin token stored');
+      const role: string | null = data?.user?.role ?? null;
+      console.log('[AuthContext] checkAdminRole: confirmed role:', role, 'hasToken:', !!data?.token);
+      if (role === 'admin' && data?.user) {
+        if (data.token) {
+          setAdminToken(data.token);
+          console.log('[AuthContext] checkAdminRole: admin token stored');
+        }
+        console.log('[AuthContext] checkAdminRole: returning admin result for:', data.user.email);
+        return { role, user: data.user as AuthUser, token: data.token as string | undefined };
       }
-      return role;
+      return null;
     }
     // 401/403 = not admin — expected for regular users, not an error
     return null;
@@ -60,6 +64,12 @@ export interface AuthUser {
   email: string;
   role?: string;
   image?: string | null;
+}
+
+interface AdminCheckResult {
+  role: string;
+  user: AuthUser;
+  token?: string;
 }
 
 interface AuthContextValue {
@@ -176,9 +186,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // response. Check admin status via /api/admin/login with the same creds.
     // For non-admin users this returns null quickly (401), so it's low overhead.
     console.log('[AuthContext] Sign in: checking admin role for:', rawUser.email);
-    const role = await checkAdminRole(email, password);
-    const enrichedUser: AuthUser = { ...rawUser, ...(role ? { role } : {}) };
-    console.log('[AuthContext] Sign in complete:', enrichedUser.email, 'role:', enrichedUser.role ?? '(none — regular user)');
+    const adminResult = await checkAdminRole(email, password);
+    if (adminResult) {
+      // Admin confirmed — use the admin endpoint's user object (has role field)
+      // and store the token. Set adminOverride so the context user is immediately
+      // correct without waiting for a Better Auth session refresh.
+      const adminUser: AuthUser = { ...rawUser, ...adminResult.user, role: adminResult.role };
+      console.log('[AuthContext] Sign in complete (admin):', adminUser.email, 'role:', adminUser.role, 'hasToken:', !!adminResult.token);
+      setAdminToken(adminResult.token ?? null);
+      setAdminOverride(adminUser);
+      setSessionUser(rawUser);
+      return adminUser;
+    }
+    const enrichedUser: AuthUser = { ...rawUser };
+    console.log('[AuthContext] Sign in complete (regular user):', enrichedUser.email);
     setSessionUser(enrichedUser);
     return enrichedUser;
   }, []);
