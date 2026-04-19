@@ -164,6 +164,7 @@ export default function AuthScreen() {
     const next = mode === 'signin' ? 'signup' : 'signin';
     console.log('[AuthScreen] Switching mode to:', next);
     setMode(next);
+    setName('');
     setError(null);
   };
 
@@ -274,7 +275,7 @@ export default function AuthScreen() {
             return (
               <TouchableOpacity
                 key={m}
-                onPress={() => { setMode(m); setError(null); }}
+                onPress={() => { setMode(m); setName(''); setError(null); }}
                 activeOpacity={0.8}
                 style={{
                   flex: 1,
